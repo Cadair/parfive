@@ -24,7 +24,7 @@ class Downloader:
         self.files = list()
         self.targets = list()
 
-    def enqueue_file(self, url, path):
+    def enqueue_file(self, url, path, **kwargs):
         """
         Add a file to the download queue.
 
@@ -36,12 +36,15 @@ class Downloader:
 
         path : `str`
             The path to retrieve the file into.
+
+        kwargs : `dict`
+            Extra keyword arguments are passed to `asyncdownloader.Downloader.get_file`.
         """
         filepath = partial(default_name, path)
-        get_file = partial(self._get_file, url=url, filepath_partial=filepath)
+        get_file = partial(self.get_file, url=url, filepath_partial=filepath, **kwargs)
         self.targets.append(get_file)
 
-    async def _get_file(self, session, *, url, filepath_partial, chunksize=100, **kwargs):
+    async def get_file(self, session, *, url, filepath_partial, chunksize=100, **kwargs):
         """
         Read the file from the given url into the filename given by ``filepath_partial``.
 
@@ -80,19 +83,19 @@ class Downloader:
                         return filepath
                     fd.write(chunk)
 
-    async def run_download(self, session):
+    async def run_download(self):
         """
         Download all files in the queue.
         """
+        with aiohttp.ClientSession(loop=self.loop) as session:
+            futures = []
+            while self.targets:
+                await self.queue.put(self.targets.pop())
+                get_file = await self.queue.get()
+                futures.append(self.loop.create_task(get_file(session)))
 
-        futures = []
-        while self.targets:
-            await self.queue.put(self.targets.pop())
-            get_file = await self.queue.get()
-            futures.append(self.loop.create_task(get_file(session)))
-
-        done, _ = await asyncio.wait(futures)
-        return asyncio.gather(*done)
+            done, _ = await asyncio.wait(futures)
+            return asyncio.gather(*done)
 
     def download(self):
         """
@@ -103,6 +106,5 @@ class Downloader:
         filenames : `list`
             A list of files downloaded.
         """
-        with aiohttp.ClientSession(loop=self.loop) as session:
-            i = self.loop.run_until_complete(self.run_download(session))
-        return i.result()
+        future = self.loop.run_until_complete(self.run_download())
+        return future.result()
