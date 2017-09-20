@@ -1,13 +1,9 @@
-asyncdownlader
-==============
+ParFive
+=======
 
-.. image:: https://img.shields.io/pypi/v/asyncdownlader.svg
-    :target: https://pypi.python.org/pypi/asyncdownlader
+.. image:: https://img.shields.io/pypi/v/parfive.svg
+    :target: https://pypi.python.org/pypi/parfive
     :alt: Latest PyPI version
-
-.. image:: https://travis-ci.org/borntyping/cookiecutter-pypackage-minimal.png
-   :target: https://travis-ci.org/borntyping/cookiecutter-pypackage-minimal
-   :alt: Latest Travis CI build status
 
 A parallel file downloader using asyncio.
 
@@ -33,4 +29,4 @@ Licence
 Authors
 -------
 
-`asyncdownlader` was written by `Stuart Mumford <http://stuartmumford.uk>`_.
+`parfive` was written by `Stuart Mumford <http://stuartmumford.uk>`_.

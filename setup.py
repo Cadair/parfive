@@ -1,12 +1,11 @@
 import setuptools
 
 setuptools.setup(
-    name="asyncdownloader",
+    name="parfive",
     version="0.1.0",
-    url="https://github.com/cadair/asyncdownloader",
+    url="https://github.com/cadair/parfive",
 
     author="Stuart Mumford",
-    author_email="stuart@cadair.com",
 
     description="A parallel file downloader using asyncio.",
     long_description=open('README.rst').read(),
