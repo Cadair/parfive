@@ -28,6 +28,23 @@ def test_download(event_loop, httpserver, tmpdir):
     assert httpserver.url[7:] in f[0]
 
 
+def test_download_filename(event_loop, httpserver, tmpdir):
+    httpserver.serve_content('SIMPLE  = T')
+
+    fname = "testing123"
+    filename = str(tmpdir.join(fname))
+
+    dl = Downloader(loop=event_loop)
+
+    dl.enqueue_file(httpserver.url, filename=filename)
+    f = dl.download()
+
+    assert isinstance(f, Results)
+    assert len(f) == 1
+
+    assert f[0] == filename
+
+
 @pytest.fixture
 def testserver(request):
     """A server that throws a 404 for the second request"""

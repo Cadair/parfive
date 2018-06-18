@@ -101,7 +101,7 @@ class Downloader:
         for i in range(max_conn):
             self.tokens.put_nowait(Token(i+1))
 
-    def enqueue_file(self, url, path, **kwargs):
+    def enqueue_file(self, url, path=None, filename=None, **kwargs):
         """
         Add a file to the download queue.
 
@@ -114,10 +114,20 @@ class Downloader:
         path : `str`
             The directory to retrieve the file into.
 
+        filename : `str`
+            The filename to save the file as.
+
         kwargs : `dict`
             Extra keyword arguments are passed to `aiohttp.ClientSession.get`.
         """
-        filepath = partial(default_name, path)
+        if path is None and filename is None:
+            raise ValueError("either directory or filename must be specified.")
+        if not filename:
+            filepath = partial(default_name, path)
+        else:
+            # Define a function because get_file expects a callback
+            def filepath(*args): return filename
+
         get_file = partial(self._get_file, url=url, filepath_partial=filepath, **kwargs)
         self.queue.put_nowait(get_file)
 
