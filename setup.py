@@ -13,9 +13,9 @@ setuptools.setup(
     packages=setuptools.find_packages(),
 
     install_requires=['aiohttp', 'tqdm'],
+    python_requires=">=3.5",
 
     classifiers=[
-        'Development Status :: 2 - Pre-Alpha',
         'Programming Language :: Python',
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.5',

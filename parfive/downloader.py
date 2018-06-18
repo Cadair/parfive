@@ -67,10 +67,27 @@ class Token:
 
 class Downloader:
     """
-    This class manages the parallel download of files.
+    Download files in parallel.
+
+    Parameters
+    ----------
+
+    max_conn : `int`, optional
+        The number of parallel download slots.
+
+    progress : `bool`, optional
+        If true a main progress bar showing how many of the total files have
+        been downloaded. If false, no progress bars will be shown at all.
+
+    file_progress : `bool`, optional
+        If true and ``progress`` is true, show ``max_conn`` progress bars
+        detailing the progress of each individual file being downloaded.
+
+    loop : `asyncio.AbstractEventLoop`, optional
+        The event loop to use to download the files.
     """
 
-    def __init__(self, max_conn=5, loop=None, progress=True, file_progress=True):
+    def __init__(self, max_conn=5, progress=True, file_progress=True, loop=None):
         if not loop:
             loop = asyncio.get_event_loop()
         self.loop = loop
@@ -189,6 +206,14 @@ class Downloader:
     async def run_download(self):
         """
         Download all files in the queue.
+
+        Returns
+        -------
+
+        results : `parfive.Results`
+            A list of filenames which successfully downloaded. This list also
+            has an attribute ``errors`` which lists any failed urls and their
+            error.
         """
         with self._get_main_pb() as main_pb:
             async with aiohttp.ClientSession(loop=self.loop) as session:
