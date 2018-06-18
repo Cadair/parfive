@@ -1,6 +1,8 @@
 import os
 import asyncio
+import contextlib
 from functools import partial
+from collections import UserList, namedtuple
 
 import aiohttp
 from tqdm import tqdm
@@ -11,15 +13,56 @@ def default_name(path, resp, url):
     return os.path.join(path, name)
 
 
+class FailedDownload(Exception):
+    def __init__(self, url, response):
+        self.url = url
+        self.response = response
+        super().__init__()
+
+    def __repr__(self):
+        out = super().__repr__()
+        out += '\n {} {}'.format(self.url, self.response)
+        return out
+
+    def __str__(self):
+        return "Download Failed: {} with error {}".format(self.url, str(self.response))
+
+
+class Results(UserList):
+    """
+    The results of a download.
+    """
+    def __init__(self, *args):
+        super().__init__(*args)
+        self._errors = list()
+        self._error = namedtuple("error", ("url", "response"))
+
+    def __repr__(self):
+        out = super().__repr__()
+        out += '\n'
+        out += repr(self.errors)
+        return out
+
+    def add_error(self, url, response):
+        """
+        Add an error to the results.
+        """
+        self._errors.append(self._error(url, response))
+
+    @property
+    def errors(self):
+        return self._errors
+
+
 class Token:
     def __init__(self, n):
         self.n = n
 
     def __repr__(self):
-        return super().__repr__() + f"n = {self.n}"
+        return super().__repr__() + "n = {}".format(self.n)
 
     def __str__(self):
-        return f"Token {self.n}"
+        return "Token {}".format(self.n)
 
 
 class Downloader:
@@ -27,14 +70,15 @@ class Downloader:
     This class manages the parallel download of files.
     """
 
-    def __init__(self, max_conn=5, loop=None):
+    def __init__(self, max_conn=5, loop=None, progress=True, file_progress=True):
         if not loop:
             loop = asyncio.get_event_loop()
         self.loop = loop
 
+        self.progress = progress
+        self.file_progress = file_progress if self.progress else False
+
         self.queue = asyncio.Queue()
-        self.files = list()
-        self.targets = list()
         self.tokens = asyncio.Queue(maxsize=max_conn)
         for i in range(max_conn):
             self.tokens.put_nowait(Token(i+1))
@@ -59,8 +103,9 @@ class Downloader:
         get_file = partial(self.get_file, url=url, filepath_partial=filepath, **kwargs)
         self.queue.put_nowait(get_file)
 
-    async def get_file(self, session, *, url, filepath_partial, chunksize=100,
-                       main_pb=None, token, **kwargs):
+    @staticmethod
+    async def get_file(session, *, url, filepath_partial, chunksize=100,
+                       main_pb=None, file_pb=True, token, **kwargs):
         """
         Read the file from the given url into the filename given by ``filepath_partial``.
 
@@ -83,6 +128,12 @@ class Downloader:
         main_pb : `tqdm.tqdm`
             Optional progressbar instance to advance when file is complete.
 
+        file_pb : `bool`
+            Should progress bars be displayed for each file downloaded.
+
+        token : `parfive.downloader.Token`
+            A token for this download slot.
+
         kwargs : `dict`
             Extra keyword arguments are passed to `~aiohttp.ClientSession.get`.
 
@@ -94,33 +145,59 @@ class Downloader:
 
         """
         async with session.get(url, **kwargs) as resp:
-            filepath = filepath_partial(resp, url)
-            fname = os.path.split(filepath)[-1]
-            file_pb = tqdm(position=token.n, unit='B', unit_scale=True, desc=fname, leave=False)
-            with open(filepath, 'wb') as fd:
-                while True:
-                    chunk = await resp.content.read(chunksize)
-                    if not chunk:
-                        if main_pb:
-                            main_pb.update(1)
+            if resp.status != 200:
+                raise FailedDownload(url, resp)
+            else:
+                filepath = filepath_partial(resp, url)
+                fname = os.path.split(filepath)[-1]
+                if file_pb:
+                    file_pb = tqdm(position=token.n, unit='B', unit_scale=True,
+                                   desc=fname, leave=False)
+                else:
+                    file_pb = None
+                with open(filepath, 'wb') as fd:
+                    while True:
+                        chunk = await resp.content.read(chunksize)
+                        if not chunk:
+                            # Update the main progressbar
+                            if main_pb:
+                                main_pb.update(1)
+                            # Close the file progressbar
+                            if file_pb is not None:
+                                file_pb.close()
+
+                            return filepath
+
+                        # Write this chunk to the output file.
+                        fd.write(chunk)
+
+                        # Update the progressbar for file
                         if file_pb is not None:
-                            file_pb.close()
-                        return filepath
-                    if file_pb is not None:
-                        file_pb.update(chunksize)
-                    fd.write(chunk)
+                            file_pb.update(chunksize)
+
+    def _get_main_pb(self):
+        """
+        Return the tqdm instance if we want it, else return a contextmanager
+        that just returns None.
+        """
+        if self.progress:
+            return tqdm(total=self.queue.qsize(), unit='file',
+                        desc="Files Downloaded")
+        else:
+            return contextlib.contextmanager(lambda: iter([None]))()
 
     async def run_download(self):
         """
         Download all files in the queue.
         """
-        with tqdm(total=self.queue.qsize(), unit='file', desc="Files Downloaded") as main_pb:
-            with aiohttp.ClientSession(loop=self.loop) as session:
+        with self._get_main_pb() as main_pb:
+            async with aiohttp.ClientSession(loop=self.loop) as session:
                 futures = []
                 while not self.queue.empty():
                     get_file = await self.queue.get()
                     token = await self.tokens.get()
-                    future = asyncio.ensure_future(get_file(session, main_pb=main_pb, token=token))
+                    future = asyncio.ensure_future(get_file(session, main_pb=main_pb, token=token,
+                                                            file_pb=self.file_progress))
 
                     def callback(token, future):
                         self.tokens.put_nowait(token)
@@ -130,8 +207,9 @@ class Downloader:
 
                 # Wait for all the coroutines to finish
                 done, _ = await asyncio.wait(futures)
-                # Return one future to represent all the results.
-                return asyncio.gather(*done)
+
+        # Return one future to represent all the results.
+        return asyncio.gather(*done, return_exceptions=True)
 
     def download(self):
         """
@@ -139,8 +217,22 @@ class Downloader:
 
         Returns
         -------
-        filenames : `list`
+        filenames : `parfive.Results`
             A list of files downloaded.
         """
         future = self.loop.run_until_complete(self.run_download())
-        return future.result()
+        dlresults = future.result()
+
+        results = Results()
+
+        # Iterate through the results and store any failed download errors in
+        # the errors list of the results object.
+        for res in dlresults:
+            if isinstance(res, FailedDownload):
+                results.add_error(res.url, res.response)
+            elif isinstance(res, Exception):
+                raise res
+            else:
+                results.append(res)
+
+        return results
