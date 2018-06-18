@@ -28,7 +28,7 @@ A simple example is::
 Results
 ^^^^^^^
 
-`parfive.Downloader.download` returns a `parfive.Results` object, which is a
+``parfive.Downloader.download`` returns a ``parfive.Results`` object, which is a
 list of the filenames that have been downloaded. It also tracks any files which
 failed to download.
 
@@ -37,17 +37,21 @@ Handling Errors
 ^^^^^^^^^^^^^^^
 
 If files fail to download, the urls and the response from the server are stored
-in the ``Results`` object returned by `parfive.Downloader`. These can be used to
+in the ``Results`` object returned by ``parfive.Downloader``. These can be used to
 inform users about the errors. (Note, the progress bar will finish in an
 incomplete state if a download fails, i.e. it will show ``4/5 Files Downloaded``).
 
-The ``Results`` object is a list with an extra attribute `errors`, this property
+The ``Results`` object is a list with an extra attribute ``errors``, this property
 returns a list of named tuples, where these named tuples contains the ``.url``
-and the ``.response``, which is a `aiohttp.ClientResponse` or a
-`aiohttp.ClientError` object.
+and the ``.response``, which is a ``aiohttp.ClientResponse`` or a
+``aiohttp.ClientError`` object.
 
 Installation
 ------------
+
+parfive is available on PyPI, you can install it with pip::
+
+  pip install parfive
 
 Requirements
 ^^^^^^^^^^^^
