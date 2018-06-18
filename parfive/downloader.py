@@ -111,13 +111,13 @@ class Downloader:
             The URL to retrieve.
 
         path : `str`
-            The path to retrieve the file into.
+            The directory to retrieve the file into.
 
         kwargs : `dict`
-            Extra keyword arguments are passed to `asyncdownloader.Downloader.get_file`.
+            Extra keyword arguments are passed to `aiohttp.ClientSession.get`.
         """
         filepath = partial(default_name, path)
-        get_file = partial(self.get_file, url=url, filepath_partial=filepath, **kwargs)
+        get_file = partial(self._get_file, url=url, filepath_partial=filepath, **kwargs)
         self.queue.put_nowait(get_file)
 
     def download(self):
@@ -129,7 +129,7 @@ class Downloader:
         filenames : `parfive.Results`
             A list of files downloaded.
         """
-        future = self.loop.run_until_complete(self.run_download())
+        future = self.loop.run_until_complete(self._run_download())
         dlresults = future.result()
 
         results = Results()
