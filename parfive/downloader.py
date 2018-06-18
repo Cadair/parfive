@@ -187,36 +187,43 @@ class Downloader:
             The name of the file saved.
 
         """
-        async with session.get(url, **kwargs) as resp:
-            if resp.status != 200:
-                raise FailedDownload(url, resp)
-            else:
-                filepath = filepath_partial(resp, url)
-                fname = os.path.split(filepath)[-1]
-                if file_pb:
-                    file_pb = tqdm(position=token.n, unit='B', unit_scale=True,
-                                   desc=fname, leave=False)
+        try:
+            async with session.get(url, **kwargs) as resp:
+                if resp.status != 200:
+                    raise FailedDownload(url, resp)
                 else:
-                    file_pb = None
-                with open(filepath, 'wb') as fd:
-                    while True:
-                        chunk = await resp.content.read(chunksize)
-                        if not chunk:
-                            # Update the main progressbar
-                            if main_pb:
-                                main_pb.update(1)
-                            # Close the file progressbar
+                    filepath = filepath_partial(resp, url)
+                    fname = os.path.split(filepath)[-1]
+                    if file_pb:
+                        file_pb = tqdm(position=token.n, unit='B', unit_scale=True,
+                                       desc=fname, leave=False)
+                    else:
+                        file_pb = None
+                    with open(filepath, 'wb') as fd:
+                        while True:
+                            chunk = await resp.content.read(chunksize)
+                            if not chunk:
+                                # Update the main progressbar
+                                if main_pb:
+                                    main_pb.update(1)
+                                    # Close the file progressbar
+                                if file_pb is not None:
+                                    file_pb.close()
+
+                                return filepath
+
+                            # Write this chunk to the output file.
+                            fd.write(chunk)
+
+                            # Update the progressbar for file
                             if file_pb is not None:
-                                file_pb.close()
+                                file_pb.update(chunksize)
 
-                            return filepath
-
-                        # Write this chunk to the output file.
-                        fd.write(chunk)
-
-                        # Update the progressbar for file
-                        if file_pb is not None:
-                            file_pb.update(chunksize)
+        # Catch all the possible aiohttp errors, which are variants on failed
+        # downloads and then send them to the user in the place of the response
+        # object.
+        except aiohttp.ClientError as e:
+            raise FailedDownload(url, e)
 
     def _get_main_pb(self):
         """

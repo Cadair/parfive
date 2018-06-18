@@ -1,5 +1,6 @@
 from unittest.mock import patch
 
+import aiohttp
 import pytest
 from pytest_localserver.http import WSGIServer
 
@@ -125,3 +126,15 @@ def test_results():
     assert "notaurl" in repr(res)
     assert "hello" in repr(res)
     assert "out of cheese" in repr(res)
+
+
+def test_notaurl(tmpdir):
+
+    dl = Downloader(progress=False)
+
+    dl.enqueue_file("http://notaurl.wibble/file", path=tmpdir)
+
+    f = dl.download()
+
+    assert len(f.errors) == 1
+    assert isinstance(f.errors[0].response, aiohttp.ClientConnectionError)

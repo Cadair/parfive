@@ -43,7 +43,8 @@ incomplete state if a download fails, i.e. it will show ``4/5 Files Downloaded``
 
 The ``Results`` object is a list with an extra attribute `errors`, this property
 returns a list of named tuples, where these named tuples contains the ``.url``
-and the ``.response``, which is a `aiohttp.ClientResponse` object.
+and the ``.response``, which is a `aiohttp.ClientResponse` or a
+`aiohttp.ClientError` object.
 
 Installation
 ------------
