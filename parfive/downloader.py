@@ -39,8 +39,9 @@ class Results(UserList):
 
     def __repr__(self):
         out = super().__repr__()
-        out += '\n'
-        out += repr(self.errors)
+        if self.errors:
+            out += '\nErrors:\n'
+            out += repr(self.errors)
         return out
 
     def add_error(self, url, response):
