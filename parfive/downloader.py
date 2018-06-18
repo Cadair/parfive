@@ -120,9 +120,35 @@ class Downloader:
         get_file = partial(self.get_file, url=url, filepath_partial=filepath, **kwargs)
         self.queue.put_nowait(get_file)
 
+    def download(self):
+        """
+        Download all files in the queue.
+
+        Returns
+        -------
+        filenames : `parfive.Results`
+            A list of files downloaded.
+        """
+        future = self.loop.run_until_complete(self.run_download())
+        dlresults = future.result()
+
+        results = Results()
+
+        # Iterate through the results and store any failed download errors in
+        # the errors list of the results object.
+        for res in dlresults:
+            if isinstance(res, FailedDownload):
+                results.add_error(res.url, res.response)
+            elif isinstance(res, Exception):
+                raise res
+            else:
+                results.append(res)
+
+        return results
+
     @staticmethod
-    async def get_file(session, *, url, filepath_partial, chunksize=100,
-                       main_pb=None, file_pb=True, token, **kwargs):
+    async def _get_file(session, *, url, filepath_partial, chunksize=100,
+                        main_pb=None, file_pb=True, token, **kwargs):
         """
         Read the file from the given url into the filename given by ``filepath_partial``.
 
@@ -203,7 +229,7 @@ class Downloader:
         else:
             return contextlib.contextmanager(lambda: iter([None]))()
 
-    async def run_download(self):
+    async def _run_download(self):
         """
         Download all files in the queue.
 
@@ -235,29 +261,3 @@ class Downloader:
 
         # Return one future to represent all the results.
         return asyncio.gather(*done, return_exceptions=True)
-
-    def download(self):
-        """
-        Download all files in the queue.
-
-        Returns
-        -------
-        filenames : `parfive.Results`
-            A list of files downloaded.
-        """
-        future = self.loop.run_until_complete(self.run_download())
-        dlresults = future.result()
-
-        results = Results()
-
-        # Iterate through the results and store any failed download errors in
-        # the errors list of the results object.
-        for res in dlresults:
-            if isinstance(res, FailedDownload):
-                results.add_error(res.url, res.response)
-            elif isinstance(res, Exception):
-                raise res
-            else:
-                results.append(res)
-
-        return results
