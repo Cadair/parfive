@@ -1,11 +1,13 @@
 import os
 import asyncio
 import contextlib
+import urllib.parse
 from functools import partial
 from collections import UserList, namedtuple
 from concurrent.futures import ThreadPoolExecutor
 
 import aiohttp
+import aioftp
 from tqdm import tqdm, tqdm_notebook
 
 
@@ -135,10 +137,13 @@ class Downloader:
             self.run_until_complete = self.loop.run_until_complete
 
         # Setup queues
-        self.queue = asyncio.Queue(loop=self.loop)
-        self.tokens = asyncio.Queue(maxsize=max_conn, loop=self.loop)
+        self.http_queue = asyncio.Queue(loop=self.loop)
+        self.http_tokens = asyncio.Queue(maxsize=max_conn, loop=self.loop)
+        self.ftp_queue = asyncio.Queue(loop=self.loop)
+        self.ftp_tokens = asyncio.Queue(maxsize=max_conn, loop=self.loop)
         for i in range(max_conn):
-            self.tokens.put_nowait(Token(i+1))
+            self.http_tokens.put_nowait(Token(i+1))
+            self.ftp_tokens.put_nowait(Token(i+1))
 
         # Configure progress bars
         self.progress = progress
@@ -172,8 +177,14 @@ class Downloader:
             # Define a function because get_file expects a callback
             def filepath(*args): return filename
 
-        get_file = partial(self._get_file, url=url, filepath_partial=filepath, **kwargs)
-        self.queue.put_nowait(get_file)
+        if url.startswith("http"):
+            get_file = partial(self._get_http, url=url, filepath_partial=filepath, **kwargs)
+            self.http_queue.put_nowait(get_file)
+        elif url.startswith("ftp"):
+            get_file = partial(self._get_ftp, url=url, filepath_partial=filepath, **kwargs)
+            self.ftp_queue.put_nowait(get_file)
+        else:
+            raise ValueError("url must start with either http or ftp")
 
     def download(self):
         """
@@ -201,13 +212,13 @@ class Downloader:
 
         return results
 
-    def _get_main_pb(self):
+    def _get_main_pb(self, total):
         """
         Return the tqdm instance if we want it, else return a contextmanager
         that just returns None.
         """
         if self.progress:
-            return self.tqdm(total=self.queue.qsize(), unit='file',
+            return self.tqdm(total=total, unit='file',
                              desc="Files Downloaded")
         else:
             return contextlib.contextmanager(lambda: iter([None]))()
@@ -224,30 +235,53 @@ class Downloader:
             has an attribute ``errors`` which lists any failed urls and their
             error.
         """
-        with self._get_main_pb() as main_pb:
-            async with aiohttp.ClientSession(loop=self.loop) as session:
-                futures = []
-                while not self.queue.empty():
-                    get_file = await self.queue.get()
-                    token = await self.tokens.get()
-                    file_pb = self.tqdm if self.file_progress else False
-                    future = asyncio.ensure_future(get_file(session, main_pb=main_pb, token=token,
-                                                            file_pb=file_pb))
-
-                    def callback(token, future):
-                        self.tokens.put_nowait(token)
-
-                    future.add_done_callback(partial(callback, token))
-                    futures.append(future)
-
-                # Wait for all the coroutines to finish
-                done, _ = await asyncio.wait(futures)
+        total_files = self.http_queue.qsize() + self.ftp_queue.qsize()
+        done = set()
+        with self._get_main_pb(total_files) as main_pb:
+            if not self.http_queue.empty():
+                done.update(await self._run_http_download(main_pb))
+            if not self.ftp_queue.empty():
+                done.update(await self._run_ftp_download(main_pb))
 
         # Return one future to represent all the results.
         return asyncio.gather(*done, return_exceptions=True)
 
+    async def _run_from_queue(self, queue, tokens, main_pb, session=None):
+        futures = []
+        while not queue.empty():
+            get_file = await queue.get()
+            token = await tokens.get()
+            file_pb = self.tqdm if self.file_progress else False
+            future = asyncio.ensure_future(get_file(session, main_pb=main_pb, token=token,
+                                                    file_pb=file_pb))
+
+            def callback(token, future):
+                tokens.put_nowait(token)
+
+            future.add_done_callback(partial(callback, token))
+            futures.append(future)
+
+        return futures
+
+    async def _run_ftp_download(self, main_pb):
+        futures = await self._run_from_queue(self.ftp_queue, self.ftp_tokens, main_pb)
+        # Wait for all the coroutines to finish
+        done, _ = await asyncio.wait(futures)
+
+        return done
+
+    async def _run_http_download(self, main_pb):
+        async with aiohttp.ClientSession(loop=self.loop) as session:
+            futures = await self._run_from_queue(self.http_queue, self.http_tokens,
+                                                 main_pb, session)
+
+            # Wait for all the coroutines to finish
+            done, _ = await asyncio.wait(futures)
+
+            return done
+
     @staticmethod
-    async def _get_file(session, *, url, filepath_partial, chunksize=100,
+    async def _get_http(session, *, url, filepath_partial, chunksize=100,
                         main_pb=None, file_pb=None, token, **kwargs):
         """
         Read the file from the given url into the filename given by ``filepath_partial``.
@@ -323,4 +357,44 @@ class Downloader:
         # downloads and then send them to the user in the place of the response
         # object.
         except aiohttp.ClientError as e:
+            raise FailedDownload(url, e)
+
+    @staticmethod
+    async def _get_ftp(session=None, *, url, filepath_partial, chunksize=100,
+                       main_pb=None, file_pb=None, token, **kwargs):
+        parse = urllib.parse.urlparse(url)
+        try:
+            async with aioftp.ClientSession(parse.netloc) as client:
+                async with client.download_stream(parse.path) as stream:
+                    # thou shalt only pass filename to ftp downloads
+                    filepath = filepath_partial()
+                    fname = os.path.split(filepath)[-1]
+                    if callable(file_pb):
+                        file_pb = file_pb(position=token.n, unit='B', unit_scale=True,
+                                          desc=fname, leave=False)
+                    else:
+                        file_pb = None
+
+                    with open(filepath, 'wb') as fd:
+                        async for chunk in stream.iter_by_block():
+                            # Write this chunk to the output file.
+                            fd.write(chunk)
+
+                            # Update the progressbar for file
+                            if file_pb is not None:
+                                file_pb.update(chunksize)
+
+                        # Update the main progressbar
+                        if main_pb:
+                            main_pb.update(1)
+                        # Close the file progressbar
+                        if file_pb is not None:
+                            file_pb.close()
+
+                        return filepath
+
+        # Catch all the possible aiohttp errors, which are variants on failed
+        # downloads and then send them to the user in the place of the response
+        # object.
+        except aioftp.StatusCodeError as e:
             raise FailedDownload(url, e)

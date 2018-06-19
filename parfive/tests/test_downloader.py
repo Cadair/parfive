@@ -12,8 +12,10 @@ def test_setup(event_loop):
 
     assert isinstance(dl, Downloader)
 
-    assert dl.queue.qsize() == 0
-    assert dl.tokens.qsize() == 5
+    assert dl.http_queue.qsize() == 0
+    assert dl.http_tokens.qsize() == 5
+    assert dl.ftp_queue.qsize() == 0
+    assert dl.ftp_tokens.qsize() == 5
 
 
 def test_download(event_loop, httpserver, tmpdir):

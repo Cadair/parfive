@@ -12,7 +12,7 @@ setuptools.setup(
 
     packages=setuptools.find_packages(),
 
-    install_requires=['aiohttp', 'tqdm'],
+    install_requires=['aiohttp', 'aioftp', 'tqdm'],
     python_requires=">=3.5",
 
     classifiers=[
