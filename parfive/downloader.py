@@ -3,11 +3,10 @@ import asyncio
 import contextlib
 from functools import partial
 from collections import UserList, namedtuple
+from concurrent.futures import ThreadPoolExecutor
 
 import aiohttp
 from tqdm import tqdm, tqdm_notebook
-
-from concurrent.futures import ThreadPoolExecutor
 
 
 def default_name(path, resp, url):
@@ -94,8 +93,9 @@ class Token:
 
 def run_in_thread(aio_pool, loop, coro):
     """
-    This function aims to mimic the behavior of ``loop.run_until_complete``
-    when the first two arguments are partialed away.
+    This function returns the asyncio Future after running the loop in a
+    thread. This makes the return value of this function the same as the return
+    of ``loop.run_until_complete``.
     """
     return aio_pool.submit(loop.run_until_complete, coro).result()
 
@@ -203,7 +203,7 @@ class Downloader:
 
     @staticmethod
     async def _get_file(session, *, url, filepath_partial, chunksize=100,
-                        main_pb=None, file_pb=True, token, **kwargs):
+                        main_pb=None, file_pb=None, token, **kwargs):
         """
         Read the file from the given url into the filename given by ``filepath_partial``.
 
@@ -226,7 +226,7 @@ class Downloader:
         main_pb : `tqdm.tqdm`
             Optional progressbar instance to advance when file is complete.
 
-        file_pb : `tqdm.tqdm` or `bool`
+        file_pb : `tqdm.tqdm` or `False`
             Should progress bars be displayed for each file downloaded.
 
         token : `parfive.downloader.Token`
@@ -249,7 +249,7 @@ class Downloader:
                 else:
                     filepath = filepath_partial(resp, url)
                     fname = os.path.split(filepath)[-1]
-                    if file_pb:
+                    if callable(file_pb):
                         file_pb = file_pb(position=token.n, unit='B', unit_scale=True,
                                           desc=fname, leave=False)
                     else:
