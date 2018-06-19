@@ -159,6 +159,7 @@ def test_notaurl(tmpdir):
     assert isinstance(f.errors[0].response, aiohttp.ClientConnectionError)
 
 
+@pytest.mark.remote_data
 def test_ftp(tmpdir):
     dl = Downloader()
 

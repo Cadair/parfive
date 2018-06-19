@@ -364,11 +364,46 @@ class Downloader:
             raise FailedDownload(url, e)
 
     @staticmethod
-    async def _get_ftp(session=None, *, url, filepath_partial, chunksize=100,
+    async def _get_ftp(session=None, *, url, filepath_partial,
                        main_pb=None, file_pb=None, token, **kwargs):
+        """
+        Read the file from the given url into the filename given by ``filepath_partial``.
+
+        Parameters
+        ----------
+
+        session : `None`
+            A placeholder for API compatibility with ``_get_http``
+
+        url : `str`
+            The url to retrieve.
+
+        filepath_partial : `callable`
+            A function to call which returns the filepath to save the url to.
+            Takes two arguments ``resp, url``.
+
+        main_pb : `tqdm.tqdm`
+            Optional progressbar instance to advance when file is complete.
+
+        file_pb : `tqdm.tqdm` or `False`
+            Should progress bars be displayed for each file downloaded.
+
+        token : `parfive.downloader.Token`
+            A token for this download slot.
+
+        kwargs : `dict`
+            Extra keyword arguments are passed to `~aioftp.ClientSession`.
+
+        Returns
+        -------
+
+        filepath : `str`
+            The name of the file saved.
+
+        """
         parse = urllib.parse.urlparse(url)
         try:
-            async with aioftp.ClientSession(parse.netloc) as client:
+            async with aioftp.ClientSession(parse.netloc, **kwargs) as client:
                 async with client.download_stream(parse.path) as stream:
                     filepath = filepath_partial(None, url)
                     fname = os.path.split(filepath)[-1]
@@ -385,7 +420,7 @@ class Downloader:
 
                             # Update the progressbar for file
                             if file_pb is not None:
-                                file_pb.update(chunksize)
+                                file_pb.update(len(chunk))
 
                         # Update the main progressbar
                         if main_pb:
