@@ -201,6 +201,51 @@ class Downloader:
 
         return results
 
+    def _get_main_pb(self):
+        """
+        Return the tqdm instance if we want it, else return a contextmanager
+        that just returns None.
+        """
+        if self.progress:
+            return self.tqdm(total=self.queue.qsize(), unit='file',
+                             desc="Files Downloaded")
+        else:
+            return contextlib.contextmanager(lambda: iter([None]))()
+
+    async def _run_download(self):
+        """
+        Download all files in the queue.
+
+        Returns
+        -------
+
+        results : `parfive.Results`
+            A list of filenames which successfully downloaded. This list also
+            has an attribute ``errors`` which lists any failed urls and their
+            error.
+        """
+        with self._get_main_pb() as main_pb:
+            async with aiohttp.ClientSession(loop=self.loop) as session:
+                futures = []
+                while not self.queue.empty():
+                    get_file = await self.queue.get()
+                    token = await self.tokens.get()
+                    file_pb = self.tqdm if self.file_progress else False
+                    future = asyncio.ensure_future(get_file(session, main_pb=main_pb, token=token,
+                                                            file_pb=file_pb))
+
+                    def callback(token, future):
+                        self.tokens.put_nowait(token)
+
+                    future.add_done_callback(partial(callback, token))
+                    futures.append(future)
+
+                # Wait for all the coroutines to finish
+                done, _ = await asyncio.wait(futures)
+
+        # Return one future to represent all the results.
+        return asyncio.gather(*done, return_exceptions=True)
+
     @staticmethod
     async def _get_file(session, *, url, filepath_partial, chunksize=100,
                         main_pb=None, file_pb=None, token, **kwargs):
@@ -279,48 +324,3 @@ class Downloader:
         # object.
         except aiohttp.ClientError as e:
             raise FailedDownload(url, e)
-
-    def _get_main_pb(self):
-        """
-        Return the tqdm instance if we want it, else return a contextmanager
-        that just returns None.
-        """
-        if self.progress:
-            return self.tqdm(total=self.queue.qsize(), unit='file',
-                             desc="Files Downloaded")
-        else:
-            return contextlib.contextmanager(lambda: iter([None]))()
-
-    async def _run_download(self):
-        """
-        Download all files in the queue.
-
-        Returns
-        -------
-
-        results : `parfive.Results`
-            A list of filenames which successfully downloaded. This list also
-            has an attribute ``errors`` which lists any failed urls and their
-            error.
-        """
-        with self._get_main_pb() as main_pb:
-            async with aiohttp.ClientSession(loop=self.loop) as session:
-                futures = []
-                while not self.queue.empty():
-                    get_file = await self.queue.get()
-                    token = await self.tokens.get()
-                    file_pb = self.tqdm if self.file_progress else False
-                    future = asyncio.ensure_future(get_file(session, main_pb=main_pb, token=token,
-                                                            file_pb=file_pb))
-
-                    def callback(token, future):
-                        self.tokens.put_nowait(token)
-
-                    future.add_done_callback(partial(callback, token))
-                    futures.append(future)
-
-                # Wait for all the coroutines to finish
-                done, _ = await asyncio.wait(futures)
-
-        # Return one future to represent all the results.
-        return asyncio.gather(*done, return_exceptions=True)
