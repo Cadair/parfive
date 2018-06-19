@@ -157,3 +157,16 @@ def test_notaurl(tmpdir):
 
     assert len(f.errors) == 1
     assert isinstance(f.errors[0].response, aiohttp.ClientConnectionError)
+
+
+def test_ftp(tmpdir):
+    dl = Downloader()
+
+    dl.enqueue_file("ftp://ftp.swpc.noaa.gov/pub/warehouse/2011/2011_SRS.tar.gz", path=tmpdir)
+    dl.enqueue_file("ftp://ftp.swpc.noaa.gov/pub/warehouse/2011/2013_SRS.tar.gz", path=tmpdir)
+    dl.enqueue_file("ftp://ftp.swpc.noaa.gov/pub/_SRS.tar.gz", path=tmpdir)
+    dl.enqueue_file("ftp://notaserver/notafile.fileL", path=tmpdir)
+
+    f = dl.download()
+    assert len(f) == 1
+    assert len(f.errors) == 3

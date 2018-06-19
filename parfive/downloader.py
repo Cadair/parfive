@@ -12,7 +12,11 @@ from tqdm import tqdm, tqdm_notebook
 
 
 def default_name(path, resp, url):
-    name = resp.headers.get("Content-Disposition", url.split('/')[-1])
+    url_filename = url.split('/')[-1]
+    if resp:
+        name = resp.headers.get("Content-Disposition", url_filename)
+    else:
+        name = url_filename
     return os.path.join(path, name)
 
 
@@ -366,8 +370,7 @@ class Downloader:
         try:
             async with aioftp.ClientSession(parse.netloc) as client:
                 async with client.download_stream(parse.path) as stream:
-                    # thou shalt only pass filename to ftp downloads
-                    filepath = filepath_partial()
+                    filepath = filepath_partial(None, url)
                     fname = os.path.split(filepath)[-1]
                     if callable(file_pb):
                         file_pb = file_pb(position=token.n, unit='B', unit_scale=True,
@@ -393,8 +396,8 @@ class Downloader:
 
                         return filepath
 
-        # Catch all the possible aiohttp errors, which are variants on failed
-        # downloads and then send them to the user in the place of the response
-        # object.
-        except aioftp.StatusCodeError as e:
+        # Catch all the possible aioftp errors, and socket errors (when a
+        # server is not found) which are variants on failed downloads and then
+        # send them to the user in the place of the response object.
+        except (aioftp.StatusCodeError, OSError) as e:
             raise FailedDownload(url, e)
