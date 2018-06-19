@@ -5,7 +5,9 @@ from functools import partial
 from collections import UserList, namedtuple
 
 import aiohttp
-from tqdm import tqdm
+from tqdm import tqdm, tqdm_notebook
+
+from concurrent.futures import ThreadPoolExecutor
 
 
 def default_name(path, resp, url):
@@ -66,6 +68,14 @@ class Token:
         return "Token {}".format(self.n)
 
 
+def run_in_thread(aio_pool, loop, coro):
+    """
+    This function aims to mimic the behavior of ``loop.run_until_complete``
+    when the first two arguments are partialed away.
+    """
+    return aio_pool.submit(loop.run_until_complete, coro).result()
+
+
 class Downloader:
     """
     Download files in parallel.
@@ -85,21 +95,31 @@ class Downloader:
         detailing the progress of each individual file being downloaded.
 
     loop : `asyncio.AbstractEventLoop`, optional
-        The event loop to use to download the files.
+        The event loop to use to download the files. If not specified a new
+        loop will be created and executed in a new thread so it does not
+        interfere with any currently running event loop.
     """
 
-    def __init__(self, max_conn=5, progress=True, file_progress=True, loop=None):
+    def __init__(self, max_conn=5, progress=True, file_progress=True, loop=None, notebook=False):
+        # Setup asyncio loops
         if not loop:
-            loop = asyncio.get_event_loop()
-        self.loop = loop
+            aio_pool = ThreadPoolExecutor(1)
+            self.loop = asyncio.new_event_loop()
+            self.run_until_complete = partial(run_in_thread, aio_pool, self.loop)
+        else:
+            self.loop = loop
+            self.run_until_complete = self.loop.run_until_complete
 
-        self.progress = progress
-        self.file_progress = file_progress if self.progress else False
-
-        self.queue = asyncio.Queue()
-        self.tokens = asyncio.Queue(maxsize=max_conn)
+        # Setup queues
+        self.queue = asyncio.Queue(loop=self.loop)
+        self.tokens = asyncio.Queue(maxsize=max_conn, loop=self.loop)
         for i in range(max_conn):
             self.tokens.put_nowait(Token(i+1))
+
+        # Configure progress bars
+        self.progress = progress
+        self.file_progress = file_progress if self.progress else False
+        self.tqdm = tqdm if not notebook else tqdm_notebook
 
     def enqueue_file(self, url, path=None, filename=None, **kwargs):
         """
@@ -140,7 +160,7 @@ class Downloader:
         filenames : `parfive.Results`
             A list of files downloaded.
         """
-        future = self.loop.run_until_complete(self._run_download())
+        future = self.run_until_complete(self._run_download())
         dlresults = future.result()
 
         results = Results()
@@ -182,7 +202,7 @@ class Downloader:
         main_pb : `tqdm.tqdm`
             Optional progressbar instance to advance when file is complete.
 
-        file_pb : `bool`
+        file_pb : `tqdm.tqdm` or `bool`
             Should progress bars be displayed for each file downloaded.
 
         token : `parfive.downloader.Token`
@@ -206,8 +226,8 @@ class Downloader:
                     filepath = filepath_partial(resp, url)
                     fname = os.path.split(filepath)[-1]
                     if file_pb:
-                        file_pb = tqdm(position=token.n, unit='B', unit_scale=True,
-                                       desc=fname, leave=False)
+                        file_pb = file_pb(position=token.n, unit='B', unit_scale=True,
+                                          desc=fname, leave=False)
                     else:
                         file_pb = None
                     with open(filepath, 'wb') as fd:
@@ -242,8 +262,8 @@ class Downloader:
         that just returns None.
         """
         if self.progress:
-            return tqdm(total=self.queue.qsize(), unit='file',
-                        desc="Files Downloaded")
+            return self.tqdm(total=self.queue.qsize(), unit='file',
+                             desc="Files Downloaded")
         else:
             return contextlib.contextmanager(lambda: iter([None]))()
 
@@ -265,8 +285,9 @@ class Downloader:
                 while not self.queue.empty():
                     get_file = await self.queue.get()
                     token = await self.tokens.get()
+                    file_pb = self.tqdm if self.file_progress else False
                     future = asyncio.ensure_future(get_file(session, main_pb=main_pb, token=token,
-                                                            file_pb=self.file_progress))
+                                                            file_pb=file_pb))
 
                     def callback(token, future):
                         self.tokens.put_nowait(token)
