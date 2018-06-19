@@ -170,6 +170,9 @@ class Downloader:
         filename : `str`
             The filename to save the file as.
 
+        chunksize : `int`
+            The size (in bytes) of the chunks to be downloaded for HTTP downloads.
+
         kwargs : `dict`
             Extra keyword arguments are passed to `aiohttp.ClientSession.get`.
         """

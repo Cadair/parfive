@@ -38,7 +38,7 @@ def test_download_filename(event_loop, httpserver, tmpdir):
 
     dl = Downloader(loop=event_loop)
 
-    dl.enqueue_file(httpserver.url, filename=filename)
+    dl.enqueue_file(httpserver.url, filename=filename, chunksize=200)
     f = dl.download()
 
     assert isinstance(f, Results)
