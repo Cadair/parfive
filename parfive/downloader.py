@@ -10,6 +10,14 @@ import aiohttp
 import aioftp
 from tqdm import tqdm, tqdm_notebook
 
+def in_notebook():
+    try:
+        import ipykernel.zmqshell
+        shell = get_ipython()
+        return isinstance(shell, ipykernel.zmqshell.ZMQInteractiveShell)
+    except Exception:
+        return False
+
 
 def default_name(path, resp, url):
     url_filename = url.split('/')[-1]
@@ -128,9 +136,13 @@ class Downloader:
         The event loop to use to download the files. If not specified a new
         loop will be created and executed in a new thread so it does not
         interfere with any currently running event loop.
+
+    notebook : `bool`
+        If `True` tqdm will be used in notebook mode. If `None` an attempt will
+        be made to detect the notebook and guess which progress bar to use.
     """
 
-    def __init__(self, max_conn=5, progress=True, file_progress=True, loop=None, notebook=False):
+    def __init__(self, max_conn=5, progress=True, file_progress=True, loop=None, notebook=None):
         # Setup asyncio loops
         if not loop:
             aio_pool = ThreadPoolExecutor(1)
@@ -150,6 +162,8 @@ class Downloader:
             self.ftp_tokens.put_nowait(Token(i+1))
 
         # Configure progress bars
+        if notebook is None:
+            notebook = in_notebook()
         self.progress = progress
         self.file_progress = file_progress if self.progress else False
         self.tqdm = tqdm if not notebook else tqdm_notebook
