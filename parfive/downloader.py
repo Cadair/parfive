@@ -181,8 +181,9 @@ class Downloader:
         path : `str`
             The directory to retrieve the file into.
 
-        filename : `str`
-            The filename to save the file as.
+        filename : `str` or `callable`
+            The filename to save the file as. Can also be a callable which
+            takes no arguments and returns the path.
 
         chunksize : `int`
             The size (in bytes) of the chunks to be downloaded for HTTP downloads.
@@ -191,9 +192,11 @@ class Downloader:
             Extra keyword arguments are passed to `aiohttp.ClientSession.get`.
         """
         if path is None and filename is None:
-            raise ValueError("either directory or filename must be specified.")
+            raise ValueError("either path or filename must be specified.")
         if not filename:
             filepath = partial(default_name, path)
+        elif callable(filename):
+            filepath = filename
         else:
             # Define a function because get_file expects a callback
             def filepath(*args): return filename
