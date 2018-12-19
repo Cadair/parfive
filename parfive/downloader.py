@@ -8,8 +8,12 @@ from collections import UserList, namedtuple
 from concurrent.futures import ThreadPoolExecutor
 
 import aiohttp
-import aioftp
 from tqdm import tqdm, tqdm_notebook
+
+try:
+    import aioftp
+except ImportError:
+    aioftp = None
 
 
 def in_notebook():
@@ -207,6 +211,8 @@ class Downloader:
             get_file = partial(self._get_http, url=url, filepath_partial=filepath, **kwargs)
             self.http_queue.put_nowait(get_file)
         elif url.startswith("ftp"):
+            if aioftp is None:
+                raise ValueError("The aioftp package must be installed to download over FTP")
             get_file = partial(self._get_ftp, url=url, filepath_partial=filepath, **kwargs)
             self.ftp_queue.put_nowait(get_file)
         else:

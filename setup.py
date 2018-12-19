@@ -12,7 +12,8 @@ setuptools.setup(
 
     packages=setuptools.find_packages(),
 
-    install_requires=['aiohttp', 'aioftp', 'tqdm'],
+    install_requires=['aiohttp', 'tqdm'],
+    extras_require={'ftp': ['aioftp']},
     python_requires=">=3.5",
 
     classifiers=[

@@ -53,12 +53,17 @@ parfive is available on PyPI, you can install it with pip::
 
   pip install parfive
 
+or if you want to use FTP downloads::
+
+  pip install parfive[ftp]
+
 Requirements
 ^^^^^^^^^^^^
 
 - Python 3.5+
 - aiohttp
 - tqdm
+- aioftp (for downloads over FTP)
 
 Licence
 -------
