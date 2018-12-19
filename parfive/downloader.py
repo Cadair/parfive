@@ -10,10 +10,11 @@ import aiohttp
 import aioftp
 from tqdm import tqdm, tqdm_notebook
 
+
 def in_notebook():
     try:
         import ipykernel.zmqshell
-        shell = get_ipython()
+        shell = get_ipython()  # noqa
         return isinstance(shell, ipykernel.zmqshell.ZMQInteractiveShell)
     except Exception:
         return False
@@ -423,7 +424,9 @@ class Downloader:
         """
         parse = urllib.parse.urlparse(url)
         try:
-            async with aioftp.ClientSession(parse.netloc, **kwargs) as client:
+            async with aioftp.ClientSession(parse.hostname, **kwargs) as client:
+                if parse.username and parse.password:
+                    client.login(parse.username, parse.password)
                 async with client.download_stream(parse.path) as stream:
                     filepath = filepath_partial(None, url)
                     fname = os.path.split(filepath)[-1]
