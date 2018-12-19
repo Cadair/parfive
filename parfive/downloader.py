@@ -221,7 +221,10 @@ class Downloader:
         filenames : `parfive.Results`
             A list of files downloaded.
         """
-        future = self.run_until_complete(self._run_download())
+        try:
+            future = self.run_until_complete(self._run_download())
+        finally:
+            self.loop.stop()
         dlresults = future.result()
 
         results = Results()
