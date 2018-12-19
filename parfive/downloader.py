@@ -189,7 +189,8 @@ class Downloader:
 
         filename : `str` or `callable`
             The filename to save the file as. Can also be a callable which
-            takes no arguments and returns the path.
+            takes two arguments the url and the response object from opening
+            that URL, and returns the filename.
 
         chunksize : `int`
             The size (in bytes) of the chunks to be downloaded for HTTP downloads.

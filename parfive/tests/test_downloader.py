@@ -30,6 +30,18 @@ def test_download(event_loop, httpserver, tmpdir):
     assert httpserver.url[7:] in f[0]
 
 
+def test_download_partial(event_loop, httpserver, tmpdir):
+    httpserver.serve_content('SIMPLE  = T')
+    dl = Downloader(loop=event_loop)
+
+    dl.enqueue_file(httpserver.url, filename=lambda resp, url: tmpdir/"filename")
+    f = dl.download()
+    assert len(f) == 1
+
+    # strip the http://
+    assert "filename" in f[0]
+
+
 def test_download_filename(event_loop, httpserver, tmpdir):
     httpserver.serve_content('SIMPLE  = T')
 
