@@ -171,3 +171,20 @@ def test_ftp(tmpdir):
     f = dl.download()
     assert len(f) == 1
     assert len(f.errors) == 3
+
+
+@pytest.mark.remote_data
+def test_ftp_http(tmpdir, httpserver):
+    httpserver.serve_content('SIMPLE  = T')
+    dl = Downloader()
+
+    dl.enqueue_file("ftp://ftp.swpc.noaa.gov/pub/warehouse/2011/2011_SRS.tar.gz", path=tmpdir)
+    dl.enqueue_file("ftp://ftp.swpc.noaa.gov/pub/warehouse/2011/2013_SRS.tar.gz", path=tmpdir)
+    dl.enqueue_file("ftp://ftp.swpc.noaa.gov/pub/_SRS.tar.gz", path=tmpdir)
+    dl.enqueue_file("ftp://notaserver/notafile.fileL", path=tmpdir)
+    dl.enqueue_file(httpserver.url, path=tmpdir)
+    dl.enqueue_file("http://noaurl.notadomain/noafile", path=tmpdir)
+
+    f = dl.download()
+    assert len(f) == 2
+    assert len(f.errors) == 4
