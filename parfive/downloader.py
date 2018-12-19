@@ -1,5 +1,6 @@
-import os
+# import os
 import asyncio
+import pathlib
 import contextlib
 import urllib.parse
 from functools import partial
@@ -26,7 +27,7 @@ def default_name(path, resp, url):
         name = resp.headers.get("Content-Disposition", url_filename)
     else:
         name = url_filename
-    return os.path.join(path, name)
+    return pathlib.Path(path) / name
 
 
 class FailedDownload(Exception):
@@ -351,8 +352,10 @@ class Downloader:
                 if resp.status != 200:
                     raise FailedDownload(url, resp)
                 else:
-                    filepath = filepath_partial(resp, url)
-                    fname = os.path.split(filepath)[-1]
+                    filepath = pathlib.Path(filepath_partial(resp, url))
+                    if not filepath.parent.exists():
+                        filepath.parent.mkdir(parents=True)
+                    fname = filepath.name
                     if callable(file_pb):
                         file_pb = file_pb(position=token.n, unit='B', unit_scale=True,
                                           desc=fname, leave=False)
@@ -369,7 +372,7 @@ class Downloader:
                                 if file_pb is not None:
                                     file_pb.close()
 
-                                return filepath
+                                return str(filepath)
 
                             # Write this chunk to the output file.
                             fd.write(chunk)
@@ -428,8 +431,10 @@ class Downloader:
                 if parse.username and parse.password:
                     client.login(parse.username, parse.password)
                 async with client.download_stream(parse.path) as stream:
-                    filepath = filepath_partial(None, url)
-                    fname = os.path.split(filepath)[-1]
+                    filepath = pathlib.Path(filepath_partial(None, url))
+                    if not filepath.parent.exists():
+                        filepath.parent.mkdir(parents=True)
+                    fname = filepath.name
                     if callable(file_pb):
                         file_pb = file_pb(position=token.n, unit='B', unit_scale=True,
                                           desc=fname, leave=False)
@@ -452,7 +457,7 @@ class Downloader:
                         if file_pb is not None:
                             file_pb.close()
 
-                        return filepath
+                        return str(filepath)
 
         # Catch all the possible aioftp errors, and socket errors (when a
         # server is not found) which are variants on failed downloads and then
