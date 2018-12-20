@@ -275,7 +275,7 @@ class Downloader:
                                           total=get_http_size(resp))
                     else:
                         file_pb = None
-                    with open(filepath, 'wb') as fd:
+                    with open(str(filepath), 'wb') as fd:
                         while True:
                             chunk = await resp.content.read(chunksize)
                             if not chunk:
@@ -358,7 +358,7 @@ class Downloader:
                     else:
                         file_pb = None
 
-                    with open(filepath, 'wb') as fd:
+                    with open(str(filepath), 'wb') as fd:
                         async for chunk in stream.iter_by_block():
                             # Write this chunk to the output file.
                             fd.write(chunk)
