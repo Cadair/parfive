@@ -18,6 +18,9 @@ except ImportError:
     aioftp = None
 
 
+__all__ = ['Downloader']
+
+
 class Downloader:
     """
     Download files in parallel.
