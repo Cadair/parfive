@@ -5,8 +5,8 @@ skip-check: &skip-check
 apt-run: &apt-install
   name: Install apt packages
   command: |
-    apt update
-    apt install -y graphviz build-essential
+    sudo apt update
+    sudo apt install -y graphviz build-essential
 
 tox-install: &tox-install
   name: Install Tox
