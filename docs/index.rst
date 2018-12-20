@@ -30,6 +30,9 @@ or with FTP support::
   pip install parfive[ftp]
 
 
+or from `GitHub <https://github.com/Cadair/parfive>`__.
+
+
 Usage
 -----
 
