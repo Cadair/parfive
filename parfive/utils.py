@@ -21,6 +21,33 @@ def default_name(path, resp, url):
     return pathlib.Path(path) / name
 
 
+def run_in_thread(aio_pool, loop, coro):
+    """
+    This function returns the asyncio Future after running the loop in a
+    thread. This makes the return value of this function the same as the return
+    of ``loop.run_until_complete``.
+    """
+    return aio_pool.submit(loop.run_until_complete, coro).result()
+
+
+def get_ftp_size(client, filepath):
+    """
+    Given an `aioftp.ClientSession` object get the expected size of the file,
+    return ``None`` if the size can not be determined.
+    """
+    try:
+        size = client.stat(filepath).get("size", None)
+    except Exception:
+        size = None
+
+    return int(size) if size else size
+
+
+def get_http_size(resp):
+    size = resp.headers.get("content-length", None)
+    return int(size) if size else size
+
+
 class FailedDownload(Exception):
     def __init__(self, url, response):
         self.url = url
@@ -45,12 +72,3 @@ class Token:
 
     def __str__(self):
         return "Token {}".format(self.n)
-
-
-def run_in_thread(aio_pool, loop, coro):
-    """
-    This function returns the asyncio Future after running the loop in a
-    thread. This makes the return value of this function the same as the return
-    of ``loop.run_until_complete``.
-    """
-    return aio_pool.submit(loop.run_until_complete, coro).result()

@@ -10,7 +10,7 @@ from tqdm import tqdm, tqdm_notebook
 
 from .results import Results
 from .utils import (FailedDownload, Token, default_name, in_notebook,
-                    run_in_thread)
+                    run_in_thread, get_ftp_size, get_http_size)
 
 try:
     import aioftp
@@ -88,13 +88,15 @@ class Downloader:
         filename : `str` or `callable`
             The filename to save the file as. Can also be a callable which
             takes two arguments the url and the response object from opening
-            that URL, and returns the filename.
+            that URL, and returns the filename. (Note, for FTP downloads the
+            response will be ``None``.)
 
         chunksize : `int`
             The size (in bytes) of the chunks to be downloaded for HTTP downloads.
 
         kwargs : `dict`
-            Extra keyword arguments are passed to `aiohttp.ClientSession.get`.
+            Extra keyword arguments are passed to `~aiohttp.ClientSession.get`
+            or `aioftp.ClientSession` depending on the protocol.
         """
         if path is None and filename is None:
             raise ValueError("either path or filename must be specified.")
@@ -266,7 +268,8 @@ class Downloader:
                     fname = filepath.name
                     if callable(file_pb):
                         file_pb = file_pb(position=token.n, unit='B', unit_scale=True,
-                                          desc=fname, leave=False)
+                                          desc=fname, leave=False,
+                                          total=get_http_size(resp))
                     else:
                         file_pb = None
                     with open(filepath, 'wb') as fd:
@@ -345,7 +348,8 @@ class Downloader:
                     fname = filepath.name
                     if callable(file_pb):
                         file_pb = file_pb(position=token.n, unit='B', unit_scale=True,
-                                          desc=fname, leave=False)
+                                          desc=fname, leave=False,
+                                          total=get_ftp_size(client, parse.path))
                     else:
                         file_pb = None
 
