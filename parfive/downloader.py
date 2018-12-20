@@ -1,123 +1,21 @@
-# import os
 import asyncio
-import pathlib
 import contextlib
+import pathlib
 import urllib.parse
-from functools import partial
-from collections import UserList, namedtuple
 from concurrent.futures import ThreadPoolExecutor
+from functools import partial
 
 import aiohttp
 from tqdm import tqdm, tqdm_notebook
+
+from .results import Results
+from .utils import (FailedDownload, Token, default_name, in_notebook,
+                    run_in_thread)
 
 try:
     import aioftp
 except ImportError:
     aioftp = None
-
-
-def in_notebook():
-    try:
-        import ipykernel.zmqshell
-        shell = get_ipython()  # noqa
-        return isinstance(shell, ipykernel.zmqshell.ZMQInteractiveShell)
-    except Exception:
-        return False
-
-
-def default_name(path, resp, url):
-    url_filename = url.split('/')[-1]
-    if resp:
-        name = resp.headers.get("Content-Disposition", url_filename)
-    else:
-        name = url_filename
-    return pathlib.Path(path) / name
-
-
-class FailedDownload(Exception):
-    def __init__(self, url, response):
-        self.url = url
-        self.response = response
-        super().__init__()
-
-    def __repr__(self):
-        out = super().__repr__()
-        out += '\n {} {}'.format(self.url, self.response)
-        return out
-
-    def __str__(self):
-        return "Download Failed: {} with error {}".format(self.url, str(self.response))
-
-
-class Results(UserList):
-    """
-    The results of a download.
-    """
-    def __init__(self, *args):
-        super().__init__(*args)
-        self._errors = list()
-        self._error = namedtuple("error", ("url", "response"))
-
-    def _get_nice_resp_repr(self, response):
-        # This is a modified version of aiohttp.ClientResponse.__repr__
-        if isinstance(response, aiohttp.ClientResponse):
-            ascii_encodable_url = str(response.url)
-            if response.reason:
-                ascii_encodable_reason = response.reason.encode('ascii',
-                                                                'backslashreplace').decode('ascii')
-            else:
-                ascii_encodable_reason = response.reason
-            return '<ClientResponse({}) [{} {}]>'.format(
-                ascii_encodable_url, response.status, ascii_encodable_reason)
-        else:
-            return repr(response)
-
-    def __str__(self):
-        out = super().__repr__()
-        if self.errors:
-            out += '\nErrors:\n'
-            for error in self.errors:
-                resp = self._get_nice_resp_repr(error.response)
-                out += "(url={}, response={})\n".format(error.url, resp)
-        return out
-
-    def __repr__(self):
-        out = object.__repr__(self)
-        out += '\n'
-        out += str(self)
-        return out
-
-    def add_error(self, url, response):
-        """
-        Add an error to the results.
-        """
-        if isinstance(response, aiohttp.ClientResponse):
-            response._headers = None
-        self._errors.append(self._error(url, response))
-
-    @property
-    def errors(self):
-        return self._errors
-
-
-class Token:
-    def __init__(self, n):
-        self.n = n
-
-    def __repr__(self):
-        return super().__repr__() + "n = {}".format(self.n)
-
-    def __str__(self):
-        return "Token {}".format(self.n)
-
-
-def run_in_thread(aio_pool, loop, coro):
-    """
-    This function returns the asyncio Future after running the loop in a
-    thread. This makes the return value of this function the same as the return
-    of ``loop.run_until_complete``.
-    """
-    return aio_pool.submit(loop.run_until_complete, coro).result()
 
 
 class Downloader:
