@@ -66,7 +66,7 @@ jobs:
       - run: *skip-check
       - run: *apt-install
       - run: *tox-install
-      - run: tox -e py36
+      - run: tox -e py35
 
 workflows:
   version: 2
