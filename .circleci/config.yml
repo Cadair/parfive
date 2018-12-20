@@ -1,0 +1,90 @@
+skip-check: &skip-check
+  name: Check for [ci skip]
+  command: bash .circleci/early_exit.sh
+
+apt-run: &apt-install
+  name: Install apt packages
+  command: |
+    apt update
+    apt install -y graphviz build-essential
+
+tox-install: &tox-install
+  name: Install Tox
+  command: |
+    sudo pip install tox
+
+version: 2
+jobs:
+  egg-info-37:
+    docker:
+      - image: circleci/python:3.7
+    steps:
+      - checkout
+      - run: python setup.py egg_info
+
+  html-docs:
+    docker:
+      - image: circleci/python:3.6
+    steps:
+      - checkout
+      - run: *skip-check
+      - run: *apt-install
+      - run: *tox-install
+      - run: tox -e build_docs
+      - store_artifacts:
+          path: docs/_build/html
+
+      - run:
+          name: "Built documentation is available at:"
+          command: DOCS_URL="${CIRCLE_BUILD_URL}/artifacts/${CIRCLE_NODE_INDEX}/${CIRCLE_WORKING_DIRECTORY/#\~/$HOME}/docs/_build/html/index.html"; echo $DOCS_URL
+
+  tests_37:
+    docker:
+      - image: circleci/python:3.7
+    steps:
+      - checkout
+      - run: *skip-check
+      - run: *apt-install
+      - run: *tox-install
+      - run: tox -e py37
+
+  tests_36:
+    docker:
+      - image: circleci/python:3.6
+    steps:
+      - checkout
+      - run: *skip-check
+      - run: *apt-install
+      - run: *tox-install
+      - run: tox -e py36
+
+  tests_35:
+    docker:
+      - image: circleci/python:3.5
+    steps:
+      - checkout
+      - run: *skip-check
+      - run: *apt-install
+      - run: *tox-install
+      - run: tox -e py36
+
+workflows:
+  version: 2
+
+  egg-info:
+    jobs:
+      - egg-info-37
+
+  tests:
+    jobs:
+      - tests_37
+      - tests_36
+      - tests_35
+
+  test-documentation:
+    jobs:
+      - html-docs
+
+notify:
+  webhooks:
+    - url: https://giles.cadair.com/circleci
