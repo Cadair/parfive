@@ -344,6 +344,9 @@ class Downloader:
             async with aioftp.ClientSession(parse.hostname, **kwargs) as client:
                 if parse.username and parse.password:
                     client.login(parse.username, parse.password)
+
+                # This has to be done before we start streaming the file:
+                total_size = await get_ftp_size(client, parse.path)
                 async with client.download_stream(parse.path) as stream:
                     filepath = pathlib.Path(filepath_partial(None, url))
                     if not filepath.parent.exists():
@@ -351,8 +354,7 @@ class Downloader:
                     fname = filepath.name
                     if callable(file_pb):
                         file_pb = file_pb(position=token.n, unit='B', unit_scale=True,
-                                          desc=fname, leave=False,
-                                          total=get_ftp_size(client, parse.path))
+                                          desc=fname, leave=False, total=total_size)
                     else:
                         file_pb = None
 

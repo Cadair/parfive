@@ -1,3 +1,4 @@
+import asyncio
 import pathlib
 
 __all__ = ['run_in_thread', 'Token', 'FailedDownload', 'default_name', 'in_notebook']
@@ -30,13 +31,14 @@ def run_in_thread(aio_pool, loop, coro):
     return aio_pool.submit(loop.run_until_complete, coro).result()
 
 
-def get_ftp_size(client, filepath):
+async def get_ftp_size(client, filepath):
     """
     Given an `aioftp.ClientSession` object get the expected size of the file,
     return ``None`` if the size can not be determined.
     """
     try:
-        size = client.stat(filepath).get("size", None)
+        size = await client.stat(filepath)
+        size = size.get("size", None)
     except Exception:
         size = None
 
