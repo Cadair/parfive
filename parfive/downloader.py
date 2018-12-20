@@ -29,11 +29,11 @@ class Downloader:
         The number of parallel download slots.
 
     progress : `bool`, optional
-        If true a main progress bar showing how many of the total files have
-        been downloaded. If false, no progress bars will be shown at all.
+        If `True` show a main progress bar showing how many of the total files
+        have been downloaded. If `False`, no progress bars will be shown at all.
 
     file_progress : `bool`, optional
-        If true and ``progress`` is true, show ``max_conn`` progress bars
+        If `True` and ``progress`` is true, show ``max_conn`` progress bars
         detailing the progress of each individual file being downloaded.
 
     loop : `asyncio.AbstractEventLoop`, optional
@@ -41,7 +41,7 @@ class Downloader:
         loop will be created and executed in a new thread so it does not
         interfere with any currently running event loop.
 
-    notebook : `bool`
+    notebook : `bool`, optional
         If `True` tqdm will be used in notebook mode. If `None` an attempt will
         be made to detect the notebook and guess which progress bar to use.
     """
@@ -95,7 +95,7 @@ class Downloader:
             The size (in bytes) of the chunks to be downloaded for HTTP downloads.
 
         kwargs : `dict`
-            Extra keyword arguments are passed to `~aiohttp.ClientSession.get`
+            Extra keyword arguments are passed to `aiohttp.ClientSession.get`
             or `aioftp.ClientSession` depending on the protocol.
         """
         if path is None and filename is None:
