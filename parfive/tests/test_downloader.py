@@ -1,3 +1,4 @@
+from pathlib import Path
 from unittest.mock import patch
 
 import aiohttp
@@ -19,10 +20,11 @@ def test_setup(event_loop):
 
 
 def test_download(event_loop, httpserver, tmpdir):
+    tmpdir = str(tmpdir)
     httpserver.serve_content('SIMPLE  = T')
     dl = Downloader(loop=event_loop)
 
-    dl.enqueue_file(httpserver.url, path=tmpdir)
+    dl.enqueue_file(httpserver.url, path=Path(tmpdir))
     f = dl.download()
     assert len(f) == 1
 
@@ -31,10 +33,11 @@ def test_download(event_loop, httpserver, tmpdir):
 
 
 def test_download_partial(event_loop, httpserver, tmpdir):
+    tmpdir = str(tmpdir)
     httpserver.serve_content('SIMPLE  = T')
     dl = Downloader(loop=event_loop)
 
-    dl.enqueue_file(httpserver.url, filename=lambda resp, url: tmpdir/"filename")
+    dl.enqueue_file(httpserver.url, filename=lambda resp, url: Path(tmpdir)/"filename")
     f = dl.download()
     assert len(f) == 1
 
@@ -91,6 +94,7 @@ def test_retrieve_some_content(testserver, tmpdir):
     """
     Test that the downloader handles errors properly.
     """
+    tmpdir = str(tmpdir)
     dl = Downloader()
 
     nn = 5
@@ -104,6 +108,7 @@ def test_retrieve_some_content(testserver, tmpdir):
 
 
 def test_no_progress(httpserver, tmpdir, capsys):
+    tmpdir = str(tmpdir)
     httpserver.serve_content('SIMPLE  = T')
     dl = Downloader(progress=False)
 
@@ -122,6 +127,7 @@ def throwerror(*args, **kwargs):
 
 @patch("parfive.downloader.default_name", throwerror)
 def test_raises_other_exception(httpserver, tmpdir):
+    tmpdir = str(tmpdir)
     httpserver.serve_content('SIMPLE  = T')
     dl = Downloader()
 
@@ -160,6 +166,7 @@ def test_results():
 
 
 def test_notaurl(tmpdir):
+    tmpdir = str(tmpdir)
 
     dl = Downloader(progress=False)
 
@@ -173,6 +180,7 @@ def test_notaurl(tmpdir):
 
 @pytest.mark.remote_data
 def test_ftp(tmpdir):
+    tmpdir = str(tmpdir)
     dl = Downloader()
 
     dl.enqueue_file("ftp://ftp.swpc.noaa.gov/pub/warehouse/2011/2011_SRS.tar.gz", path=tmpdir)
@@ -187,6 +195,7 @@ def test_ftp(tmpdir):
 
 @pytest.mark.remote_data
 def test_ftp_http(tmpdir, httpserver):
+    tmpdir = str(tmpdir)
     httpserver.serve_content('SIMPLE  = T')
     dl = Downloader()
 
