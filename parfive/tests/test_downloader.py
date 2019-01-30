@@ -45,6 +45,13 @@ def test_download_partial(event_loop, httpserver, tmpdir):
     assert "filename" in f[0]
 
 
+def test_empty_download(event_loop, tmpdir):
+    dl = Downloader(loop=event_loop)
+
+    f = dl.download()
+    assert len(f) == 0
+
+
 def test_download_filename(event_loop, httpserver, tmpdir):
     httpserver.serve_content('SIMPLE  = T')
 
