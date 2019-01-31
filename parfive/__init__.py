@@ -1,9 +1,16 @@
 """parfive - A parallel file downloader using asyncio."""
 
-__version__ = '0.1.1'
-__author__ = 'Stuart Mumford <stuart@cadair.com>'
+from pkg_resources import get_distribution, DistributionNotFound
 
 from .downloader import Downloader
 from .results import Results
 
 __all__ = ['Downloader', 'Results']
+
+__author__ = 'Stuart Mumford <stuart@cadair.com>'
+
+try:
+    __version__ = get_distribution(__name__).version
+except DistributionNotFound:
+    # package is not installed
+    __version__ = "unknown"
