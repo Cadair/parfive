@@ -65,8 +65,8 @@ class Downloader:
         self.ftp_queue = asyncio.Queue(loop=self.loop)
         self.ftp_tokens = asyncio.Queue(maxsize=max_conn, loop=self.loop)
         for i in range(max_conn):
-            self.http_tokens.put_nowait(Token(i+1))
-            self.ftp_tokens.put_nowait(Token(i+1))
+            self.http_tokens.put_nowait(Token(i + 1))
+            self.ftp_tokens.put_nowait(Token(i + 1))
 
         # Configure progress bars
         if notebook is None:
