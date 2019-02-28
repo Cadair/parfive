@@ -1,16 +1,16 @@
 import asyncio
-import contextlib
 import pathlib
+import contextlib
 import urllib.parse
-from concurrent.futures import ThreadPoolExecutor
 from functools import partial
+from concurrent.futures import ThreadPoolExecutor
 
 import aiohttp
 from tqdm import tqdm, tqdm_notebook
 
 from .results import Results
 from .utils import (FailedDownload, Token, default_name, in_notebook,
-                    run_in_thread, get_ftp_size, get_http_size)
+                    run_in_thread, get_ftp_size, get_http_size, get_filepath)
 
 try:
     import aioftp
@@ -47,9 +47,17 @@ class Downloader:
     notebook : `bool`, optional
         If `True` tqdm will be used in notebook mode. If `None` an attempt will
         be made to detect the notebook and guess which progress bar to use.
+
+    overwrite : `bool` or `str`, optional
+        Determine how to handle downloading if a file already exists with the
+        same name. If `False` the file download will be skipped and the path
+        returned to the existing file, if `True` the file will be downloaded
+        and the existing file will be overwritten, if `'unique'` the filename
+        will be modified to be unique.
     """
 
-    def __init__(self, max_conn=5, progress=True, file_progress=True, loop=None, notebook=None):
+    def __init__(self, max_conn=5, progress=True, file_progress=True,
+                 loop=None, notebook=None, overwrite=False):
         # Setup asyncio loops
         if not loop:
             aio_pool = ThreadPoolExecutor(1)
@@ -75,7 +83,9 @@ class Downloader:
         self.file_progress = file_progress if self.progress else False
         self.tqdm = tqdm if not notebook else tqdm_notebook
 
-    def enqueue_file(self, url, path=None, filename=None, **kwargs):
+        self.overwrite = overwrite
+
+    def enqueue_file(self, url, path=None, filename=None, overwrite=None, **kwargs):
         """
         Add a file to the download queue.
 
@@ -97,10 +107,19 @@ class Downloader:
         chunksize : `int`
             The size (in bytes) of the chunks to be downloaded for HTTP downloads.
 
+        overwrite : `bool` or `str`, optional
+            Determine how to handle downloading if a file already exists with the
+            same name. If `False` the file download will be skipped and the path
+            returned to the existing file, if `True` the file will be downloaded
+            and the existing file will be overwritten, if `'unique'` the filename
+            will be modified to be unique.
+
         kwargs : `dict`
             Extra keyword arguments are passed to `aiohttp.ClientSession.get`
             or `aioftp.ClientSession` depending on the protocol.
         """
+        overwrite = overwrite or self.overwrite
+
         if path is None and filename is None:
             raise ValueError("either path or filename must be specified.")
         if not filename:
@@ -112,12 +131,14 @@ class Downloader:
             def filepath(*args): return filename
 
         if url.startswith("http"):
-            get_file = partial(self._get_http, url=url, filepath_partial=filepath, **kwargs)
+            get_file = partial(self._get_http, url=url, filepath_partial=filepath,
+                               overwrite=overwrite, **kwargs)
             self.http_queue.put_nowait(get_file)
         elif url.startswith("ftp"):
             if aioftp is None:
                 raise ValueError("The aioftp package must be installed to download over FTP")
-            get_file = partial(self._get_ftp, url=url, filepath_partial=filepath, **kwargs)
+            get_file = partial(self._get_ftp, url=url, filepath_partial=filepath,
+                               overwrite=overwrite, **kwargs)
             self.ftp_queue.put_nowait(get_file)
         else:
             raise ValueError("url must start with either http or ftp")
@@ -191,13 +212,15 @@ class Downloader:
             get_file = await queue.get()
             token = await tokens.get()
             file_pb = self.tqdm if self.file_progress else False
-            future = asyncio.ensure_future(get_file(session, main_pb=main_pb, token=token,
-                                                    file_pb=file_pb))
+            future = asyncio.ensure_future(get_file(session, token=token, file_pb=file_pb))
 
-            def callback(token, future):
+            def callback(token, future, main_pb):
                 tokens.put_nowait(token)
+                # Update the main progressbar
+                if main_pb:
+                    main_pb.update(1)
 
-            future.add_done_callback(partial(callback, token))
+            future.add_done_callback(partial(callback, token, main_pb))
             futures.append(future)
 
         return futures
@@ -221,7 +244,7 @@ class Downloader:
 
     @staticmethod
     async def _get_http(session, *, url, filepath_partial, chunksize=100,
-                        main_pb=None, file_pb=None, token, **kwargs):
+                        file_pb=None, token, overwrite, **kwargs):
         """
         Read the file from the given url into the filename given by ``filepath_partial``.
 
@@ -240,9 +263,6 @@ class Downloader:
 
         chunksize : `int`
             The number of bytes to read into the file at a time.
-
-        main_pb : `tqdm.tqdm`
-            Optional progressbar instance to advance when file is complete.
 
         file_pb : `tqdm.tqdm` or `False`
             Should progress bars be displayed for each file downloaded.
@@ -265,13 +285,12 @@ class Downloader:
                 if resp.status != 200:
                     raise FailedDownload(url, resp)
                 else:
-                    filepath = pathlib.Path(filepath_partial(resp, url))
-                    if not filepath.parent.exists():
-                        filepath.parent.mkdir(parents=True)
-                    fname = filepath.name
+                    filepath, skip = get_filepath(filepath_partial(resp, url), overwrite)
+                    if skip:
+                        return str(filepath)
                     if callable(file_pb):
                         file_pb = file_pb(position=token.n, unit='B', unit_scale=True,
-                                          desc=fname, leave=False,
+                                          desc=filepath.name, leave=False,
                                           total=get_http_size(resp))
                     else:
                         file_pb = None
@@ -279,10 +298,7 @@ class Downloader:
                         while True:
                             chunk = await resp.content.read(chunksize)
                             if not chunk:
-                                # Update the main progressbar
-                                if main_pb:
-                                    main_pb.update(1)
-                                    # Close the file progressbar
+                                # Close the file progressbar
                                 if file_pb is not None:
                                     file_pb.close()
 
@@ -303,7 +319,7 @@ class Downloader:
 
     @staticmethod
     async def _get_ftp(session=None, *, url, filepath_partial,
-                       main_pb=None, file_pb=None, token, **kwargs):
+                       file_pb=None, token, overwrite, **kwargs):
         """
         Read the file from the given url into the filename given by ``filepath_partial``.
 
@@ -319,9 +335,6 @@ class Downloader:
         filepath_partial : `callable`
             A function to call which returns the filepath to save the url to.
             Takes two arguments ``resp, url``.
-
-        main_pb : `tqdm.tqdm`
-            Optional progressbar instance to advance when file is complete.
 
         file_pb : `tqdm.tqdm` or `False`
             Should progress bars be displayed for each file downloaded.
@@ -348,13 +361,12 @@ class Downloader:
                 # This has to be done before we start streaming the file:
                 total_size = await get_ftp_size(client, parse.path)
                 async with client.download_stream(parse.path) as stream:
-                    filepath = pathlib.Path(filepath_partial(None, url))
-                    if not filepath.parent.exists():
-                        filepath.parent.mkdir(parents=True)
-                    fname = filepath.name
+                    filepath, skip = get_filepath(filepath_partial(None, url), overwrite)
+                    if skip:
+                        return str(filepath)
                     if callable(file_pb):
                         file_pb = file_pb(position=token.n, unit='B', unit_scale=True,
-                                          desc=fname, leave=False, total=total_size)
+                                          desc=filepath.name, leave=False, total=total_size)
                     else:
                         file_pb = None
 
@@ -367,9 +379,6 @@ class Downloader:
                             if file_pb is not None:
                                 file_pb.update(len(chunk))
 
-                        # Update the main progressbar
-                        if main_pb:
-                            main_pb.update(1)
                         # Close the file progressbar
                         if file_pb is not None:
                             file_pb.close()

@@ -1,5 +1,5 @@
-import asyncio
 import pathlib
+from itertools import count
 
 __all__ = ['run_in_thread', 'Token', 'FailedDownload', 'default_name', 'in_notebook']
 
@@ -48,6 +48,43 @@ async def get_ftp_size(client, filepath):
 def get_http_size(resp):
     size = resp.headers.get("content-length", None)
     return int(size) if size else size
+
+
+def replacement_filename(path):
+    """
+    Given a path generate a unique filename.
+    """
+    path = pathlib.Path(path)
+
+    if not path.exists:
+        return path
+
+    suffix = ''.join(path.suffixes)
+    for c in count(1):
+        if suffix:
+            name, _ = path.name.split(suffix)
+        else:
+            name = path.name
+        new_name = "{name}.{c}{suffix}".format(name=name, c=c, suffix=suffix)
+        new_path = path.parent / new_name
+        if not new_path.exists():
+            return new_path
+
+
+def get_filepath(filepath, overwrite):
+    """
+    Get the filepath to download to and ensure dir exists.
+    """
+    filepath = pathlib.Path(filepath)
+    if filepath.exists():
+        if not overwrite:
+            return str(filepath), True
+        if overwrite == 'unique':
+            filepath = replacement_filename(filepath)
+    if not filepath.parent.exists():
+        filepath.parent.mkdir(parents=True)
+
+    return filepath, False
 
 
 class FailedDownload(Exception):

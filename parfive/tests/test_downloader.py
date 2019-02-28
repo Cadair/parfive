@@ -57,6 +57,8 @@ def test_download_filename(event_loop, httpserver, tmpdir):
 
     fname = "testing123"
     filename = str(tmpdir.join(fname))
+    with open(filename, "w") as fh:
+        fh.write("SIMPLE = T")
 
     dl = Downloader(loop=event_loop)
 
@@ -67,6 +69,79 @@ def test_download_filename(event_loop, httpserver, tmpdir):
     assert len(f) == 1
 
     assert f[0] == filename
+
+
+def test_download_no_overwrite(event_loop, httpserver, tmpdir):
+    httpserver.serve_content('SIMPLE  = T')
+
+    fname = "testing123"
+    filename = str(tmpdir.join(fname))
+    with open(filename, "w") as fh:
+        fh.write("Hello world")
+
+    dl = Downloader(loop=event_loop)
+
+    dl.enqueue_file(httpserver.url, filename=filename, chunksize=200)
+    f = dl.download()
+
+    assert isinstance(f, Results)
+    assert len(f) == 1
+
+    assert f[0] == filename
+
+    with open(filename) as fh:
+        # If the contents is the same as when we wrote it, it hasn't been
+        # overwritten
+        assert fh.read() == "Hello world"
+
+
+def test_download_overwrite(event_loop, httpserver, tmpdir):
+    httpserver.serve_content('SIMPLE  = T')
+
+    fname = "testing123"
+    filename = str(tmpdir.join(fname))
+    with open(filename, "w") as fh:
+        fh.write("Hello world")
+
+    dl = Downloader(loop=event_loop, overwrite=True)
+
+    dl.enqueue_file(httpserver.url, filename=filename, chunksize=200)
+    f = dl.download()
+
+    assert isinstance(f, Results)
+    assert len(f) == 1
+
+    assert f[0] == filename
+
+    with open(filename) as fh:
+        assert fh.read() == "SIMPLE  = T"
+
+
+def test_download_unique(event_loop, httpserver, tmpdir):
+    httpserver.serve_content('SIMPLE  = T')
+
+    fname = "testing123"
+    filename = str(tmpdir.join(fname))
+
+    filenames = [filename, filename+'.fits', filename+'.fits.gz']
+
+    dl = Downloader(loop=event_loop, overwrite='unique')
+
+    # Write files to both the target filenames.
+    for fn in filenames:
+        with open(fn, "w") as fh:
+            fh.write("Hello world")
+
+            dl.enqueue_file(httpserver.url, filename=fn, chunksize=200)
+
+    f = dl.download()
+
+    assert isinstance(f, Results)
+    assert len(f) == len(filenames)
+
+    for fn in f:
+        assert fn not in filenames
+        assert "{fname}.1".format(fname=fname) in fn
 
 
 @pytest.fixture
@@ -185,7 +260,7 @@ def test_notaurl(tmpdir):
     assert isinstance(f.errors[0].response, aiohttp.ClientConnectionError)
 
 
-@pytest.mark.remote_data
+@pytest.mark.allow_hosts(True)
 def test_ftp(tmpdir):
     tmpdir = str(tmpdir)
     dl = Downloader()
@@ -200,7 +275,7 @@ def test_ftp(tmpdir):
     assert len(f.errors) == 3
 
 
-@pytest.mark.remote_data
+@pytest.mark.allow_hosts(True)
 def test_ftp_http(tmpdir, httpserver):
     tmpdir = str(tmpdir)
     httpserver.serve_content('SIMPLE  = T')
