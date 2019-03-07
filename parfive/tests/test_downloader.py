@@ -279,6 +279,13 @@ def test_retry(tmpdir, testserver):
     assert len(f2.errors) == 0
 
 
+def test_empty_retry():
+    f = Results()
+    dl = Downloader()
+
+    dl.retry(f)
+
+
 @pytest.mark.allow_hosts(True)
 def test_ftp(tmpdir):
     tmpdir = str(tmpdir)
