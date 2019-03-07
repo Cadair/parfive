@@ -12,7 +12,7 @@ class Results(UserList):
     def __init__(self, *args):
         super().__init__(*args)
         self._errors = list()
-        self._error = namedtuple("error", ("url", "response"))
+        self._error = namedtuple("error", ("filepath_partial", "url", "response"))
 
     def _get_nice_resp_repr(self, response):
         # This is a modified version of aiohttp.ClientResponse.__repr__
@@ -43,13 +43,13 @@ class Results(UserList):
         out += str(self)
         return out
 
-    def add_error(self, url, response):
+    def add_error(self, filename, url, response):
         """
         Add an error to the results.
         """
         if isinstance(response, aiohttp.ClientResponse):
             response._headers = None
-        self._errors.append(self._error(url, response))
+        self._errors.append(self._error(filename, url, response))
 
     @property
     def errors(self):

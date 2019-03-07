@@ -88,7 +88,8 @@ def get_filepath(filepath, overwrite):
 
 
 class FailedDownload(Exception):
-    def __init__(self, url, response):
+    def __init__(self, filepath_partial, url, response):
+        self.filepath_partial = filepath_partial
         self.url = url
         self.response = response
         super().__init__()

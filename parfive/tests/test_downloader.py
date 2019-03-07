@@ -226,7 +226,7 @@ def test_token():
 
 
 def test_failed_download():
-    err = FailedDownload("bbc.co.uk", "running away")
+    err = FailedDownload("wibble", "bbc.co.uk", "running away")
 
     assert "bbc.co.uk" in repr(err)
     assert "bbc.co.uk" in repr(err)
@@ -240,7 +240,7 @@ def test_results():
 
     res.append("hello")
 
-    res.add_error("notaurl", "out of cheese")
+    res.add_error("wibble", "notaurl", "out of cheese")
 
     assert "notaurl" in repr(res)
     assert "hello" in repr(res)
@@ -258,6 +258,22 @@ def test_notaurl(tmpdir):
 
     assert len(f.errors) == 1
     assert isinstance(f.errors[0].response, aiohttp.ClientConnectionError)
+
+
+def test_retry(tmpdir, testserver):
+    tmpdir = str(tmpdir)
+    dl = Downloader()
+
+    nn = 5
+    for i in range(nn):
+        dl.enqueue_file(testserver.url, path=tmpdir)
+
+    f = dl.download()
+
+    assert len(f) == nn - 1
+    assert len(f.errors) == 1
+
+    f2 = dl.retry(f)
 
 
 @pytest.mark.allow_hosts(True)

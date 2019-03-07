@@ -58,14 +58,8 @@ class Downloader:
 
     def __init__(self, max_conn=5, progress=True, file_progress=True,
                  loop=None, notebook=None, overwrite=False):
-        # Setup asyncio loops
-        if not loop:
-            aio_pool = ThreadPoolExecutor(1)
-            self.loop = asyncio.new_event_loop()
-            self.run_until_complete = partial(run_in_thread, aio_pool, self.loop)
-        else:
-            self.loop = loop
-            self.run_until_complete = self.loop.run_until_complete
+
+        self._start_loop(loop)
 
         # Setup queues
         self.http_queue = asyncio.Queue(loop=self.loop)
@@ -84,6 +78,16 @@ class Downloader:
         self.tqdm = tqdm if not notebook else tqdm_notebook
 
         self.overwrite = overwrite
+
+    def _start_loop(self, loop):
+        # Setup asyncio loops
+        if not loop:
+            aio_pool = ThreadPoolExecutor(1)
+            self.loop = asyncio.new_event_loop()
+            self.run_until_complete = partial(run_in_thread, aio_pool, self.loop)
+        else:
+            self.loop = loop
+            self.run_until_complete = self.loop.run_until_complete
 
     def enqueue_file(self, url, path=None, filename=None, overwrite=None, **kwargs):
         """
@@ -128,7 +132,8 @@ class Downloader:
             filepath = filename
         else:
             # Define a function because get_file expects a callback
-            def filepath(*args): return filename
+            def filepath(*args):
+                return filename
 
         if url.startswith("http"):
             get_file = partial(self._get_http, url=url, filepath_partial=filepath,
@@ -164,11 +169,47 @@ class Downloader:
         # the errors list of the results object.
         for res in dlresults:
             if isinstance(res, FailedDownload):
-                results.add_error(res.url, res.response)
+                results.add_error(res.filepath_partial, res.url, res.response)
             elif isinstance(res, Exception):
                 raise res
             else:
                 results.append(res)
+
+        return results
+
+    def retry(self, results):
+        """
+        Retry any failed downloads in a results object.
+
+        .. note::
+            This will start a new event loop.
+
+        Parameters
+        ----------
+
+        results : `parfive.Results`
+            A previous results object, the ``.errors`` property will be read
+            and the downloads retried.
+
+        Returns
+        -------
+
+        results : `parfive.Results`
+            A modified version of the input results with all the errors from
+            this download attempt and any new files appended to the list of
+            file paths.
+
+        """
+        # Restart the loop.
+        self._start_loop(None)
+
+        for err in results.errors:
+            self.enqueue_file(err.url, filename=err.filepath_partial)
+
+        new_res = self.download()
+
+        results += new_res
+        results._errors = new_res._errors
 
         return results
 
@@ -283,7 +324,7 @@ class Downloader:
         try:
             async with session.get(url, **kwargs) as resp:
                 if resp.status != 200:
-                    raise FailedDownload(url, resp)
+                    raise FailedDownload(filepath_partial, url, resp)
                 else:
                     filepath, skip = get_filepath(filepath_partial(resp, url), overwrite)
                     if skip:
@@ -315,7 +356,7 @@ class Downloader:
         # downloads and then send them to the user in the place of the response
         # object.
         except aiohttp.ClientError as e:
-            raise FailedDownload(url, e)
+            raise FailedDownload(filepath_partial, url, e)
 
     @staticmethod
     async def _get_ftp(session=None, *, url, filepath_partial,
@@ -389,4 +430,4 @@ class Downloader:
         # server is not found) which are variants on failed downloads and then
         # send them to the user in the place of the response object.
         except (aioftp.StatusCodeError, OSError) as e:
-            raise FailedDownload(url, e)
+            raise FailedDownload(filepath_partial, url, e)
