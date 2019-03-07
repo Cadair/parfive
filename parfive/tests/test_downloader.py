@@ -275,6 +275,9 @@ def test_retry(tmpdir, testserver):
 
     f2 = dl.retry(f)
 
+    assert len(f2) == nn
+    assert len(f2.errors) == 0
+
 
 @pytest.mark.allow_hosts(True)
 def test_ftp(tmpdir):
