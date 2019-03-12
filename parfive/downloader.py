@@ -58,16 +58,8 @@ class Downloader:
     def __init__(self, max_conn=5, progress=True, file_progress=True,
                  loop=None, notebook=None, overwrite=False):
 
+        self.max_conn = 5
         self._start_loop(loop)
-
-        # Setup queues
-        self.http_queue = asyncio.Queue(loop=self.loop)
-        self.http_tokens = asyncio.Queue(maxsize=max_conn, loop=self.loop)
-        self.ftp_queue = asyncio.Queue(loop=self.loop)
-        self.ftp_tokens = asyncio.Queue(maxsize=max_conn, loop=self.loop)
-        for i in range(max_conn):
-            self.http_tokens.put_nowait(Token(i + 1))
-            self.ftp_tokens.put_nowait(Token(i + 1))
 
         # Configure progress bars
         if notebook is None:
@@ -87,6 +79,15 @@ class Downloader:
         else:
             self.loop = loop
             self.run_until_complete = self.loop.run_until_complete
+
+        # Setup queues
+        self.http_queue = asyncio.Queue(loop=self.loop)
+        self.http_tokens = asyncio.Queue(maxsize=self.max_conn, loop=self.loop)
+        self.ftp_queue = asyncio.Queue(loop=self.loop)
+        self.ftp_tokens = asyncio.Queue(maxsize=self.max_conn, loop=self.loop)
+        for i in range(self.max_conn):
+            self.http_tokens.put_nowait(Token(i + 1))
+            self.ftp_tokens.put_nowait(Token(i + 1))
 
     def enqueue_file(self, url, path=None, filename=None, overwrite=None, **kwargs):
         """
