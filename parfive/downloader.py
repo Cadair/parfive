@@ -1,5 +1,4 @@
 import asyncio
-import pathlib
 import contextlib
 import urllib.parse
 from functools import partial
@@ -322,8 +321,10 @@ class Downloader:
             The name of the file saved.
 
         """
+        # Set the socket read timeout to 60s
+        timeout = aiohttp.ClientTimeout(total=5 * 60, sock_read=60)
         try:
-            async with session.get(url, **kwargs) as resp:
+            async with session.get(url, timeout=timeout, **kwargs) as resp:
                 if resp.status != 200:
                     raise FailedDownload(filepath_partial, url, resp)
                 else:
