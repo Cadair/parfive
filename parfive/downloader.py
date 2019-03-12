@@ -261,7 +261,7 @@ class Downloader:
                 if main_pb:
                     main_pb.update(1)
 
-            future.add_done_callback(partial(callback, token, main_pb))
+            future.add_done_callback(partial(callback, token, main_pb=main_pb))
             futures.append(future)
 
         return futures
