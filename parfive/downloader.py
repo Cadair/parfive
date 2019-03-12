@@ -220,7 +220,8 @@ class Downloader:
         """
         if self.progress:
             return self.tqdm(total=total, unit='file',
-                             desc="Files Downloaded")
+                             desc="Files Downloaded",
+                             position=0)
         else:
             return contextlib.contextmanager(lambda: iter([None]))()
 
