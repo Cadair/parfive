@@ -21,15 +21,15 @@ def test_setup(event_loop):
 
 def test_download(event_loop, httpserver, tmpdir):
     tmpdir = str(tmpdir)
-    httpserver.serve_content('SIMPLE  = T')
+    httpserver.serve_content('SIMPLE  = T',
+                             headers={'Content-Disposition': "attachment; filename=testfile.fits"})
     dl = Downloader(loop=event_loop)
 
     dl.enqueue_file(httpserver.url, path=Path(tmpdir))
     f = dl.download()
-    assert len(f) == 1
 
-    # strip the http://
-    assert httpserver.url[7:] in f[0]
+    assert len(f) == 1
+    assert Path(f[0]).name == "testfile.fits"
 
 
 def test_download_partial(event_loop, httpserver, tmpdir):

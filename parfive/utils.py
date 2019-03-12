@@ -1,3 +1,4 @@
+import cgi
 import pathlib
 from itertools import count
 
@@ -16,7 +17,12 @@ def in_notebook():
 def default_name(path, resp, url):
     url_filename = url.split('/')[-1]
     if resp:
-        name = resp.headers.get("Content-Disposition", url_filename)
+        cdheader = resp.headers.get("Content-Disposition", None)
+        if cdheader:
+            value, params = cgi.parse_header(cdheader)
+            name = params.get('filename', url_filename)
+        else:
+            name = url_filename
     else:
         name = url_filename
     return pathlib.Path(path) / name
