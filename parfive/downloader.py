@@ -89,6 +89,14 @@ class Downloader:
             self.http_tokens.put_nowait(Token(i + 1))
             self.ftp_tokens.put_nowait(Token(i + 1))
 
+    @property
+    def queued_downloads(self):
+        """
+        The total number of files already queued for download.
+        """
+
+        return self.http_queue.qsize() + self.ftp_queue.qsize()
+
     def enqueue_file(self, url, path=None, filename=None, overwrite=None, **kwargs):
         """
         Add a file to the download queue.

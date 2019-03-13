@@ -26,6 +26,9 @@ def test_download(event_loop, httpserver, tmpdir):
     dl = Downloader(loop=event_loop)
 
     dl.enqueue_file(httpserver.url, path=Path(tmpdir))
+
+    assert dl.queued_downloads == 1
+
     f = dl.download()
 
     assert len(f) == 1
@@ -313,6 +316,9 @@ def test_ftp_http(tmpdir, httpserver):
     dl.enqueue_file("ftp://notaserver/notafile.fileL", path=tmpdir)
     dl.enqueue_file(httpserver.url, path=tmpdir)
     dl.enqueue_file("http://noaurl.notadomain/noafile", path=tmpdir)
+
+
+    assert dl.queued_downloads == 6
 
     f = dl.download()
     assert len(f) == 2
