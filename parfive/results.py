@@ -2,6 +2,8 @@ from collections import UserList, namedtuple
 
 import aiohttp
 
+from .utils import FailedDownload
+
 __all__ = ['Results']
 
 
@@ -9,9 +11,9 @@ class Results(UserList):
     """
     The results of a download.
     """
-    def __init__(self, *args):
+    def __init__(self, *args, errors=None):
         super().__init__(*args)
-        self._errors = list()
+        self._errors = errors or list()
         self._error = namedtuple("error", ("filepath_partial", "url", "response"))
 
     def _get_nice_resp_repr(self, response):
@@ -33,8 +35,11 @@ class Results(UserList):
         if self.errors:
             out += '\nErrors:\n'
             for error in self.errors:
-                resp = self._get_nice_resp_repr(error.response)
-                out += "(url={}, response={})\n".format(error.url, resp)
+                if isinstance(error, FailedDownload):
+                    resp = self._get_nice_resp_repr(error.response)
+                    out += "(url={}, response={})\n".format(error.url, resp)
+                else:
+                    out += "({})".format(repr(error))
         return out
 
     def __repr__(self):
