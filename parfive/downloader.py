@@ -1,3 +1,5 @@
+import pathlib
+
 import asyncio
 import contextlib
 import urllib.parse
@@ -133,15 +135,16 @@ class Downloader:
         overwrite = overwrite or self.overwrite
 
         if path is None and filename is None:
-            raise ValueError("either path or filename must be specified.")
+            raise ValueError("Either path or filename must be specified.")
         if not filename:
             filepath = partial(default_name, path)
         elif callable(filename):
             filepath = filename
         else:
+            path = pathlib.Path(path)
             # Define a function because get_file expects a callback
             def filepath(*args):
-                return filename
+                return path / filename
 
         if url.startswith("http"):
             get_file = partial(self._get_http, url=url, filepath_partial=filepath,
