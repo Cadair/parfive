@@ -267,7 +267,7 @@ class Downloader:
             def callback(token, future, main_pb):
                 tokens.put_nowait(token)
                 # Update the main progressbar
-                if main_pb:
+                if main_pb and not future.exception():
                     main_pb.update(1)
 
             future.add_done_callback(partial(callback, token, main_pb=main_pb))
