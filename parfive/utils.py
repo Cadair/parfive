@@ -14,6 +14,7 @@ def in_notebook():
             from tqdm import _tqdm_notebook
             _tqdm_notebook.IntProgress
             return True
+        return False
     except Exception:
         return False
 
