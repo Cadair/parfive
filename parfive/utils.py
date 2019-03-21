@@ -13,7 +13,7 @@ def in_notebook():
             # Check that we can import the right widget
             from tqdm import _tqdm_notebook
             _tqdm_notebook.IntProgress
-        return True
+            return True
     except Exception:
         return False
 
