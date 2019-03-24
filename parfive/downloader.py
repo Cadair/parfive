@@ -136,12 +136,16 @@ class Downloader:
 
         if path is None and filename is None:
             raise ValueError("Either path or filename must be specified.")
+        elif path is None:
+            path = './'
+
+        path = pathlib.path(path)
         if not filename:
             filepath = partial(default_name, path)
         elif callable(filename):
             filepath = filename
+
         else:
-            path = pathlib.Path(path)
             # Define a function because get_file expects a callback
             def filepath(*args):
                 return path / filename
