@@ -139,7 +139,7 @@ class Downloader:
         elif path is None:
             path = './'
 
-        path = pathlib.path(path)
+        path = pathlib.Path(path)
         if not filename:
             filepath = partial(default_name, path)
         elif callable(filename):
