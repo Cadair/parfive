@@ -1,17 +1,17 @@
-import pathlib
-
 import asyncio
 import contextlib
+import os
+import pathlib
 import urllib.parse
-from functools import partial
 from concurrent.futures import ThreadPoolExecutor
+from functools import partial
 
 import aiohttp
 from tqdm import tqdm, tqdm_notebook
 
 from .results import Results
-from .utils import (FailedDownload, Token, default_name, in_notebook,
-                    run_in_thread, get_ftp_size, get_http_size, get_filepath)
+from .utils import (FailedDownload, Token, default_name, get_filepath,
+                    get_ftp_size, get_http_size, in_notebook, run_in_thread)
 
 try:
     import aioftp
@@ -169,7 +169,6 @@ class Downloader:
 
         Parameters
         ----------
-
         timeouts : `dict`, optional
             Overrides for the default timeouts for http downloads. Supported
             keys are any accepted by the `aiohttp.ClientTimeout` class. Defaults
@@ -180,8 +179,16 @@ class Downloader:
         -------
         filenames : `parfive.Results`
             A list of files downloaded.
+
+        Notes
+        -----
+        The defaults for `'total'` and `'sock_read'` timeouts can be overridden
+        by two environment variables ``PARFIVE_TOTAL_TIMEOUT`` and
+        ``PARFIVE_SOCK_READ_TIMEOUT``.
+
         """
-        timeouts = timeouts or {"total": 5 * 60, "sock_read": 90}
+        timeouts = timeouts or {"total": os.environ.get("PARFIVE_TOTAL_TIMEOUT", 5 * 60),
+                                "sock_read": os.environ.get("PARFIVE_SOCK_READ_TIMEOUT", 90)}
         try:
             future = self.run_until_complete(self._run_download(timeouts))
         finally:
