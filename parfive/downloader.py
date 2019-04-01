@@ -163,17 +163,27 @@ class Downloader:
         else:
             raise ValueError("url must start with either http or ftp")
 
-    def download(self):
+    def download(self, timeouts=None):
         """
         Download all files in the queue.
+
+        Parameters
+        ----------
+
+        timeouts : `dict`, optional
+            Overrides for the default timeouts for http downloads. Supported
+            keys are any accepted by the `aiohttp.ClientTimeout` class. Defaults
+            to 5 minutes for total session timeout and 90 seconds for socket
+            read timeout.
 
         Returns
         -------
         filenames : `parfive.Results`
             A list of files downloaded.
         """
+        timeouts = timeouts or {"total": 5 * 60, "sock_read": 90}
         try:
-            future = self.run_until_complete(self._run_download())
+            future = self.run_until_complete(self._run_download(timeouts))
         finally:
             self.loop.stop()
         dlresults = future.result()
@@ -240,7 +250,7 @@ class Downloader:
         else:
             return contextlib.contextmanager(lambda: iter([None]))()
 
-    async def _run_download(self):
+    async def _run_download(self, timeouts):
         """
         Download all files in the queue.
 
@@ -256,20 +266,39 @@ class Downloader:
         done = set()
         with self._get_main_pb(total_files) as main_pb:
             if not self.http_queue.empty():
-                done.update(await self._run_http_download(main_pb))
+                done.update(await self._run_http_download(main_pb, timeouts))
             if not self.ftp_queue.empty():
-                done.update(await self._run_ftp_download(main_pb))
+                done.update(await self._run_ftp_download(main_pb, timeouts))
 
         # Return one future to represent all the results.
         return asyncio.gather(*done, return_exceptions=True)
 
-    async def _run_from_queue(self, queue, tokens, main_pb, session=None):
+    async def _run_http_download(self, main_pb, timeouts):
+        async with aiohttp.ClientSession(loop=self.loop) as session:
+            futures = await self._run_from_queue(self.http_queue, self.http_tokens,
+                                                 main_pb, session=session, timeouts=timeouts)
+
+            # Wait for all the coroutines to finish
+            done, _ = await asyncio.wait(futures)
+
+            return done
+
+    async def _run_ftp_download(self, main_pb, timeouts):
+        futures = await self._run_from_queue(self.ftp_queue, self.ftp_tokens,
+                                             main_pb, timeouts=timeouts)
+        # Wait for all the coroutines to finish
+        done, _ = await asyncio.wait(futures)
+
+        return done
+
+    async def _run_from_queue(self, queue, tokens, main_pb, *, session=None, timeouts):
         futures = []
         while not queue.empty():
             get_file = await queue.get()
             token = await tokens.get()
             file_pb = self.tqdm if self.file_progress else False
-            future = asyncio.ensure_future(get_file(session, token=token, file_pb=file_pb))
+            future = asyncio.ensure_future(get_file(session, token=token,
+                                                    file_pb=file_pb, timeouts=timeouts))
 
             def callback(token, future, main_pb):
                 tokens.put_nowait(token)
@@ -282,26 +311,9 @@ class Downloader:
 
         return futures
 
-    async def _run_ftp_download(self, main_pb):
-        futures = await self._run_from_queue(self.ftp_queue, self.ftp_tokens, main_pb)
-        # Wait for all the coroutines to finish
-        done, _ = await asyncio.wait(futures)
-
-        return done
-
-    async def _run_http_download(self, main_pb):
-        async with aiohttp.ClientSession(loop=self.loop) as session:
-            futures = await self._run_from_queue(self.http_queue, self.http_tokens,
-                                                 main_pb, session)
-
-            # Wait for all the coroutines to finish
-            done, _ = await asyncio.wait(futures)
-
-            return done
-
     @staticmethod
     async def _get_http(session, *, url, filepath_partial, chunksize=100,
-                        file_pb=None, token, overwrite, **kwargs):
+                        file_pb=None, token, overwrite, timeouts, **kwargs):
         """
         Read the file from the given url into the filename given by ``filepath_partial``.
 
@@ -337,8 +349,7 @@ class Downloader:
             The name of the file saved.
 
         """
-        # Set the socket read timeout to 60s
-        timeout = aiohttp.ClientTimeout(total=5 * 60, sock_read=60)
+        timeout = aiohttp.ClientTimeout(**timeouts)
         try:
             async with session.get(url, timeout=timeout, **kwargs) as resp:
                 if resp.status != 200:
@@ -378,7 +389,7 @@ class Downloader:
 
     @staticmethod
     async def _get_ftp(session=None, *, url, filepath_partial,
-                       file_pb=None, token, overwrite, **kwargs):
+                       file_pb=None, token, overwrite, timeouts, **kwargs):
         """
         Read the file from the given url into the filename given by ``filepath_partial``.
 
