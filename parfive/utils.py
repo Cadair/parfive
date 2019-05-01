@@ -99,19 +99,19 @@ def get_filepath(filepath, overwrite):
 
 
 class FailedDownload(Exception):
-    def __init__(self, filepath_partial, url, response):
+    def __init__(self, filepath_partial, url, exception):
         self.filepath_partial = filepath_partial
         self.url = url
-        self.response = response
+        self.exception = exception
         super().__init__()
 
     def __repr__(self):
         out = super().__repr__()
-        out += '\n {} {}'.format(self.url, self.response)
+        out += '\n {} {}'.format(self.url, self.exception)
         return out
 
     def __str__(self):
-        return "Download Failed: {} with error {}".format(self.url, str(self.response))
+        return "Download Failed: {} with error {}".format(self.url, str(self.exception))
 
 
 class Token:

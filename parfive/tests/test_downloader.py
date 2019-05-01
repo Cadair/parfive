@@ -260,7 +260,7 @@ def test_notaurl(tmpdir):
     f = dl.download()
 
     assert len(f.errors) == 1
-    assert isinstance(f.errors[0].response, aiohttp.ClientConnectionError)
+    assert isinstance(f.errors[0].exception, aiohttp.ClientConnectionError)
 
 
 def test_retry(tmpdir, testserver):

@@ -14,7 +14,7 @@ class Results(UserList):
     def __init__(self, *args, errors=None):
         super().__init__(*args)
         self._errors = errors or list()
-        self._error = namedtuple("error", ("filepath_partial", "url", "response"))
+        self._error = namedtuple("error", ("filepath_partial", "url", "exception"))
 
     def _get_nice_resp_repr(self, response):
         # This is a modified version of aiohttp.ClientResponse.__repr__
@@ -36,7 +36,7 @@ class Results(UserList):
             out += '\nErrors:\n'
             for error in self.errors:
                 if isinstance(error, FailedDownload):
-                    resp = self._get_nice_resp_repr(error.response)
+                    resp = self._get_nice_resp_repr(error.exception)
                     out += "(url={}, response={})\n".format(error.url, resp)
                 else:
                     out += "({})".format(repr(error))
@@ -48,14 +48,22 @@ class Results(UserList):
         out += str(self)
         return out
 
-    def add_error(self, filename, url, response):
+    def add_error(self, filename, url, exception):
         """
         Add an error to the results.
         """
-        if isinstance(response, aiohttp.ClientResponse):
-            response._headers = None
-        self._errors.append(self._error(filename, url, response))
+        if isinstance(exception, aiohttp.ClientResponse):
+            exception._headers = None
+        self._errors.append(self._error(filename, url, exception))
 
     @property
     def errors(self):
+        """
+        A list of errors encountered during the download.
+
+        The errors are represented as a tuple containing
+        ``(filepath, url, exception)`` where ``filepath`` is a function for
+        generating a filepath, ``url`` is the url to be downloaded and
+        ``exception`` is the error raised during download.
+        """
         return self._errors
