@@ -60,7 +60,7 @@ class Downloader:
     def __init__(self, max_conn=5, progress=True, file_progress=True,
                  loop=None, notebook=None, overwrite=False):
 
-        self.max_conn = 5
+        self.max_conn = max_conn
         self._start_loop(loop)
 
         # Configure progress bars
@@ -150,18 +150,20 @@ class Downloader:
             def filepath(*args):
                 return path / filename
 
-        if url.startswith("http"):
+        scheme = urllib.parse.urlparse(url).scheme
+
+        if scheme in ('http', 'https'):
             get_file = partial(self._get_http, url=url, filepath_partial=filepath,
                                overwrite=overwrite, **kwargs)
             self.http_queue.put_nowait(get_file)
-        elif url.startswith("ftp"):
+        elif scheme == 'ftp':
             if aioftp is None:
-                raise ValueError("The aioftp package must be installed to download over FTP")
+                raise ValueError("The aioftp package must be installed to download over FTP.")
             get_file = partial(self._get_ftp, url=url, filepath_partial=filepath,
                                overwrite=overwrite, **kwargs)
             self.ftp_queue.put_nowait(get_file)
         else:
-            raise ValueError("url must start with either http or ftp")
+            raise ValueError("URL must start with either 'http' or 'ftp'.")
 
     def download(self, timeouts=None):
         """
@@ -347,7 +349,7 @@ class Downloader:
             A token for this download slot.
 
         kwargs : `dict`
-            Extra keyword arguments are passed to `~aiohttp.ClientSession.get`.
+            Extra keyword arguments are passed to `aiohttp.ClientSession.get`.
 
         Returns
         -------
