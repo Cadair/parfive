@@ -1,5 +1,10 @@
-Welcome to Parfive's documentation!
-===================================
+Parfive
+=======
+
+.. toctree::
+   :hidden:
+
+   self
 
 Parfive is a small library for downloading files, it's objective is to provide a
 simple API for queuing files for download and then providing excellent feedback
@@ -30,6 +35,11 @@ or with FTP support::
   pip install parfive[ftp]
 
 
+or with conda from conda-forge::
+
+  conda install -c conda-forge parfive
+
+
 or from `GitHub <https://github.com/Cadair/parfive>`__.
 
 
@@ -52,3 +62,5 @@ A simple example is::
 
 
 .. automodapi:: parfive
+   :no-heading:
+   :no-main-docstr:

@@ -2,6 +2,7 @@
 #
 # Configuration file for the Sphinx documentation builder.
 
+from pkg_resources import get_distribution
 from sphinx_astropy.conf.v1 import *
 
 # -- Project information -----------------------------------------------------
@@ -10,10 +11,9 @@ project = 'Parfive'
 copyright = '2018, Stuart Mumford'
 author = 'Stuart Mumford'
 
-# The short X.Y version
-version = ''
-# The full version, including alpha/beta/rc tags
-release = '0.1.1'
+release = get_distribution('parfive').version
+# for example take major/minor
+version = '.'.join(release.split('.')[:2])
 
 
 # -- General configuration ---------------------------------------------------
@@ -54,7 +54,7 @@ try:
 except ImportError:
     html_theme = 'alabaster'
 
-html_theme_options = {}
+html_theme_options = {'logo_url': 'https://parfive.readthedocs.io/en/latest/'}
 
 
 # -- Options for HTMLHelp output ---------------------------------------------

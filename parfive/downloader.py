@@ -60,7 +60,7 @@ class Downloader:
     def __init__(self, max_conn=5, progress=True, file_progress=True,
                  loop=None, notebook=None, overwrite=False):
 
-        self.max_conn = 5
+        self.max_conn = max_conn
         self._start_loop(loop)
 
         # Configure progress bars
@@ -109,24 +109,24 @@ class Downloader:
         url : `str`
             The URL to retrieve.
 
-        path : `str`
-            The directory to retrieve the file into.
+        path : `str`, optional
+            The directory to retrieve the file into, if `None` defaults to the
+            current directory.
 
-        filename : `str` or `callable`
+        filename : `str` or `callable`, optional
             The filename to save the file as. Can also be a callable which
             takes two arguments the url and the response object from opening
             that URL, and returns the filename. (Note, for FTP downloads the
-            response will be ``None``.)
-
-        chunksize : `int`
-            The size (in bytes) of the chunks to be downloaded for HTTP downloads.
+            response will be ``None``.) If `None` the HTTP headers will be read
+            for the filename, or the last segment of the URL will be used.
 
         overwrite : `bool` or `str`, optional
             Determine how to handle downloading if a file already exists with the
             same name. If `False` the file download will be skipped and the path
             returned to the existing file, if `True` the file will be downloaded
             and the existing file will be overwritten, if `'unique'` the filename
-            will be modified to be unique.
+            will be modified to be unique. If `None` the value set when
+            constructing the `~parfive.Downloader` object will be used.
 
         kwargs : `dict`
             Extra keyword arguments are passed to `aiohttp.ClientSession.get`
@@ -144,24 +144,25 @@ class Downloader:
             filepath = partial(default_name, path)
         elif callable(filename):
             filepath = filename
-
         else:
             # Define a function because get_file expects a callback
             def filepath(*args):
                 return path / filename
 
-        if url.startswith("http"):
+        scheme = urllib.parse.urlparse(url).scheme
+
+        if scheme in ('http', 'https'):
             get_file = partial(self._get_http, url=url, filepath_partial=filepath,
                                overwrite=overwrite, **kwargs)
             self.http_queue.put_nowait(get_file)
-        elif url.startswith("ftp"):
+        elif scheme == 'ftp':
             if aioftp is None:
-                raise ValueError("The aioftp package must be installed to download over FTP")
+                raise ValueError("The aioftp package must be installed to download over FTP.")
             get_file = partial(self._get_ftp, url=url, filepath_partial=filepath,
                                overwrite=overwrite, **kwargs)
             self.ftp_queue.put_nowait(get_file)
         else:
-            raise ValueError("url must start with either http or ftp")
+            raise ValueError("URL must start with either 'http' or 'ftp'.")
 
     def download(self, timeouts=None):
         """
@@ -182,8 +183,8 @@ class Downloader:
 
         Notes
         -----
-        The defaults for `'total'` and `'sock_read'` timeouts can be overridden
-        by two environment variables ``PARFIVE_TOTAL_TIMEOUT`` and
+        The defaults for the `'total'` and `'sock_read'` timeouts can be
+        overridden by two environment variables ``PARFIVE_TOTAL_TIMEOUT`` and
         ``PARFIVE_SOCK_READ_TIMEOUT``.
 
         """
@@ -201,7 +202,7 @@ class Downloader:
         # the errors list of the results object.
         for res in dlresults:
             if isinstance(res, FailedDownload):
-                results.add_error(res.filepath_partial, res.url, res.response)
+                results.add_error(res.filepath_partial, res.url, res.exception)
             elif isinstance(res, Exception):
                 raise res
             else:
@@ -227,7 +228,7 @@ class Downloader:
         -------
 
         results : `parfive.Results`
-            A modified version of the input results with all the errors from
+            A modified version of the input ``results`` with all the errors from
             this download attempt and any new files appended to the list of
             file paths.
 
@@ -347,7 +348,7 @@ class Downloader:
             A token for this download slot.
 
         kwargs : `dict`
-            Extra keyword arguments are passed to `~aiohttp.ClientSession.get`.
+            Extra keyword arguments are passed to `aiohttp.ClientSession.get`.
 
         Returns
         -------
@@ -388,10 +389,7 @@ class Downloader:
                             if file_pb is not None:
                                 file_pb.update(chunksize)
 
-        # Catch all the possible aiohttp errors, which are variants on failed
-        # downloads and then send them to the user in the place of the response
-        # object.
-        except aiohttp.ClientError as e:
+        except Exception as e:
             raise FailedDownload(filepath_partial, url, e)
 
     @staticmethod
@@ -462,8 +460,5 @@ class Downloader:
 
                         return str(filepath)
 
-        # Catch all the possible aioftp errors, and socket errors (when a
-        # server is not found) which are variants on failed downloads and then
-        # send them to the user in the place of the response object.
-        except (aioftp.StatusCodeError, OSError) as e:
+        except Exception as e:
             raise FailedDownload(filepath_partial, url, e)
