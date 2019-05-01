@@ -40,7 +40,7 @@ def test_download_partial(event_loop, httpserver, tmpdir):
     httpserver.serve_content('SIMPLE  = T')
     dl = Downloader(loop=event_loop)
 
-    dl.enqueue_file(httpserver.url, filename=lambda resp, url: Path(tmpdir)/"filename")
+    dl.enqueue_file(httpserver.url, filename=lambda resp, url: Path(tmpdir) / "filename")
     f = dl.download()
     assert len(f) == 1
 

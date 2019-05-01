@@ -30,6 +30,11 @@ or with FTP support::
   pip install parfive[ftp]
 
 
+or with conda from conda-forge::
+
+  conda install -c conda-forge parfive
+
+
 or from `GitHub <https://github.com/Cadair/parfive>`__.
 
 
