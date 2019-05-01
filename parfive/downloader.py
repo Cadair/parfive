@@ -390,10 +390,7 @@ class Downloader:
                             if file_pb is not None:
                                 file_pb.update(chunksize)
 
-        # Catch all the possible aiohttp errors, which are variants on failed
-        # downloads and then send them to the user in the place of the response
-        # object.
-        except aiohttp.ClientError as e:
+        except Exception as e:
             raise FailedDownload(filepath_partial, url, e)
 
     @staticmethod
@@ -464,8 +461,5 @@ class Downloader:
 
                         return str(filepath)
 
-        # Catch all the possible aioftp errors, and socket errors (when a
-        # server is not found) which are variants on failed downloads and then
-        # send them to the user in the place of the response object.
-        except (aioftp.StatusCodeError, OSError) as e:
+        except Exception as e:
             raise FailedDownload(filepath_partial, url, e)

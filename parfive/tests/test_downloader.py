@@ -217,8 +217,8 @@ def test_raises_other_exception(httpserver, tmpdir):
     dl = Downloader()
 
     dl.enqueue_file(httpserver.url, path=tmpdir)
-    with pytest.raises(ValueError):
-        dl.download()
+    res = dl.download()
+    assert isinstance(res.errors[0].exception, ValueError)
 
 
 def test_token():
