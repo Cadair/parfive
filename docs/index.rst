@@ -6,14 +6,14 @@ Parfive
 
    self
 
-Parfive is a small library for downloading files, it's objective is to provide a
+Parfive is a small library for downloading files, its objective is to provide a
 simple API for queuing files for download and then providing excellent feedback
 to the user about the in progress downloads. It also aims to provide a clear
 interface for inspecting any failed downloads.
 
 The parfive package was motivated by the needs of
 `SunPy's <https://sunpy.org>`__ ``net`` submodule, but should be generally
-applicable to anyone who want's a user friendly way of downloading multiple
+applicable to anyone who wants a user friendly way of downloading multiple
 files in parallel.
 
 Parfive supports downloading files over either HTTP or FTP using
