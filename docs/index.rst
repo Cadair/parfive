@@ -1,5 +1,10 @@
-Welcome to Parfive's documentation!
-===================================
+Parfive
+=======
+
+.. toctree::
+   :hidden:
+
+   self
 
 Parfive is a small library for downloading files, it's objective is to provide a
 simple API for queuing files for download and then providing excellent feedback
@@ -57,3 +62,5 @@ A simple example is::
 
 
 .. automodapi:: parfive
+   :no-heading:
+   :no-main-docstr:
