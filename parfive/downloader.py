@@ -372,22 +372,7 @@ class Downloader:
                                           total=get_http_size(resp))
                     else:
                         file_pb = None
-                    with open(str(filepath), 'wb') as fd:
-                        while True:
-                            chunk = await resp.content.read(chunksize)
-                            if not chunk:
-                                # Close the file progressbar
-                                if file_pb is not None:
-                                    file_pb.close()
-
-                                return str(filepath)
-
-                            # Write this chunk to the output file.
-                            fd.write(chunk)
-
-                            # Update the progressbar for file
-                            if file_pb is not None:
-                                file_pb.update(chunksize)
+                    _write_response_to_file(resp, filepath, file_pb, chunksize)
 
         except Exception as e:
             raise FailedDownload(filepath_partial, url, e)
@@ -462,3 +447,22 @@ class Downloader:
 
         except Exception as e:
             raise FailedDownload(filepath_partial, url, e)
+
+
+async def _write_response_to_file(resp, filepath, file_pb, chunksize):
+    with open(str(filepath), 'wb') as fd:
+        while True:
+            chunk = await resp.content.read(chunksize)
+            if not chunk:
+                # Close the file progressbar
+                if file_pb is not None:
+                    file_pb.close()
+
+                return str(filepath)
+
+            # Write this chunk to the output file.
+            fd.write(chunk)
+
+            # Update the progressbar for file
+            if file_pb is not None:
+                file_pb.update(chunksize)
