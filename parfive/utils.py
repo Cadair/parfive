@@ -85,6 +85,10 @@ def replacement_filename(path):
 def get_filepath(filepath, overwrite):
     """
     Get the filepath to download to and ensure dir exists.
+
+    Returns
+    -------
+    `pathlib.Path`, `bool`
     """
     filepath = pathlib.Path(filepath)
     if filepath.exists():
