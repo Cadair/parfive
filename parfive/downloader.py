@@ -15,6 +15,7 @@ from tqdm import tqdm, tqdm_notebook
 from .results import Results
 from .utils import (FailedDownload, Token, default_name, get_filepath,
                     get_ftp_size, get_http_size, in_notebook, run_in_thread)
+from .state import DownloadState, FileWriter, DownloadProgress
 
 try:
     import aioftp
@@ -384,6 +385,7 @@ class Downloader:
 
         """
         timeout = aiohttp.ClientTimeout(**timeouts)
+        state = DownloadState()
         try:
             scheme = urllib.parse.urlparse(url).scheme
             if 'HTTP_PROXY' in os.environ and scheme == 'http':
@@ -398,10 +400,13 @@ class Downloader:
                     filepath, skip = get_filepath(filepath_partial(resp, url), overwrite)
                     if skip:
                         return str(filepath)
+                    state.add_observer(FileWriter(filepath))
                     if callable(file_pb):
-                        file_pb = file_pb(position=token.n, unit='B', unit_scale=True,
-                                          desc=filepath.name, leave=False,
-                                          total=get_http_size(resp))
+                        state.add_observer(
+                            DownloadProgress(
+                                file_pb(position=token.n, unit='B', unit_scale=True, desc=filepath.name, leave=False,
+                                        total=get_http_size(resp)))
+                        )
                     else:
                         file_pb = None
 
@@ -411,7 +416,7 @@ class Downloader:
 
                     download_workers = []
                     writer = self.loop.create_task(
-                        self._write_worker(downloaded_chunk_queue, file_pb, filepath))
+                        self._write_worker(downloaded_chunk_queue, state))
 
                     if max_splits and resp.headers.get('Accept-Ranges', None) == "bytes":
                         content_length = int(resp.headers['Content-length'])
@@ -443,9 +448,10 @@ class Downloader:
                     return str(filepath)
 
         except Exception as e:
+            raise
             raise FailedDownload(filepath_partial, url, e)
 
-    async def _write_worker(self, queue, file_pb, filepath):
+    async def _write_worker(self, queue, state):
         """
         Worker for writing the downloaded chunk to the file.
 
@@ -465,19 +471,12 @@ class Downloader:
         filepath: `pathlib.Path`
             Path to the which the file should be downloaded.
         """
-        with open(filepath, 'wb') as f:
-            while True:
-                offset, chunk = await queue.get()
+        while True:
+            offset, chunk = await queue.get()
 
-                f.seek(offset)
-                f.write(chunk)
-                f.flush()
+            state.update(chunk, offset)
 
-                # Update the progressbar for file
-                if file_pb is not None:
-                    file_pb.update(len(chunk))
-
-                queue.task_done()
+            queue.task_done()
 
     async def _http_download_worker(self, session, url, chunksize, http_range, timeout, queue, **kwargs):
         """
