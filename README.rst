@@ -24,7 +24,7 @@ A simple example is::
 
   files = dl.download()
 
-Parfive also bundles a CLI.::
+Parfive also bundles a CLI. The following example will download the two files concurrently.::
 
   $ parfive 'http://212.183.159.230/5MB.zip' 'http://212.183.159.230/10MB.zip'
 
