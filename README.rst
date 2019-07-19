@@ -24,6 +24,10 @@ A simple example is::
 
   files = dl.download()
 
+Parfive also bundles a CLI.::
+
+  $ parfive 'http://212.183.159.230/5MB.zip' 'http://212.183.159.230/10MB.zip'
+
 
 Results
 ^^^^^^^

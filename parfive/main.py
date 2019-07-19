@@ -1,4 +1,6 @@
 import argparse
+import sys
+
 from parfive import Downloader
 
 
@@ -20,4 +22,8 @@ def main():
     downloader = Downloader(max_conn=args.max_conn, file_progress=args.file_progress, overwrite=args.overwrite)
     for url in args.urls:
         downloader.enqueue_file(url, path=args.directory)
-    downloader.download()
+    results = downloader.download()
+    for err in results.errors:
+        print(f'{err.url} \t {err.exception}')
+    if results.errors:
+        sys.exit(1)
