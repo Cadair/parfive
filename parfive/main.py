@@ -12,18 +12,24 @@ def main():
                         help='Number of maximum connections.')
     parser.add_argument('--overwrite', action='store_const', const=True, default=False,
                         help='Overwrite if the file exists.')
-    parser.add_argument('--no-file-progress', action='store_const', const=False, default=True, dest='file_progress',
-                        help='Overwrite if the file exists.')
+    parser.add_argument('--no-file-progress', action='store_const', const=True, default=False, dest='no_file_progress',
+                        help='Show progress bar for each file.')
     parser.add_argument('--directory', type=str, default='./',
                         help='Directory to which downloaded files are saved.')
+    parser.add_argument('--print-filenames', action='store_const', const=True, default=False, dest='print_filenames',
+                        help='Print successfully downloaded files\'s names to stdout.')
 
     args = parser.parse_args()
 
-    downloader = Downloader(max_conn=args.max_conn, file_progress=args.file_progress, overwrite=args.overwrite)
+    downloader = Downloader(max_conn=args.max_conn, file_progress=not args.no_file_progress, overwrite=args.overwrite)
     for url in args.urls:
         downloader.enqueue_file(url, path=args.directory)
     results = downloader.download()
+    for i in results:
+        print(i)
+
+    err_str = ''
     for err in results.errors:
-        print(f'{err.url} \t {err.exception}')
-    if results.errors:
-        sys.exit(1)
+        err_str += f'{err.url} \t {err.exception}\n'
+    if err_str:
+        sys.exit(err_str)
