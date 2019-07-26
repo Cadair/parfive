@@ -378,7 +378,7 @@ class Downloader:
                     if max_splits and resp.headers.get('Accept-Ranges', None) == "bytes":
                         # XXX: int(?)
                         content_length = int(resp.headers['Content-length'])
-                        split_length = content_length//max_splits
+                        split_length = content_length // max_splits
                         ranges = [
                             [start, start + split_length]
                             for start in range(0, content_length, split_length)
@@ -389,12 +389,12 @@ class Downloader:
                         workers = []
                         for _range in ranges:
                             workers.append(
-                                asyncio.create_task(Downloader._ranged_http_producer(
+                                asyncio.create_task(Downloader._ranged_http_download(
                                     session, url, chunksize, _range, timeout, queue, **kwargs
                                 ))
                             )
                         consumer = asyncio.create_task(
-                            Downloader._ranged_http_consumer(queue, file_pb, filepath))
+                            Downloader._ranged_http_write(queue, file_pb, filepath))
                         await asyncio.gather(*workers)
                         await queue.join()
                         consumer.cancel()
@@ -421,7 +421,7 @@ class Downloader:
             raise FailedDownload(filepath_partial, url, e)
 
     @staticmethod
-    async def _ranged_http_consumer(queue, file_pb, filepath):
+    async def _ranged_http_write(queue, file_pb, filepath):
         """
 
         queue: `asyncio.Queue`
@@ -449,7 +449,7 @@ class Downloader:
                 queue.task_done()
 
     @staticmethod
-    async def _ranged_http_producer(session, url, chunksize, http_range, timeout, queue, **kwargs):
+    async def _ranged_http_download(session, url, chunksize, http_range, timeout, queue, **kwargs):
         """
         Worker for ranged http requests.
 
