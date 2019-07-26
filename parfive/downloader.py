@@ -374,6 +374,13 @@ class Downloader:
                                           total=get_http_size(resp))
                     else:
                         file_pb = None
+
+                    # setup asyncio queue and writer
+                    queue = asyncio.Queue()
+                    download_workers = []
+                    writer = self.loop.create_task(
+                        Downloader._ranged_http_write(queue, file_pb, filepath))
+
                     if max_splits and resp.headers.get('Accept-Ranges', None) == "bytes":
                         # XXX: int(?)
                         content_length = int(resp.headers['Content-length'])
@@ -384,37 +391,23 @@ class Downloader:
                         ]
                         # let the last part download everything
                         ranges[-1][1] = ''
-                        queue = asyncio.Queue()
-                        download_workers = []
                         for _range in ranges:
                             download_workers.append(
                                 self.loop.create_task(Downloader._ranged_http_download(
                                     session, url, chunksize, _range, timeout, queue, **kwargs
                                 ))
                             )
-                        writer = self.loop.create_task(
-                            Downloader._ranged_http_write(queue, file_pb, filepath))
-                        await asyncio.gather(*download_workers)
-                        await queue.join()
-                        writer.cancel()
-                        return str(filepath)
                     else:
-                        with open(str(filepath), 'wb') as fd:
-                            while True:
-                                chunk = await resp.content.read(chunksize)
-                                if not chunk:
-                                    # Close the file progressbar
-                                    if file_pb is not None:
-                                        file_pb.close()
+                        download_workers.append(
+                            self.loop.create_task(Downloader._ranged_http_download(
+                                session, url, chunksize, None, timeout, queue, **kwargs
+                            ))
+                        )
 
-                                    return str(filepath)
-
-                                # Write this chunk to the output file.
-                                fd.write(chunk)
-
-                                # Update the progressbar for file
-                                if file_pb is not None:
-                                    file_pb.update(chunksize)
+                    await asyncio.gather(*download_workers)
+                    await queue.join()
+                    writer.cancel()
+                    return str(filepath)
 
         except Exception as e:
             raise FailedDownload(filepath_partial, url, e)
@@ -474,10 +467,12 @@ class Downloader:
             Extra keyword arguments are passed to `aiohttp.ClientSession.get`.
         """
         headers = kwargs.pop('headers', {})
-        headers['Range'] = 'bytes={}-{}'.format(*http_range)
-
-        # init offset to start of range
-        offset, _ = http_range
+        if http_range:
+            headers['Range'] = 'bytes={}-{}'.format(*http_range)
+            # init offset to start of range
+            offset, _ = http_range
+        else:
+            offset = 0
 
         async with session.get(url, timeout=timeout, headers=headers, **kwargs) as resp:
             while True:
