@@ -319,8 +319,7 @@ class Downloader:
 
         return futures
 
-    @staticmethod
-    async def _get_http(session, *, url, filepath_partial, chunksize=100,
+    async def _get_http(self, session, *, url, filepath_partial, chunksize=100,
                         file_pb=None, token, overwrite, timeouts, max_splits=12, **kwargs):
         """
         Read the file from the given url into the filename given by ``filepath_partial``.
@@ -386,18 +385,18 @@ class Downloader:
                         # let the last part download everything
                         ranges[-1][1] = ''
                         queue = asyncio.Queue()
-                        workers = []
+                        download_workers = []
                         for _range in ranges:
-                            workers.append(
-                                asyncio.create_task(Downloader._ranged_http_download(
+                            download_workers.append(
+                                self.loop.create_task(Downloader._ranged_http_download(
                                     session, url, chunksize, _range, timeout, queue, **kwargs
                                 ))
                             )
-                        consumer = asyncio.create_task(
+                        writer = self.loop.create_task(
                             Downloader._ranged_http_write(queue, file_pb, filepath))
-                        await asyncio.gather(*workers)
+                        await asyncio.gather(*download_workers)
                         await queue.join()
-                        consumer.cancel()
+                        writer.cancel()
                         return str(filepath)
                     else:
                         with open(str(filepath), 'wb') as fd:
@@ -489,8 +488,7 @@ class Downloader:
                 await queue.put((offset, chunk))
                 offset += len(chunk)
 
-    @staticmethod
-    async def _get_ftp(session=None, *, url, filepath_partial,
+    async def _get_ftp(self, session=None, *, url, filepath_partial,
                        file_pb=None, token, overwrite, timeouts, **kwargs):
         """
         Read the file from the given url into the filename given by ``filepath_partial``.
