@@ -379,7 +379,7 @@ class Downloader:
                     queue = asyncio.Queue()
                     download_workers = []
                     writer = self.loop.create_task(
-                        Downloader._ranged_http_write(queue, file_pb, filepath))
+                        self._write_worker(queue, file_pb, filepath))
 
                     if max_splits and resp.headers.get('Accept-Ranges', None) == "bytes":
                         # XXX: int(?)
@@ -393,13 +393,13 @@ class Downloader:
                         ranges[-1][1] = ''
                         for _range in ranges:
                             download_workers.append(
-                                self.loop.create_task(Downloader._ranged_http_download(
+                                self.loop.create_task(self._http_download_worker(
                                     session, url, chunksize, _range, timeout, queue, **kwargs
                                 ))
                             )
                     else:
                         download_workers.append(
-                            self.loop.create_task(Downloader._ranged_http_download(
+                            self.loop.create_task(self._http_download_worker(
                                 session, url, chunksize, None, timeout, queue, **kwargs
                             ))
                         )
@@ -412,8 +412,7 @@ class Downloader:
         except Exception as e:
             raise FailedDownload(filepath_partial, url, e)
 
-    @staticmethod
-    async def _ranged_http_write(queue, file_pb, filepath):
+    async def _write_worker(self, queue, file_pb, filepath):
         """
 
         queue: `asyncio.Queue`
@@ -440,10 +439,9 @@ class Downloader:
 
                 queue.task_done()
 
-    @staticmethod
-    async def _ranged_http_download(session, url, chunksize, http_range, timeout, queue, **kwargs):
+    async def _http_download_worker(self, session, url, chunksize, http_range, timeout, queue, **kwargs):
         """
-        Worker for ranged http requests.
+        Worker for http requests.
 
         Parameters
         ----------
@@ -535,20 +533,27 @@ class Downloader:
                     else:
                         file_pb = None
 
-                    with open(str(filepath), 'wb') as fd:
-                        async for chunk in stream.iter_by_block():
-                            # Write this chunk to the output file.
-                            fd.write(chunk)
+                    queue = asyncio.Queue()
+                    download_workers = []
+                    writer = self.loop.create_task(
+                        self._write_worker(queue, file_pb, filepath))
 
-                            # Update the progressbar for file
-                            if file_pb is not None:
-                                file_pb.update(len(chunk))
+                    download_workers.append(
+                        self.loop.create_task(self._ftp_download_worker(stream, queue))
+                    )
 
-                        # Close the file progressbar
-                        if file_pb is not None:
-                            file_pb.close()
+                    await asyncio.gather(*download_workers)
+                    await queue.join()
+                    writer.cancel()
 
-                        return str(filepath)
+                    return str(filepath)
 
         except Exception as e:
             raise FailedDownload(filepath_partial, url, e)
+
+    async def _ftp_download_worker(self, stream, queue):
+        offset = 0
+        async for chunk in stream.iter_by_block():
+            # Write this chunk to the output file.
+            await queue.put((offset, chunk))
+            offset += len(chunk)
