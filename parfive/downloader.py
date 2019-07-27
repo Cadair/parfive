@@ -382,7 +382,6 @@ class Downloader:
                         self._write_worker(queue, file_pb, filepath))
 
                     if max_splits and resp.headers.get('Accept-Ranges', None) == "bytes":
-                        # XXX: int(?)
                         content_length = int(resp.headers['Content-length'])
                         split_length = content_length // max_splits
                         ranges = [
@@ -427,7 +426,6 @@ class Downloader:
         with open(filepath, 'wb') as f:
             while True:
                 offset, chunk = await queue.get()
-                # breakpoint()
 
                 f.seek(offset)
                 f.write(chunk)
@@ -441,7 +439,9 @@ class Downloader:
 
     async def _http_download_worker(self, session, url, chunksize, http_range, timeout, queue, **kwargs):
         """
-        Worker for http requests.
+        Worker for http requests. This function downloads the chunk from the specified http range and puts
+        the chunk in the asyncio Queue. If no range is specified, then the whole file is downloaded via chunks
+        and put in the queue.
 
         Parameters
         ----------
@@ -455,8 +455,9 @@ class Downloader:
         chunksize : `int`
             The number of bytes to read into the file at a time.
 
-        http_range: (int, int)
-             Start and end bytes of the file
+        http_range: (int, int) or None
+             Start and end bytes of the file. In None, then no `Range` header is specified in request and the whole
+            file will be downloaded.
 
         queue: `asyncio.Queue`
              Queue for chunks
@@ -476,7 +477,6 @@ class Downloader:
             while True:
                 chunk = await resp.content.read(chunksize)
                 if not chunk:
-                    # print(f"{http_range[0]} done")
                     break
                 await queue.put((offset, chunk))
                 offset += len(chunk)
