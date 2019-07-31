@@ -413,6 +413,12 @@ class Downloader:
 
     async def _write_worker(self, queue, file_pb, filepath):
         """
+        Worker for writing the downloaded chunk to the file. The downloaded chunk
+        is put into a asyncio Queue by a download worker. This worker gets the chunk from the
+        queue and write it to the file using the specified offset of the chunk.
+
+        Parameters
+        ----------
 
         queue: `asyncio.Queue`
              Queue for chunks
@@ -460,7 +466,7 @@ class Downloader:
             file will be downloaded.
 
         queue: `asyncio.Queue`
-             Queue for chunks
+             Queue to put the download chunks.
 
         kwargs : `dict`
             Extra keyword arguments are passed to `aiohttp.ClientSession.get`.
@@ -552,6 +558,17 @@ class Downloader:
             raise FailedDownload(filepath_partial, url, e)
 
     async def _ftp_download_worker(self, stream, queue):
+        """
+        Similar to `Downloader._http_download_worker`. See that function's documentation for more info.
+
+        Parameters
+        ----------
+
+        stream: `aioftp.StreamIO`
+            Stream of the file to be downloaded.
+        queue: `asyncio.Queue`
+             Queue to put the download chunks.
+        """
         offset = 0
         async for chunk in stream.iter_by_block():
             # Write this chunk to the output file.
