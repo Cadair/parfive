@@ -12,12 +12,7 @@ to the user about the in progress downloads. It also aims to provide a clear
 interface for inspecting any failed downloads.
 
 The parfive package was motivated by the needs of
-`SunPy's <https://sunpy.org>`__ ``net`` submodule, but should be generally
-applicable to anyone who wants a user friendly way of downloading multiple
-files in parallel.
-
-Parfive supports downloading files over either HTTP or FTP using
-`aiohttp <http://aiohttp.readthedocs.io/>`__ and `aioftp <https://aioftp.readthedocs.io/>`__
+`SunPy's <https://sunpy.org>`__ ``net`` submodule, but should be generally applicable to anyone who wants a user friendly way of downloading multiple files in parallel. Parfive supports downloading files over either HTTP or FTP using `aiohttp <http://aiohttp.readthedocs.io/>`__ and `aioftp <https://aioftp.readthedocs.io/>`__
 ``aioftp`` is an optional dependency, which does not need to be installed to
 download files over HTTP.
 
@@ -59,6 +54,29 @@ A simple example is::
   dl.enqueue_file("http://data.sunpy.org/sample-data/predicted-sunspot-radio-flux.txt", path="./")
 
   files = dl.download()
+
+Parfive also bundles a CLI. The following example will download the two files concurrently.::
+
+  $ parfive 'http://212.183.159.230/5MB.zip' 'http://212.183.159.230/10MB.zip'
+  $ parfive --help                                                                           
+  usage: parfive [-h] [--max-conn MAX_CONN] [--overwrite] [--no-file-progress]
+                [--directory DIRECTORY] [--print-filenames]
+                URLS [URLS ...]
+
+  Parfive, the python asyncio based downloader
+
+  positional arguments:
+    URLS                  URLs of files to be downloaded.
+
+  optional arguments:
+    -h, --help            show this help message and exit
+    --max-conn MAX_CONN   Number of maximum connections.
+    --overwrite           Overwrite if the file exists.
+    --no-file-progress    Show progress bar for each file.
+    --directory DIRECTORY
+                          Directory to which downloaded files are saved.
+    --print-filenames     Print successfully downloaded files's names to stdout.
+
 
 
 .. automodapi:: parfive

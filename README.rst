@@ -24,6 +24,28 @@ A simple example is::
 
   files = dl.download()
 
+Parfive also bundles a CLI. The following example will download the two files concurrently.::
+
+  $ parfive 'http://212.183.159.230/5MB.zip' 'http://212.183.159.230/10MB.zip'
+  $ parfive --help                                                                           
+  usage: parfive [-h] [--max-conn MAX_CONN] [--overwrite] [--no-file-progress]
+                [--directory DIRECTORY] [--print-filenames]
+                URLS [URLS ...]
+
+  Parfive, the python asyncio based downloader
+
+  positional arguments:
+    URLS                  URLs of files to be downloaded.
+
+  optional arguments:
+    -h, --help            show this help message and exit
+    --max-conn MAX_CONN   Number of maximum connections.
+    --overwrite           Overwrite if the file exists.
+    --no-file-progress    Show progress bar for each file.
+    --directory DIRECTORY
+                          Directory to which downloaded files are saved.
+    --print-filenames     Print successfully downloaded files's names to stdout.
+
 
 Results
 ^^^^^^^
