@@ -2,5 +2,5 @@
     package = "parfive"
     package_dir = "."
     directory = "changelog"
-    filename = "docs/CHANGELOG.rst"
+    filename = "docs/rendered_changelog.txt"
     issue_format = "`#{issue} <https://github.com/Cadair/parfive/pull/{issue}>`__"
