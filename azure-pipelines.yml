@@ -1,19 +1,46 @@
-# Starter pipeline
-# Start with a minimal pipeline that you can customize to build and deploy your code.
-# Add steps that build, run tests, deploy, and more:
-# https://aka.ms/yaml
+name: $(BuildDefinitionName)_$(Date:yyyyMMdd)$(Rev:.rr)
+variables:
+  CI_NAME: Azure Pipelines
+  CI_BUILD_ID: $(Build.BuildId)
+  CI_BUILD_URL: "https://dev.azure.com/Cadair/parfive/_build/results?buildId=$(Build.BuildId)"
+
+resources:
+  repositories:
+  - repository: sunpy
+    type: github
+    endpoint: Cadair
+    name: sunpy/azure-pipelines-template
+    ref: master
 
 trigger:
-- master
+  tags:
+    include:
+    - 'v*'
+    exclude:
+    - '*dev*'
+    - '*pre*'
+    - '*post*'
 
-pool:
-  vmImage: 'ubuntu-latest'
+jobs:
+- template: run-tox-env.yml@sunpy
+  parameters:
+    name: MacOS_py37
+    os: macos
+    tox: py37 --
 
-steps:
-- script: echo Hello, world!
-  displayName: 'Run a one-line script'
+- template: run-tox-env.yml@sunpy
+  parameters:
+    name: Windows_py36
+    os: windows
+    tox: py36 --
 
-- script: |
-    echo Add other tasks to build, test, and deploy your project.
-    echo See https://aka.ms/yaml
-  displayName: 'Run a multi-line script'
+- template: run-tox-env.yml@sunpy
+  parameters:
+    name: Linux_35
+    os: linux
+    tox: py35 --
+
+- ${{ if startsWith(variables['Build.SourceBranch'], 'refs/tags/') }}:
+  - template: publish-pypi.yml@sunpy
+    parameters:
+      dependsOn: [Linux_35,Windows_py36,MacOS_py37]
