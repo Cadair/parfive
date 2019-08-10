@@ -1,0 +1,7 @@
+Parfive 1.0.0 (2019-05-01)
+=========================================
+
+Features
+--------
+
+- First stable release of Parfive. (`#13 <https://github.com/Cadair/parfive/pull/13>`__)
