@@ -6,20 +6,8 @@ import pytest
 from pytest_localserver.http import WSGIServer
 
 from parfive.downloader import Downloader, Token, FailedDownload, Results
+from parfive.utils import sha256sum
 import hashlib
-
-
-def sha256sum(filename):
-    """
-    https://stackoverflow.com/a/44873382
-    """
-    h  = hashlib.sha256()
-    b  = bytearray(128*1024)
-    mv = memoryview(b)
-    with open(filename, 'rb', buffering=0) as f:
-        for n in iter(lambda : f.readinto(mv), 0):
-            h.update(mv[:n])
-    return h.hexdigest()
 
 
 def test_setup(event_loop):

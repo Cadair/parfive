@@ -375,11 +375,13 @@ class Downloader:
                     else:
                         file_pb = None
 
-                    # setup asyncio queue and writer
-                    queue = asyncio.Queue()
+                    # This queue will contain the downloaded chunks and their offsets
+                    # as tuples: (offset, chunk)
+                    downloaded_chunk_queue = asyncio.Queue()
+
                     download_workers = []
                     writer = self.loop.create_task(
-                        self._write_worker(queue, file_pb, filepath))
+                        self._write_worker(downloaded_chunk_queue, file_pb, filepath))
 
                     if max_splits and resp.headers.get('Accept-Ranges', None) == "bytes":
                         content_length = int(resp.headers['Content-length'])
@@ -393,18 +395,20 @@ class Downloader:
                         for _range in ranges:
                             download_workers.append(
                                 self.loop.create_task(self._http_download_worker(
-                                    session, url, chunksize, _range, timeout, queue, **kwargs
+                                    session, url, chunksize, _range, timeout, downloaded_chunk_queue, **kwargs
                                 ))
                             )
                     else:
                         download_workers.append(
                             self.loop.create_task(self._http_download_worker(
-                                session, url, chunksize, None, timeout, queue, **kwargs
+                                session, url, chunksize, None, timeout, downloaded_chunk_queue, **kwargs
                             ))
                         )
 
+                    # run all the download workers
                     await asyncio.gather(*download_workers)
-                    await queue.join()
+                    # join() waits till all the items in the queue have been processed
+                    await downloaded_chunk_queue.join()
                     writer.cancel()
                     return str(filepath)
 
@@ -413,9 +417,11 @@ class Downloader:
 
     async def _write_worker(self, queue, file_pb, filepath):
         """
-        Worker for writing the downloaded chunk to the file. The downloaded chunk
-        is put into a asyncio Queue by a download worker. This worker gets the chunk from the
-        queue and write it to the file using the specified offset of the chunk.
+        Worker for writing the downloaded chunk to the file.
+
+        The downloaded chunk is put into a asyncio Queue by a download worker.
+        This worker gets the chunk from the queue and write it to the file
+        using the specified offset of the chunk.
 
         Parameters
         ----------
@@ -445,8 +451,10 @@ class Downloader:
 
     async def _http_download_worker(self, session, url, chunksize, http_range, timeout, queue, **kwargs):
         """
-        Worker for http requests. This function downloads the chunk from the specified http range and puts
-        the chunk in the asyncio Queue. If no range is specified, then the whole file is downloaded via chunks
+        Worker for downloading chunks from http urls.
+
+        This function downloads the chunk from the specified http range and puts the chunk in the
+        asyncio Queue. If no range is specified, then the whole file is downloaded via chunks
         and put in the queue.
 
         Parameters
@@ -461,9 +469,9 @@ class Downloader:
         chunksize : `int`
             The number of bytes to read into the file at a time.
 
-        http_range: (int, int) or None
-             Start and end bytes of the file. In None, then no `Range` header is specified in request and the whole
-            file will be downloaded.
+        http_range: (`int`, `int`) or `None`
+            Start and end bytes of the file. In None, then no `Range` header is specified
+            in request and the whole file will be downloaded.
 
         queue: `asyncio.Queue`
              Queue to put the download chunks.
@@ -539,17 +547,17 @@ class Downloader:
                     else:
                         file_pb = None
 
-                    queue = asyncio.Queue()
+                    downloaded_chunks_queue = asyncio.Queue()
                     download_workers = []
                     writer = self.loop.create_task(
-                        self._write_worker(queue, file_pb, filepath))
+                        self._write_worker(downloaded_chunks_queue, file_pb, filepath))
 
                     download_workers.append(
-                        self.loop.create_task(self._ftp_download_worker(stream, queue))
+                        self.loop.create_task(self._ftp_download_worker(stream, downloaded_chunks_queue))
                     )
 
                     await asyncio.gather(*download_workers)
-                    await queue.join()
+                    await downloaded_chunks_queue.join()
                     writer.cancel()
 
                     return str(filepath)
