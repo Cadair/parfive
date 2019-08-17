@@ -1,6 +1,4 @@
-*********
 Changelog
 *********
 
-.. include:: rendered_changelog.txt
-
+.. include:: ../CHANGELOG.rst
