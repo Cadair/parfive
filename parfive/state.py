@@ -15,7 +15,7 @@ class DownloadState:
 
 class Observer(metaclass=ABCMeta):
     @abstractmethod
-    def notify(self, chunk):
+    def notify(self, chunk, offset):
         """
         Callback for the observer after a chunk has been downloaded
 
@@ -24,6 +24,9 @@ class Observer(metaclass=ABCMeta):
 
         chunk: bytes
             The downloaded chunk of file.
+
+        offset: int
+            Offset of the current chunk.
         """
         raise NotImplementedError
 
@@ -50,3 +53,12 @@ class DownloadProgress(Observer):
 
     def notify(self, chunk, *args):
         self._file_pb.update(len(chunk))
+
+
+class StateWriter(Observer):
+    def __init__(self, filename):
+        self._state_filename = filename + '.parfive'
+        self._state_file = open(self._state_filename, 'w')
+
+    def notify(self, chunk, offset, *args):
+        pass
