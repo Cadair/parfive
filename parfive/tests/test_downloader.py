@@ -6,6 +6,8 @@ import pytest
 from pytest_localserver.http import WSGIServer
 
 from parfive.downloader import Downloader, Token, FailedDownload, Results
+from parfive.utils import sha256sum
+import hashlib
 
 
 def test_setup(event_loop):
@@ -25,6 +27,23 @@ def test_download(event_loop, httpserver, tmpdir):
                              headers={'Content-Disposition': "attachment; filename=testfile.fits"})
     dl = Downloader(loop=event_loop)
 
+    dl.enqueue_file(httpserver.url, path=Path(tmpdir), max_splits=None)
+
+    assert dl.queued_downloads == 1
+
+    f = dl.download()
+
+    assert len(f) == 1
+    assert Path(f[0]).name == "testfile.fits"
+    assert sha256sum(f[0]) == "a1c58cd340e3bd33f94524076f1fa5cf9a7f13c59d5272a9d4bc0b5bc436d9b3"
+
+
+def test_download_ranged_http(event_loop, httpserver, tmpdir):
+    tmpdir = str(tmpdir)
+    httpserver.serve_content('SIMPLE  = T',
+                             headers={'Content-Disposition': "attachment; filename=testfile.fits"})
+    dl = Downloader(loop=event_loop)
+
     dl.enqueue_file(httpserver.url, path=Path(tmpdir))
 
     assert dl.queued_downloads == 1
@@ -33,6 +52,7 @@ def test_download(event_loop, httpserver, tmpdir):
 
     assert len(f) == 1
     assert Path(f[0]).name == "testfile.fits"
+    assert sha256sum(f[0]) == "a1c58cd340e3bd33f94524076f1fa5cf9a7f13c59d5272a9d4bc0b5bc436d9b3"
 
 
 def test_download_partial(event_loop, httpserver, tmpdir):

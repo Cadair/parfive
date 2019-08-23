@@ -319,9 +319,8 @@ class Downloader:
 
         return futures
 
-    @staticmethod
-    async def _get_http(session, *, url, filepath_partial, chunksize=100,
-                        file_pb=None, token, overwrite, timeouts, **kwargs):
+    async def _get_http(self, session, *, url, filepath_partial, chunksize=100,
+                        file_pb=None, token, overwrite, timeouts, max_splits=12, **kwargs):
         """
         Read the file from the given url into the filename given by ``filepath_partial``.
 
@@ -346,6 +345,9 @@ class Downloader:
 
         token : `parfive.downloader.Token`
             A token for this download slot.
+
+        max_splits: `int`
+            Number of maximum concurrent connections.
 
         kwargs : `dict`
             Extra keyword arguments are passed to `aiohttp.ClientSession.get`.
@@ -372,28 +374,128 @@ class Downloader:
                                           total=get_http_size(resp))
                     else:
                         file_pb = None
-                    with open(str(filepath), 'wb') as fd:
-                        while True:
-                            chunk = await resp.content.read(chunksize)
-                            if not chunk:
-                                # Close the file progressbar
-                                if file_pb is not None:
-                                    file_pb.close()
 
-                                return str(filepath)
+                    # This queue will contain the downloaded chunks and their offsets
+                    # as tuples: (offset, chunk)
+                    downloaded_chunk_queue = asyncio.Queue()
 
-                            # Write this chunk to the output file.
-                            fd.write(chunk)
+                    download_workers = []
+                    writer = self.loop.create_task(
+                        self._write_worker(downloaded_chunk_queue, file_pb, filepath))
 
-                            # Update the progressbar for file
-                            if file_pb is not None:
-                                file_pb.update(chunksize)
+                    if max_splits and resp.headers.get('Accept-Ranges', None) == "bytes":
+                        content_length = int(resp.headers['Content-length'])
+                        split_length = content_length // max_splits
+                        ranges = [
+                            [start, start + split_length]
+                            for start in range(0, content_length, split_length)
+                        ]
+                        # let the last part download everything
+                        ranges[-1][1] = ''
+                        for _range in ranges:
+                            download_workers.append(
+                                self.loop.create_task(self._http_download_worker(
+                                    session, url, chunksize, _range, timeout, downloaded_chunk_queue, **kwargs
+                                ))
+                            )
+                    else:
+                        download_workers.append(
+                            self.loop.create_task(self._http_download_worker(
+                                session, url, chunksize, None, timeout, downloaded_chunk_queue, **kwargs
+                            ))
+                        )
+
+                    # run all the download workers
+                    await asyncio.gather(*download_workers)
+                    # join() waits till all the items in the queue have been processed
+                    await downloaded_chunk_queue.join()
+                    writer.cancel()
+                    return str(filepath)
 
         except Exception as e:
             raise FailedDownload(filepath_partial, url, e)
 
-    @staticmethod
-    async def _get_ftp(session=None, *, url, filepath_partial,
+    async def _write_worker(self, queue, file_pb, filepath):
+        """
+        Worker for writing the downloaded chunk to the file.
+
+        The downloaded chunk is put into a asyncio Queue by a download worker.
+        This worker gets the chunk from the queue and write it to the file
+        using the specified offset of the chunk.
+
+        Parameters
+        ----------
+
+        queue: `asyncio.Queue`
+             Queue for chunks
+
+        file_pb : `tqdm.tqdm` or `False`
+            Should progress bars be displayed for each file downloaded.
+
+        filepath: `pathlib.Path`
+            Path to the which the file should be downloaded.
+        """
+        with open(filepath, 'wb') as f:
+            while True:
+                offset, chunk = await queue.get()
+
+                f.seek(offset)
+                f.write(chunk)
+                f.flush()
+
+                # Update the progressbar for file
+                if file_pb is not None:
+                    file_pb.update(len(chunk))
+
+                queue.task_done()
+
+    async def _http_download_worker(self, session, url, chunksize, http_range, timeout, queue, **kwargs):
+        """
+        Worker for downloading chunks from http urls.
+
+        This function downloads the chunk from the specified http range and puts the chunk in the
+        asyncio Queue. If no range is specified, then the whole file is downloaded via chunks
+        and put in the queue.
+
+        Parameters
+        ----------
+
+        session : `aiohttp.ClientSession`
+            The `aiohttp.ClientSession` to use to retrieve the files.
+
+        url : `str`
+            The url to retrieve.
+
+        chunksize : `int`
+            The number of bytes to read into the file at a time.
+
+        http_range: (`int`, `int`) or `None`
+            Start and end bytes of the file. In None, then no `Range` header is specified
+            in request and the whole file will be downloaded.
+
+        queue: `asyncio.Queue`
+             Queue to put the download chunks.
+
+        kwargs : `dict`
+            Extra keyword arguments are passed to `aiohttp.ClientSession.get`.
+        """
+        headers = kwargs.pop('headers', {})
+        if http_range:
+            headers['Range'] = 'bytes={}-{}'.format(*http_range)
+            # init offset to start of range
+            offset, _ = http_range
+        else:
+            offset = 0
+
+        async with session.get(url, timeout=timeout, headers=headers, **kwargs) as resp:
+            while True:
+                chunk = await resp.content.read(chunksize)
+                if not chunk:
+                    break
+                await queue.put((offset, chunk))
+                offset += len(chunk)
+
+    async def _get_ftp(self, session=None, *, url, filepath_partial,
                        file_pb=None, token, overwrite, timeouts, **kwargs):
         """
         Read the file from the given url into the filename given by ``filepath_partial``.
@@ -445,20 +547,38 @@ class Downloader:
                     else:
                         file_pb = None
 
-                    with open(str(filepath), 'wb') as fd:
-                        async for chunk in stream.iter_by_block():
-                            # Write this chunk to the output file.
-                            fd.write(chunk)
+                    downloaded_chunks_queue = asyncio.Queue()
+                    download_workers = []
+                    writer = self.loop.create_task(
+                        self._write_worker(downloaded_chunks_queue, file_pb, filepath))
 
-                            # Update the progressbar for file
-                            if file_pb is not None:
-                                file_pb.update(len(chunk))
+                    download_workers.append(
+                        self.loop.create_task(self._ftp_download_worker(stream, downloaded_chunks_queue))
+                    )
 
-                        # Close the file progressbar
-                        if file_pb is not None:
-                            file_pb.close()
+                    await asyncio.gather(*download_workers)
+                    await downloaded_chunks_queue.join()
+                    writer.cancel()
 
-                        return str(filepath)
+                    return str(filepath)
 
         except Exception as e:
             raise FailedDownload(filepath_partial, url, e)
+
+    async def _ftp_download_worker(self, stream, queue):
+        """
+        Similar to `Downloader._http_download_worker`. See that function's documentation for more info.
+
+        Parameters
+        ----------
+
+        stream: `aioftp.StreamIO`
+            Stream of the file to be downloaded.
+        queue: `asyncio.Queue`
+             Queue to put the download chunks.
+        """
+        offset = 0
+        async for chunk in stream.iter_by_block():
+            # Write this chunk to the output file.
+            await queue.put((offset, chunk))
+            offset += len(chunk)
