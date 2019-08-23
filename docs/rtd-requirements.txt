@@ -3,3 +3,4 @@ tqdm
 aioftp
 sunpy-sphinx-theme
 sphinx-astropy
+towncrier

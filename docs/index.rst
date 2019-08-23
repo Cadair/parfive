@@ -5,6 +5,7 @@ Parfive
    :hidden:
 
    self
+   changelog
 
 Parfive is a small library for downloading files, its objective is to provide a
 simple API for queuing files for download and then providing excellent feedback
