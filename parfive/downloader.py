@@ -287,7 +287,7 @@ class Downloader:
                                                  main_pb, session=session, timeouts=timeouts)
 
             # Wait for all the coroutines to finish
-            done, _ = await asyncio.wait(futures)
+            done, _ = await asyncio.wait(futures, loop=self.loop)
 
             return done
 
@@ -295,7 +295,7 @@ class Downloader:
         futures = await self._run_from_queue(self.ftp_queue, self.ftp_tokens,
                                              main_pb, timeouts=timeouts)
         # Wait for all the coroutines to finish
-        done, _ = await asyncio.wait(futures)
+        done, _ = await asyncio.wait(futures, loop=self.loop)
 
         return done
 
