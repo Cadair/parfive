@@ -34,11 +34,11 @@ jobs:
     os: windows
     tox: py36 --
 
-- template: run-tox-env.yml@sunpy
-  parameters:
-    name: MacOS_35
-    os: macos
-    tox: py35 --
+# - template: run-tox-env.yml@sunpy
+#   parameters:
+#     name: MacOS_35
+#     os: macos
+#     tox: py35 --
 
 - ${{ if startsWith(variables['Build.SourceBranch'], 'refs/tags/') }}:
   - template: publish-pypi.yml@sunpy

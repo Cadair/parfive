@@ -22,6 +22,16 @@ jobs:
       - checkout
       - run: python setup.py egg_info
 
+  tests_35:
+    docker:
+      - image: circleci/python:3.5
+    steps:
+      - checkout
+      - run: *skip-check
+      - run: *apt-install
+      - run: *tox-install
+      - run: tox -e py35
+
   html-docs:
     docker:
       - image: circleci/python:3.6
@@ -49,6 +59,10 @@ workflows:
     jobs:
       - html-docs
 
+  tests:
+    jobs:
+      - tests_35
+
 notify:
   webhooks:
-    - url: https://giles.cadair.com/circleci
+    - url: https://giles.cadair.dev/circleci
