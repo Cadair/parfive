@@ -287,7 +287,7 @@ class Downloader:
                                                  main_pb, session=session, timeouts=timeouts)
 
             # Wait for all the coroutines to finish
-            done, _ = await asyncio.wait(futures)
+            done, _ = await asyncio.wait(futures, loop=self.loop)
 
             return done
 
@@ -295,7 +295,7 @@ class Downloader:
         futures = await self._run_from_queue(self.ftp_queue, self.ftp_tokens,
                                              main_pb, timeouts=timeouts)
         # Wait for all the coroutines to finish
-        done, _ = await asyncio.wait(futures)
+        done, _ = await asyncio.wait(futures, loop=self.loop)
 
         return done
 
@@ -306,7 +306,8 @@ class Downloader:
             token = await tokens.get()
             file_pb = self.tqdm if self.file_progress else False
             future = asyncio.ensure_future(get_file(session, token=token,
-                                                    file_pb=file_pb, timeouts=timeouts))
+                                                    file_pb=file_pb, timeouts=timeouts),
+                                           loop=self.loop)
 
             def callback(token, future, main_pb):
                 tokens.put_nowait(token)

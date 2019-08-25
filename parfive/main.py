@@ -15,9 +15,10 @@ def main():
 
     err_str = ''
     for err in results.errors:
-        err_str += f'{err.url} \t {err.exception}\n'
+        err_str += '{} \t {}\n'.format(err.url, err.exception)
     if err_str:
         sys.exit(err_str)
+
 
 def parse_args(args):
     parser = argparse.ArgumentParser(description='Parfive, the python asyncio based downloader')

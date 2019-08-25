@@ -6,7 +6,7 @@ apt-run: &apt-install
   name: Install apt packages
   command: |
     sudo apt update
-    sudo apt install -y graphviz build-essential
+    sudo apt install -y graphviz
 
 tox-install: &tox-install
   name: Install Tox
@@ -21,6 +21,16 @@ jobs:
     steps:
       - checkout
       - run: python setup.py egg_info
+
+  tests_35:
+    docker:
+      - image: circleci/python:3.5
+    steps:
+      - checkout
+      - run: *skip-check
+      - run: *apt-install
+      - run: *tox-install
+      - run: tox -e py35
 
   html-docs:
     docker:
@@ -38,36 +48,6 @@ jobs:
           name: "Built documentation is available at:"
           command: DOCS_URL="${CIRCLE_BUILD_URL}/artifacts/${CIRCLE_NODE_INDEX}/${CIRCLE_WORKING_DIRECTORY/#\~/$HOME}/docs/_build/html/index.html"; echo $DOCS_URL
 
-  tests_37:
-    docker:
-      - image: circleci/python:3.7
-    steps:
-      - checkout
-      - run: *skip-check
-      - run: *apt-install
-      - run: *tox-install
-      - run: tox -e py37
-
-  tests_36:
-    docker:
-      - image: circleci/python:3.6
-    steps:
-      - checkout
-      - run: *skip-check
-      - run: *apt-install
-      - run: *tox-install
-      - run: tox -e py36
-
-  tests_35:
-    docker:
-      - image: circleci/python:3.5
-    steps:
-      - checkout
-      - run: *skip-check
-      - run: *apt-install
-      - run: *tox-install
-      - run: tox -e py35
-
 workflows:
   version: 2
 
@@ -75,16 +55,14 @@ workflows:
     jobs:
       - egg-info-37
 
-  tests:
-    jobs:
-      - tests_37
-      - tests_36
-      - tests_35
-
   test-documentation:
     jobs:
       - html-docs
 
+  tests:
+    jobs:
+      - tests_35
+
 notify:
   webhooks:
-    - url: https://giles.cadair.com/circleci
+    - url: https://giles.cadair.dev/circleci
