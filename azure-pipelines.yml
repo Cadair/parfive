@@ -24,8 +24,8 @@ trigger:
 jobs:
 - template: run-tox-env.yml@sunpy
   parameters:
-    name: MacOS_py37
-    os: macos
+    name: Linux_py37
+    os: linux
     tox: py37 --
 
 - template: run-tox-env.yml@sunpy
@@ -36,8 +36,8 @@ jobs:
 
 - template: run-tox-env.yml@sunpy
   parameters:
-    name: Linux_35
-    os: linux
+    name: MacOS_35
+    os: macos
     tox: py35 --
 
 - ${{ if startsWith(variables['Build.SourceBranch'], 'refs/tags/') }}:
