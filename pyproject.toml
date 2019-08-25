@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools", "setuptools_scm", "wheel"]
+build-backend = 'setuptools.build_meta'
+
 [tool.towncrier]
     package = "parfive"
     package_dir = "."
