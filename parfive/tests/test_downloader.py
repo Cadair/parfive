@@ -164,7 +164,7 @@ def test_download_unique(event_loop, httpserver, tmpdir):
 
     for fn in f:
         assert fn not in filenames
-        assert "{fname}.1".format(fname=fname) in fn
+        assert f"{fname}.1" in fn
 
 
 @pytest.fixture
@@ -180,7 +180,7 @@ def testserver(request):
         if counter != 2:
             status = '200 OK'
             response_headers = [('Content-type', 'text/plain'),
-                                ('Content-Disposition', ('testfile_{}'.format(counter)))]
+                                ('Content-Disposition', (f'testfile_{counter}'))]
             start_response(status, response_headers)
             return [b'Hello world!\n']
         else:

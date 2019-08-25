@@ -77,7 +77,7 @@ def replacement_filename(path):
             name, _ = path.name.split(suffix)
         else:
             name = path.name
-        new_name = "{name}.{c}{suffix}".format(name=name, c=c, suffix=suffix)
+        new_name = f"{name}.{c}{suffix}"
         new_path = path.parent / new_name
         if not new_path.exists():
             return new_path
@@ -125,7 +125,7 @@ class FailedDownload(Exception):
 
     def __repr__(self):
         out = super().__repr__()
-        out += '\n {} {}'.format(self.url, self.exception)
+        out += f'\n {self.url} {self.exception}'
         return out
 
     def __str__(self):
@@ -137,7 +137,7 @@ class Token:
         self.n = n
 
     def __repr__(self):
-        return super().__repr__() + "n = {}".format(self.n)
+        return super().__repr__() + f"n = {self.n}"
 
     def __str__(self):
-        return "Token {}".format(self.n)
+        return f"Token {self.n}"
