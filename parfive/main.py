@@ -15,7 +15,7 @@ def main():
 
     err_str = ''
     for err in results.errors:
-        err_str += '{} \t {}\n'.format(err.url, err.exception)
+        err_str += f'{err.url} \t {err.exception}\n'
     if err_str:
         sys.exit(err_str)
 

@@ -40,7 +40,7 @@ class Results(UserList):
             for error in self.errors:
                 if isinstance(error, FailedDownload):
                     resp = self._get_nice_resp_repr(error.exception)
-                    out += "(url={}, response={})\n".format(error.url, resp)
+                    out += f"(url={error.url}, response={resp})\n"
                 else:
                     out += "({})".format(repr(error))
         return out
