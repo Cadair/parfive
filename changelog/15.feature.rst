@@ -1,0 +1,8 @@
+Add concurent requests to `parfive`. This feature splits the download of
+a single file into multiple parts if the server the file is being downloaded
+from supports ranged requests. This should improve the performance of all
+downloads under these circumstances, and also make parfive useful even if
+downloading a single file. No changes are needed to use this feature, files
+will be downloaded using 12 concurrent requests by default. To change the
+number of concurrent requests you can pass ``max_splits`` to
+`parfive.Downloader.enqueue_file`.
