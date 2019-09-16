@@ -41,3 +41,4 @@ docs/api/
 htmlcov/
 
 .vscode/
+pip-wheel-metadata/
