@@ -11,9 +11,12 @@ def in_notebook():
         import ipykernel.zmqshell
         shell = get_ipython()  # noqa
         if isinstance(shell, ipykernel.zmqshell.ZMQInteractiveShell):
-            # Check that we can import the right widget
-            from tqdm import _tqdm_notebook
-            _tqdm_notebook.IntProgress
+            try:
+                # Check that we can import the right widget
+                from tqdm import _tqdm_notebook
+                _tqdm_notebook.IntProgress
+            except Exception:
+                return False
             return True
         return False
     except Exception:
