@@ -1,0 +1,2 @@
+Fix a bug where running parfive in the notebook would error if ipywidgets was
+not installed.
