@@ -30,6 +30,8 @@ def default_name(path, resp, url):
         if cdheader:
             value, params = cgi.parse_header(cdheader)
             name = params.get('filename', url_filename)
+            if name.count('"') >= 2:
+                name = name.split('"')[1]
         else:
             name = url_filename
     else:
