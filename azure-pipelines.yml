@@ -37,7 +37,7 @@ jobs:
       - macos: py37
         name: macos_py37
 
-- ${{ if and(ne(variables['Build.Reason'], 'PullRequest'), not(contains(variables['Build.SourceBranch'], 'master'))) }}:
+- ${{ if ne(variables['Build.Reason'], 'PullRequest') }}:
   - template: publish.yml@OpenAstronomy
     parameters:
       ${{ if startsWith(variables['Build.SourceBranch'], 'refs/tags/') }}:
