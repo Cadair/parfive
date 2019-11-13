@@ -32,11 +32,12 @@ jobs:
       - macos: py37
         name: macos_py37
 
-- ${{ if startsWith(variables['Build.SourceBranch'], 'refs/tags/') }}:
+- ${{ if and(ne(variables['Build.Reason'], 'PullRequest'), not(contains(variables['Build.SourceBranch'], 'master'))) }}:
   - template: publish.yml@OpenAstronomy
     parameters:
-      pypi_connection_name: 'PyPI'
-      test_extras: test
+      ${{ if startsWith(variables['Build.SourceBranch'], 'refs/tags/') }}:
+        pypi_connection_name: 'PyPI'
+      test_extras: ftp,test
       test_command: pytest --pyargs parfive
       targets:
         - sdist
