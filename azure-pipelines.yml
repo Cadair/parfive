@@ -46,7 +46,7 @@ jobs:
       test_command: pytest --pyargs parfive
       targets:
         - sdist
-        - wheels_universal
+        # - wheels_universal
       dependsOn:
         - Linux_py38
         - Windows_py36
