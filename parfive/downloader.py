@@ -82,6 +82,8 @@ class Downloader:
             self.loop = loop
             self.run_until_complete = self.loop.run_until_complete
 
+        asyncio.set_event_loop(self.loop)
+
         # Setup queues
         self.http_queue = asyncio.Queue(loop=self.loop)
         self.http_tokens = asyncio.Queue(maxsize=self.max_conn, loop=self.loop)
@@ -282,7 +284,7 @@ class Downloader:
         return asyncio.gather(*done, return_exceptions=True)
 
     async def _run_http_download(self, main_pb, timeouts):
-        async with aiohttp.ClientSession(loop=self.loop) as session:
+        async with aiohttp.ClientSession() as session:
             futures = await self._run_from_queue(self.http_queue, self.http_tokens,
                                                  main_pb, session=session, timeouts=timeouts)
 
