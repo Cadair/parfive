@@ -1,11 +1,14 @@
 import asyncio
 import contextlib
 import os
+import sys
+
 import pathlib
 import urllib.parse
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial
 
+import parfive
 import aiohttp
 from tqdm import tqdm, tqdm_notebook
 
@@ -58,11 +61,10 @@ class Downloader:
     """
 
     def __init__(self, max_conn=5, progress=True, file_progress=True,
-                 loop=None, notebook=None, overwrite=False):
+                 loop=None, notebook=None, overwrite=False, ua_header=None, proxy=None, proxy_auth=None):
 
         self.max_conn = max_conn
         self._start_loop(loop)
-
         # Configure progress bars
         if notebook is None:
             notebook = in_notebook()
@@ -71,6 +73,17 @@ class Downloader:
         self.tqdm = tqdm if not notebook else tqdm_notebook
 
         self.overwrite = overwrite
+
+        self.proxy = proxy
+        self.proxy_auth  = None
+
+        self.ua_header = {
+                        "python": sys.version[:5],
+                        "parfive": parfive.__version__,
+                        "aiohttp": aiohttp.__version__
+                         }
+        if ua_header is not None:
+            self.ua_header.update(ua_header)
 
     def _start_loop(self, loop):
         # Setup asyncio loops
@@ -364,6 +377,10 @@ class Downloader:
         """
         timeout = aiohttp.ClientTimeout(**timeouts)
         try:
+            kwargs['proxy'] = self.proxy
+            kwargs['proxy_auth'] = self.proxy_auth
+            kwargs['headers'] = self.ua_header
+
             async with session.get(url, timeout=timeout, **kwargs) as resp:
                 if resp.status != 200:
                     raise FailedDownload(filepath_partial, url, resp)
