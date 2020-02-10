@@ -65,6 +65,7 @@ class Downloader:
 
         self.max_conn = max_conn
         self._start_loop(loop)
+
         # Configure progress bars
         if notebook is None:
             notebook = in_notebook()
