@@ -76,9 +76,8 @@ class Downloader:
         self.overwrite = overwrite
 
         if headers is None:
-            self.headers = {'User-Agent': f"parfive {parfive.__version__}, aiohttp {aiohttp.__version__}, python {sys.version[:5]}"}
-        elif 'User-Agent' not in headers:
-            self.headers = headers
+            self.headers = {}
+        if 'User-Agent' not in self.headers:
             self.headers['User-Agent'] = f"parfive {parfive.__version__}, aiohttp {aiohttp.__version__}, python {sys.version[:5]}"
 
     def _start_loop(self, loop):
