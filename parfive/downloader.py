@@ -61,7 +61,7 @@ class Downloader:
     """
 
     def __init__(self, max_conn=5, progress=True, file_progress=True,
-                 loop=None, notebook=None, overwrite=False, ua_header=None, proxy=None, proxy_auth=None):
+                 loop=None, notebook=None, overwrite=False, headers=None):
 
         self.max_conn = max_conn
         self._start_loop(loop)
@@ -74,16 +74,11 @@ class Downloader:
 
         self.overwrite = overwrite
 
-        self.proxy = proxy
-        self.proxy_auth  = None
-
-        self.ua_header = {
-                        "python": sys.version[:5],
-                        "parfive": parfive.__version__,
-                        "aiohttp": aiohttp.__version__
-                         }
-        if ua_header is not None:
-            self.ua_header.update(ua_header)
+        if headers is None:
+            self.headers = {'User-Agent': f"parfive {parfive.__version__}, aiohttp {aiohttp.__version__}, python {sys.version[:5]}"}
+        elif 'User-Agent' not in headers:
+            self.headers = headers
+            self.headers['User-Agent'] = f"parfive {parfive.__version__}, aiohttp {aiohttp.__version__}, python {sys.version[:5]}"
 
     def _start_loop(self, loop):
         # Setup asyncio loops
@@ -297,7 +292,7 @@ class Downloader:
         return asyncio.gather(*done, return_exceptions=True)
 
     async def _run_http_download(self, main_pb, timeouts):
-        async with aiohttp.ClientSession() as session:
+        async with aiohttp.ClientSession(headers=self.headers) as session:
             futures = await self._run_from_queue(self.http_queue, self.http_tokens,
                                                  main_pb, session=session, timeouts=timeouts)
 
@@ -377,9 +372,10 @@ class Downloader:
         """
         timeout = aiohttp.ClientTimeout(**timeouts)
         try:
-            kwargs['proxy'] = self.proxy
-            kwargs['proxy_auth'] = self.proxy_auth
-            kwargs['headers'] = self.ua_header
+            if 'PROXY' in os.environ:
+                kwargs['proxy'] = os.environ['PROXY']
+            if 'PROXY_AUTH' in os.environ:
+                kwargs['proxy_auth'] = os.environ['PROXY_AUTH']
 
             async with session.get(url, timeout=timeout, **kwargs) as resp:
                 if resp.status != 200:
@@ -551,7 +547,7 @@ class Downloader:
         """
         parse = urllib.parse.urlparse(url)
         try:
-            async with aioftp.ClientSession(parse.hostname, **kwargs) as client:
+            async with aioftp.ClientSession(parse.hostname, headers=self.headers, **kwargs) as client:
                 if parse.username and parse.password:
                     await client.login(parse.username, parse.password)
 
