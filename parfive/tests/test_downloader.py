@@ -4,9 +4,11 @@ from unittest.mock import patch
 import aiohttp
 import pytest
 from pytest_localserver.http import WSGIServer
-
 from parfive.downloader import Downloader, Token, FailedDownload, Results
 from parfive.utils import sha256sum
+import parfive
+import sys
+import os
 import hashlib
 
 
@@ -343,3 +345,54 @@ def test_ftp_http(tmpdir, httpserver):
     f = dl.download()
     assert len(f) == 2
     assert len(f.errors) == 4
+
+
+def test_default_user_agent(event_loop, httpserver, tmpdir):
+    tmpdir = str(tmpdir)
+    httpserver.serve_content('SIMPLE  = T',
+                             headers={'Content-Disposition': "attachment; filename=testfile.fits"})
+
+    dl = Downloader(loop=event_loop)
+    dl.enqueue_file(httpserver.url, path=Path(tmpdir), max_splits=None)
+
+    assert dl.queued_downloads == 1
+
+    f = dl.download()
+
+    assert 'User-Agent' in httpserver.requests[0].headers
+    assert httpserver.requests[0].headers['User-Agent'] == f"parfive/{parfive.__version__} aiohttp/{aiohttp.__version__} python/{sys.version[:5]}"
+
+
+def test_custom_user_agent(event_loop, httpserver, tmpdir):
+    tmpdir = str(tmpdir)
+    httpserver.serve_content('SIMPLE  = T',
+                             headers={'Content-Disposition': "attachment; filename=testfile.fits"})
+
+    dl = Downloader(loop=event_loop, headers={'User-Agent': 'test value 299792458'})
+    dl.enqueue_file(httpserver.url, path=Path(tmpdir), max_splits=None)
+
+    assert dl.queued_downloads == 1
+
+    f = dl.download()
+
+    assert 'User-Agent' in httpserver.requests[0].headers
+    assert httpserver.requests[0].headers['User-Agent'] == "test value 299792458"
+
+
+def test_proxy(event_loop, httpserver, tmpdir):
+    tmpdir = str(tmpdir)
+    httpserver.serve_content('SIMPLE  = T',
+                             headers={'Content-Disposition': "attachment; filename=testfile.fits"})
+
+    dl = Downloader(loop=event_loop, headers={'User-Agent': 'test value 299792458'})
+    dl.enqueue_file(httpserver.url, path=Path(tmpdir), max_splits=None)
+
+    assert dl.queued_downloads == 1
+
+    f = dl.download()
+    
+    if 'PROXY' in os.environ:
+        assert httpserver.requests[0].__dict__["environ"]["PROXY"] == os.environ['PROXY']
+
+    if 'PROXY_AUTH' in os.environ:
+        assert httpserver.requests[0].__dict__["environ"]["PROXY_AUTH"] == os.environ['PROXY_AUTH']

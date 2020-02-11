@@ -75,10 +75,9 @@ class Downloader:
 
         self.overwrite = overwrite
 
-        if headers is None:
-            self.headers = {}
-        if 'User-Agent' not in self.headers:
-            self.headers['User-Agent'] = f"parfive {parfive.__version__}, aiohttp {aiohttp.__version__}, python {sys.version[:5]}"
+        self.headers = headers
+        if headers is None or 'User-Agent' not in headers:
+            self.headers = {'User-Agent': f"parfive/{parfive.__version__} aiohttp/{aiohttp.__version__} python/{sys.version[:5]}"}
 
     def _start_loop(self, loop):
         # Setup asyncio loops
