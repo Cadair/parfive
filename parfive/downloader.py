@@ -546,7 +546,7 @@ class Downloader:
         """
         parse = urllib.parse.urlparse(url)
         try:
-            async with aioftp.ClientSession(parse.hostname, headers=self.headers, **kwargs) as client:
+            async with aioftp.ClientSession(parse.hostname, **kwargs) as client:
                 if parse.username and parse.password:
                     await client.login(parse.username, parse.password)
 
