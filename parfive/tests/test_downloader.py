@@ -2,6 +2,9 @@ from pathlib import Path
 from unittest.mock import patch
 
 import aiohttp
+from aiohttp.test_utils import AioHTTPTestCase, unittest_run_loop
+from asynctest import patch, CoroutineMock
+
 import pytest
 from pytest_localserver.http import WSGIServer
 from parfive.downloader import Downloader, Token, FailedDownload, Results
@@ -357,7 +360,7 @@ def test_default_user_agent(event_loop, httpserver, tmpdir):
 
     assert dl.queued_downloads == 1
 
-    f = dl.download()
+    dl.download()
 
     assert 'User-Agent' in httpserver.requests[0].headers
     assert httpserver.requests[0].headers['User-Agent'] == f"parfive/{parfive.__version__} aiohttp/{aiohttp.__version__} python/{sys.version[:5]}"
@@ -373,26 +376,34 @@ def test_custom_user_agent(event_loop, httpserver, tmpdir):
 
     assert dl.queued_downloads == 1
 
-    f = dl.download()
+    dl.download()
 
     assert 'User-Agent' in httpserver.requests[0].headers
     assert httpserver.requests[0].headers['User-Agent'] == "test value 299792458"
 
 
-def test_proxy(event_loop, httpserver, tmpdir):
-    tmpdir = str(tmpdir)
-    httpserver.serve_content('SIMPLE  = T',
-                             headers={'Content-Disposition': "attachment; filename=testfile.fits"})
 
-    dl = Downloader(loop=event_loop, headers={'User-Agent': 'test value 299792458'})
-    dl.enqueue_file(httpserver.url, path=Path(tmpdir), max_splits=None)
+async def send_request():
+    kwargs = {}
+    kwargs['proxy'] = "proxy_url"
+    kwargs['proxy_auth'] =  "proxy_auth"
 
-    assert dl.queued_downloads == 1
+    async with aiohttp.ClientSession() as session:    
+        async with session.get("localhost",**kwargs) as response:
+            return await response.json()
 
-    f = dl.download()
+class Proxy_test(AioHTTPTestCase):
     
-    if 'PROXY' in os.environ:
-        assert httpserver.requests[0].__dict__["environ"]["PROXY"] == os.environ['PROXY']
+    def set_get_mock_status(self, mock_get):
+        mock_get.return_value.__aenter__.return_value.json = CoroutineMock(return_value={"status":200})
 
-    if 'PROXY_AUTH' in os.environ:
-        assert httpserver.requests[0].__dict__["environ"]["PROXY_AUTH"] == os.environ['PROXY_AUTH']
+    async def get_application(self):
+        return aiohttp.web.Application()
+
+    @unittest_run_loop
+    @patch('aiohttp.ClientSession.get')
+    async def test_call(self, mock_get):
+        self.set_get_mock_status(mock_get)
+        await send_request()
+        assert mock_get.assert_called_with("localhost", proxy='proxy_url', proxy_auth='proxy_auth')
+
