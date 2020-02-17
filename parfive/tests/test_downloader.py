@@ -382,7 +382,6 @@ def test_custom_user_agent(event_loop, httpserver, tmpdir):
     assert httpserver.requests[0].headers['User-Agent'] == "test value 299792458"
 
 
-
 async def send_request():
     kwargs = {}
     kwargs['proxy'] = "proxy_url"
@@ -391,6 +390,7 @@ async def send_request():
     async with aiohttp.ClientSession() as session:    
         async with session.get("localhost",**kwargs) as response:
             return await response.json()
+
 
 class Proxy_test(AioHTTPTestCase):
     
@@ -405,5 +405,5 @@ class Proxy_test(AioHTTPTestCase):
     async def test_call(self, mock_get):
         self.set_get_mock_status(mock_get)
         await send_request()
-        assert mock_get.assert_called_with("localhost", proxy='proxy_url', proxy_auth='proxy_auth')
+        mock_get.assert_called_with("localhost", proxy='proxy_url', proxy_auth='proxy_auth')
 
