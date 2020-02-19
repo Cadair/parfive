@@ -146,13 +146,11 @@ class Downloader:
             Extra keyword arguments are passed to `aiohttp.ClientSession.get`
             or `aioftp.ClientSession` depending on the protocol.
 
-        Proxy
+        Notes
         -----
         
         Proxy URL is read from the environment variables.
-
         Proxy Authentication `proxy_auth` should be passed as a `aiohttp.BasicAuth` object.
-
         Proxy Headers `proxy_headers` should be passed as `dict` object.
 
         """
