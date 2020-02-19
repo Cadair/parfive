@@ -58,6 +58,11 @@ class Downloader:
         returned to the existing file, if `True` the file will be downloaded
         and the existing file will be overwritten, if `'unique'` the filename
         will be modified to be unique.
+        
+    headers : `dict`
+       Request headers to be passed to the server.
+       Adds `User-Agent` information about `parfive`, `aiohttp` and `python` if not passed explicitely.
+
     """
 
     def __init__(self, max_conn=5, progress=True, file_progress=True,
@@ -140,6 +145,16 @@ class Downloader:
         kwargs : `dict`
             Extra keyword arguments are passed to `aiohttp.ClientSession.get`
             or `aioftp.ClientSession` depending on the protocol.
+
+        Proxy
+        -----
+        
+        Proxy URL is read from the environment variables.
+
+        Proxy Authentication `proxy_auth` should be passed as a `aiohttp.BasicAuth` object.
+
+        Proxy Headers `proxy_headers` should be passed as `dict` object.
+
         """
         overwrite = overwrite or self.overwrite
 
@@ -371,13 +386,11 @@ class Downloader:
         """
         timeout = aiohttp.ClientTimeout(**timeouts)
         try:
-            if 'PROXY' in os.environ:
-                kwargs['proxy'] = os.environ['PROXY']
-            if 'PROXY_AUTH' in os.environ:
-                kwargs['proxy_auth'] = os.environ['PROXY_AUTH']
-            if 'PROXY_HEADERS' in os.environ:
-                kwargs['proxy_headers'] = os.environ['PROXY_HEADERS']
-
+            if 'HTTP_PROXY' in os.environ:
+                kwargs['proxy'] = os.environ['HTTP_PROXY']
+            if 'HTTPS_PROXY' in os.environ:
+                kwargs['proxy'] = os.environ['HTTPS_PROXY']
+                
             async with session.get(url, timeout=timeout, **kwargs) as resp:
                 if resp.status != 200:
                     raise FailedDownload(filepath_partial, url, resp)
