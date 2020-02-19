@@ -148,8 +148,9 @@ class Downloader:
 
         Notes
         -----
-        
-        Proxy URL is read from the environment variables.
+
+        Proxy URL is read from the environment variables `HTTP_PROXY` or `HTTPS_PROXY`,
+            depending on the protocol of the `url` passed.
         Proxy Authentication `proxy_auth` should be passed as a `aiohttp.BasicAuth` object.
         Proxy Headers `proxy_headers` should be passed as `dict` object.
 
