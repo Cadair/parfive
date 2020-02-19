@@ -1,11 +1,14 @@
 import asyncio
 import contextlib
 import os
+import sys
+
 import pathlib
 import urllib.parse
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial
 
+import parfive
 import aiohttp
 from tqdm import tqdm, tqdm_notebook
 
@@ -55,10 +58,15 @@ class Downloader:
         returned to the existing file, if `True` the file will be downloaded
         and the existing file will be overwritten, if `'unique'` the filename
         will be modified to be unique.
+        
+    headers : `dict`
+       Request headers to be passed to the server.
+       Adds `User-Agent` information about `parfive`, `aiohttp` and `python` if not passed explicitely.
+
     """
 
     def __init__(self, max_conn=5, progress=True, file_progress=True,
-                 loop=None, notebook=None, overwrite=False):
+                 loop=None, notebook=None, overwrite=False, headers=None):
 
         self.max_conn = max_conn
         self._start_loop(loop)
@@ -71,6 +79,10 @@ class Downloader:
         self.tqdm = tqdm if not notebook else tqdm_notebook
 
         self.overwrite = overwrite
+
+        self.headers = headers
+        if headers is None or 'User-Agent' not in headers:
+            self.headers = {'User-Agent': f"parfive/{parfive.__version__} aiohttp/{aiohttp.__version__} python/{sys.version[:5]}"}
 
     def _start_loop(self, loop):
         # Setup asyncio loops
@@ -133,6 +145,15 @@ class Downloader:
         kwargs : `dict`
             Extra keyword arguments are passed to `aiohttp.ClientSession.get`
             or `aioftp.ClientSession` depending on the protocol.
+
+        Notes
+        -----
+
+        Proxy URL is read from the environment variables `HTTP_PROXY` or `HTTPS_PROXY`,
+            depending on the protocol of the `url` passed.
+        Proxy Authentication `proxy_auth` should be passed as a `aiohttp.BasicAuth` object.
+        Proxy Headers `proxy_headers` should be passed as `dict` object.
+
         """
         overwrite = overwrite or self.overwrite
 
@@ -284,7 +305,7 @@ class Downloader:
         return asyncio.gather(*done, return_exceptions=True)
 
     async def _run_http_download(self, main_pb, timeouts):
-        async with aiohttp.ClientSession() as session:
+        async with aiohttp.ClientSession(headers=self.headers) as session:
             futures = await self._run_from_queue(self.http_queue, self.http_tokens,
                                                  main_pb, session=session, timeouts=timeouts)
 
@@ -364,6 +385,12 @@ class Downloader:
         """
         timeout = aiohttp.ClientTimeout(**timeouts)
         try:
+            scheme = urllib.parse.urlparse(url).scheme
+            if 'HTTP_PROXY' in os.environ and scheme == 'http':
+                kwargs['proxy'] = os.environ['HTTP_PROXY']
+            elif 'HTTPS_PROXY' in os.environ and scheme == 'https':
+                kwargs['proxy'] = os.environ['HTTPS_PROXY']
+                
             async with session.get(url, timeout=timeout, **kwargs) as resp:
                 if resp.status != 200:
                     raise FailedDownload(filepath_partial, url, resp)

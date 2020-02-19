@@ -1,12 +1,18 @@
 from pathlib import Path
+from unittest import mock
 from unittest.mock import patch
 
 import aiohttp
+from aiohttp import ClientTimeout
+from aiohttp.test_utils import AioHTTPTestCase, unittest_run_loop
+
 import pytest
 from pytest_localserver.http import WSGIServer
-
 from parfive.downloader import Downloader, Token, FailedDownload, Results
 from parfive.utils import sha256sum
+import parfive
+import sys
+import os
 import hashlib
 
 
@@ -343,3 +349,59 @@ def test_ftp_http(tmpdir, httpserver):
     f = dl.download()
     assert len(f) == 2
     assert len(f.errors) == 4
+
+
+def test_default_user_agent(event_loop, httpserver, tmpdir):
+    tmpdir = str(tmpdir)
+    httpserver.serve_content('SIMPLE  = T',
+                             headers={'Content-Disposition': "attachment; filename=testfile.fits"})
+
+    dl = Downloader(loop=event_loop)
+    dl.enqueue_file(httpserver.url, path=Path(tmpdir), max_splits=None)
+
+    assert dl.queued_downloads == 1
+
+    dl.download()
+
+    assert 'User-Agent' in httpserver.requests[0].headers
+    assert httpserver.requests[0].headers['User-Agent'] == f"parfive/{parfive.__version__} aiohttp/{aiohttp.__version__} python/{sys.version[:5]}"
+
+
+def test_custom_user_agent(event_loop, httpserver, tmpdir):
+    tmpdir = str(tmpdir)
+    httpserver.serve_content('SIMPLE  = T',
+                             headers={'Content-Disposition': "attachment; filename=testfile.fits"})
+
+    dl = Downloader(loop=event_loop, headers={'User-Agent': 'test value 299792458'})
+    dl.enqueue_file(httpserver.url, path=Path(tmpdir), max_splits=None)
+
+    assert dl.queued_downloads == 1
+
+    dl.download()
+
+    assert 'User-Agent' in httpserver.requests[0].headers
+    assert httpserver.requests[0].headers['User-Agent'] == "test value 299792458"
+
+
+@patch.dict(os.environ, {'HTTP_PROXY': "http_proxy_url",'HTTPS_PROXY': "https_proxy_url"})
+@pytest.mark.parametrize("url,proxy",[('http://test.example.com','http_proxy_url'),('https://test.example.com','https_proxy_url')])
+def test_proxy_passed_as_kwargs_to_get(event_loop, tmpdir, url, proxy):
+
+    with mock.patch(
+                    "aiohttp.client.ClientSession._request",
+                    new_callable=mock.MagicMock
+                   ) as patched:
+
+        dl = Downloader(loop=event_loop)
+        dl.enqueue_file(url, path=Path(tmpdir), max_splits=None)
+
+        assert dl.queued_downloads == 1
+
+        dl.download()
+
+    assert patched.called, "`ClientSession._request` not called"
+    assert list(patched.call_args) == [('GET', url),
+                                       {'allow_redirects': True, 
+                                        'timeout': ClientTimeout(total=300, connect=None, sock_read=90, sock_connect=None),
+                                        'proxy': proxy
+                                       }]
