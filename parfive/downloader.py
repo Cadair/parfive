@@ -386,9 +386,10 @@ class Downloader:
         """
         timeout = aiohttp.ClientTimeout(**timeouts)
         try:
-            if 'HTTP_PROXY' in os.environ:
+            scheme = urllib.parse.urlparse(url).scheme
+            if 'HTTP_PROXY' in os.environ and scheme == 'http':
                 kwargs['proxy'] = os.environ['HTTP_PROXY']
-            if 'HTTPS_PROXY' in os.environ:
+            elif 'HTTPS_PROXY' in os.environ and scheme == 'https':
                 kwargs['proxy'] = os.environ['HTTPS_PROXY']
                 
             async with session.get(url, timeout=timeout, **kwargs) as resp:
