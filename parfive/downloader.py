@@ -375,6 +375,8 @@ class Downloader:
                 kwargs['proxy'] = os.environ['PROXY']
             if 'PROXY_AUTH' in os.environ:
                 kwargs['proxy_auth'] = os.environ['PROXY_AUTH']
+            if 'PROXY_HEADERS' in os.environ:
+                kwargs['proxy_headers'] = os.environ['PROXY_HEADERS']
 
             async with session.get(url, timeout=timeout, **kwargs) as resp:
                 if resp.status != 200:

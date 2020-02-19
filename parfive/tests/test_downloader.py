@@ -383,7 +383,7 @@ def test_custom_user_agent(event_loop, httpserver, tmpdir):
     assert httpserver.requests[0].headers['User-Agent'] == "test value 299792458"
 
 
-@patch.dict(os.environ,{'PROXY': "proxy_url",'PROXY_AUTH': "proxy_auth"})
+@patch.dict(os.environ,{'PROXY': "proxy_url",'PROXY_AUTH': "proxy_auth", "PROXY_HEADERS": "proxy_headers"})
 def test_proxy_passed_as_kwargs_to_get(event_loop, tmpdir):
     
     with mock.patch(
@@ -402,4 +402,4 @@ def test_proxy_passed_as_kwargs_to_get(event_loop, tmpdir):
     assert list(patched.call_args) == [('GET', 'http://test.example.com'),
                                        {'allow_redirects': True, 
                                         'timeout': ClientTimeout(total=300, connect=None, sock_read=90, sock_connect=None),
-                                        'proxy': 'proxy_url', 'proxy_auth': 'proxy_auth'}]
+                                        'proxy': 'proxy_url', 'proxy_auth': 'proxy_auth', "proxy_headers": "proxy_headers"}]
