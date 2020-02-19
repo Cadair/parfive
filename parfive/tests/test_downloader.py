@@ -383,24 +383,25 @@ def test_custom_user_agent(event_loop, httpserver, tmpdir):
     assert httpserver.requests[0].headers['User-Agent'] == "test value 299792458"
 
 
-@patch.dict(os.environ,{'HTTP_PROXY': "proxy_url"})
-def test_proxy_passed_as_kwargs_to_get(event_loop, tmpdir):
-    
+@patch.dict(os.environ, {'HTTP_PROXY': "http_proxy_url",'HTTPS_PROXY': "https_proxy_url"})
+@pytest.mark.parametrize("url,proxy",[('http://test.example.com','http_proxy_url'),('https://test.example.com','https_proxy_url')])
+def test_proxy_passed_as_kwargs_to_get(event_loop, tmpdir, url, proxy):
+
     with mock.patch(
                     "aiohttp.client.ClientSession._request",
                     new_callable=mock.MagicMock
                    ) as patched:
 
         dl = Downloader(loop=event_loop)
-        dl.enqueue_file("http://test.example.com", path=Path(tmpdir), max_splits=None)
+        dl.enqueue_file(url, path=Path(tmpdir), max_splits=None)
 
         assert dl.queued_downloads == 1
 
         dl.download()
 
     assert patched.called, "`ClientSession._request` not called"
-    assert list(patched.call_args) == [('GET', 'http://test.example.com'),
+    assert list(patched.call_args) == [('GET', url),
                                        {'allow_redirects': True, 
                                         'timeout': ClientTimeout(total=300, connect=None, sock_read=90, sock_connect=None),
-                                        'proxy': 'proxy_url'
+                                        'proxy': proxy
                                        }]
