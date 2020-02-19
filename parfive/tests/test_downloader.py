@@ -1,9 +1,9 @@
 from pathlib import Path
+from unittest import mock
 from unittest.mock import patch
 
 import aiohttp
 from aiohttp.test_utils import AioHTTPTestCase, unittest_run_loop
-from asynctest import patch, CoroutineMock
 
 import pytest
 from pytest_localserver.http import WSGIServer
@@ -382,28 +382,35 @@ def test_custom_user_agent(event_loop, httpserver, tmpdir):
     assert httpserver.requests[0].headers['User-Agent'] == "test value 299792458"
 
 
-async def send_request():
+@pytest.fixture
+def create_session(loop):
+    session = None
+
+    async def maker(*args, **kwargs):
+        nonlocal session
+        session = aiohttp.ClientSession(*args, **kwargs)
+        return session
+    yield maker
+    if session is not None:
+        loop.run_until_complete(session.close())
+
+
+@pytest.fixture
+def session(create_session, loop):
+    return loop.run_until_complete(create_session())
+
+
+def test_proxy_passed_as_kwargs_to_get(session):
     kwargs = {}
     kwargs['proxy'] = "proxy_url"
-    kwargs['proxy_auth'] =  "proxy_auth"
-
-    async with aiohttp.ClientSession() as session:    
-        async with session.get("localhost",**kwargs) as response:
-            return await response.json()
-
-
-class Proxy_test(AioHTTPTestCase):
+    kwargs['proxy_auth'] = "proxy_auth"
     
-    def set_get_mock_status(self, mock_get):
-        mock_get.return_value.__aenter__.return_value.json = CoroutineMock(return_value={"status":200})
+    with mock.patch(
+                    "aiohttp.client.ClientSession._request",
+                    new_callable=mock.MagicMock
+                   ) as patched:
+        
+        session.get("http://test.example.com",**kwargs)
 
-    async def get_application(self):
-        return aiohttp.web.Application()
-
-    @unittest_run_loop
-    @patch('aiohttp.ClientSession.get')
-    async def test_call(self, mock_get):
-        self.set_get_mock_status(mock_get)
-        await send_request()
-        mock_get.assert_called_with("localhost", proxy='proxy_url', proxy_auth='proxy_auth')
-
+    assert patched.called, "`ClientSession._request` not called"
+    assert list(patched.call_args) == [("GET", "http://test.example.com",), dict(allow_redirects=True,**kwargs)]
