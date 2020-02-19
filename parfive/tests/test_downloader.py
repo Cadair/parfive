@@ -383,7 +383,7 @@ def test_custom_user_agent(event_loop, httpserver, tmpdir):
 
 
 @pytest.fixture
-def create_session(loop):
+def create_session(event_loop):
     session = None
 
     async def maker(*args, **kwargs):
@@ -392,12 +392,12 @@ def create_session(loop):
         return session
     yield maker
     if session is not None:
-        loop.run_until_complete(session.close())
+        event_loop.run_until_complete(session.close())
 
 
 @pytest.fixture
-def session(create_session, loop):
-    return loop.run_until_complete(create_session())
+def session(create_session, event_loop):
+    return event_loop.run_until_complete(create_session())
 
 
 def test_proxy_passed_as_kwargs_to_get(session):
