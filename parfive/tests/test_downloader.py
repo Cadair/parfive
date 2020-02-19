@@ -3,6 +3,7 @@ from unittest import mock
 from unittest.mock import patch
 
 import aiohttp
+from aiohttp import ClientTimeout
 from aiohttp.test_utils import AioHTTPTestCase, unittest_run_loop
 
 import pytest
@@ -399,18 +400,27 @@ def create_session(event_loop):
 def session(create_session, event_loop):
     return event_loop.run_until_complete(create_session())
 
-
-def test_proxy_passed_as_kwargs_to_get(session):
-    kwargs = {}
-    kwargs['proxy'] = "proxy_url"
-    kwargs['proxy_auth'] = "proxy_auth"
+def test_proxy_passed_as_kwargs_to_get(session, event_loop, tmpdir):
+    k = mock.patch.dict(os.environ,{'PROXY': "proxy_url",'PROXY_AUTH': "proxy_auth"})
+    k.start()
     
     with mock.patch(
                     "aiohttp.client.ClientSession._request",
                     new_callable=mock.MagicMock
                    ) as patched:
-        
-        session.get("http://test.example.com",**kwargs)
+
+        dl = Downloader(loop=event_loop)
+        dl.enqueue_file("http://test.example.com", path=Path(tmpdir), max_splits=None)
+
+        assert dl.queued_downloads == 1
+
+        dl.download()
+
 
     assert patched.called, "`ClientSession._request` not called"
-    assert list(patched.call_args) == [("GET", "http://test.example.com",), dict(allow_redirects=True,**kwargs)]
+    assert list(patched.call_args) == [('GET', 'http://test.example.com'),
+                                       {'allow_redirects': True, 
+                                        'timeout': ClientTimeout(total=300, connect=None, sock_read=90, sock_connect=None),
+                                        'proxy': 'proxy_url', 'proxy_auth': 'proxy_auth'}]
+    k.stop()
+
