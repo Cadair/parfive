@@ -383,26 +383,8 @@ def test_custom_user_agent(event_loop, httpserver, tmpdir):
     assert httpserver.requests[0].headers['User-Agent'] == "test value 299792458"
 
 
-@pytest.fixture
-def create_session(event_loop):
-    session = None
-
-    async def maker(*args, **kwargs):
-        nonlocal session
-        session = aiohttp.ClientSession(*args, **kwargs)
-        return session
-    yield maker
-    if session is not None:
-        event_loop.run_until_complete(session.close())
-
-
-@pytest.fixture
-def session(create_session, event_loop):
-    return event_loop.run_until_complete(create_session())
-
-def test_proxy_passed_as_kwargs_to_get(session, event_loop, tmpdir):
-    k = mock.patch.dict(os.environ,{'PROXY': "proxy_url",'PROXY_AUTH': "proxy_auth"})
-    k.start()
+@patch.dict(os.environ,{'PROXY': "proxy_url",'PROXY_AUTH': "proxy_auth"})
+def test_proxy_passed_as_kwargs_to_get(event_loop, tmpdir):
     
     with mock.patch(
                     "aiohttp.client.ClientSession._request",
@@ -416,11 +398,8 @@ def test_proxy_passed_as_kwargs_to_get(session, event_loop, tmpdir):
 
         dl.download()
 
-
     assert patched.called, "`ClientSession._request` not called"
     assert list(patched.call_args) == [('GET', 'http://test.example.com'),
                                        {'allow_redirects': True, 
                                         'timeout': ClientTimeout(total=300, connect=None, sock_read=90, sock_connect=None),
                                         'proxy': 'proxy_url', 'proxy_auth': 'proxy_auth'}]
-    k.stop()
-
