@@ -1,0 +1,1 @@
+Update the notebook detection function due to changes in tqdm
