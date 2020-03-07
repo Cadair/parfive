@@ -1,0 +1,2 @@
+Reduce the number of parallel connections to 25 (5 parallel files, 5 parallel
+downloads per file).
