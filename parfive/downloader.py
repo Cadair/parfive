@@ -58,7 +58,7 @@ class Downloader:
         returned to the existing file, if `True` the file will be downloaded
         and the existing file will be overwritten, if `'unique'` the filename
         will be modified to be unique.
-        
+
     headers : `dict`
        Request headers to be passed to the server.
        Adds `User-Agent` information about `parfive`, `aiohttp` and `python` if not passed explicitely.
@@ -119,7 +119,6 @@ class Downloader:
 
         Parameters
         ----------
-
         url : `str`
             The URL to retrieve.
 
@@ -148,11 +147,11 @@ class Downloader:
 
         Notes
         -----
-
-        Proxy URL is read from the environment variables `HTTP_PROXY` or `HTTPS_PROXY`,
-            depending on the protocol of the `url` passed.
-        Proxy Authentication `proxy_auth` should be passed as a `aiohttp.BasicAuth` object.
-        Proxy Headers `proxy_headers` should be passed as `dict` object.
+        Proxy URL is read from the environment variables `HTTP_PROXY` or
+        `HTTPS_PROXY`, depending on the protocol of the `url` passed. Proxy
+        Authentication `proxy_auth` should be passed as a `aiohttp.BasicAuth`
+        object. Proxy Headers `proxy_headers` should be passed as `dict`
+        object.
 
         """
         overwrite = overwrite or self.overwrite
@@ -390,7 +389,7 @@ class Downloader:
                 kwargs['proxy'] = os.environ['HTTP_PROXY']
             elif 'HTTPS_PROXY' in os.environ and scheme == 'https':
                 kwargs['proxy'] = os.environ['HTTPS_PROXY']
-                
+
             async with session.get(url, timeout=timeout, **kwargs) as resp:
                 if resp.status != 200:
                     raise FailedDownload(filepath_partial, url, resp)
