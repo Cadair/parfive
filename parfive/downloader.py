@@ -105,7 +105,6 @@ class Downloader:
 
         Parameters
         ----------
-
         url : `str`
             The URL to retrieve.
 

@@ -10,9 +10,20 @@ def in_notebook():
         import ipykernel.zmqshell
         shell = get_ipython()  # noqa
         if isinstance(shell, ipykernel.zmqshell.ZMQInteractiveShell):
-            # Check that we can import the right widget
-            from tqdm import _tqdm_notebook
-            _tqdm_notebook.IntProgress
+            try:
+                # Newer tqdm
+                import tqdm.notebook
+                return tqdm.notebook.IPY > 0
+            except ImportError:
+                # Older tqdm
+                try:
+                    # Check that we can import the right widget
+                    from tqdm import _tqdm_notebook
+                    _tqdm_notebook.IntProgress
+                except Exception:
+                    return False
+            except Exception:
+                return False
             return True
         return False
     except Exception:
@@ -85,6 +96,10 @@ def replacement_filename(path):
 def get_filepath(filepath, overwrite):
     """
     Get the filepath to download to and ensure dir exists.
+
+    Returns
+    -------
+    `pathlib.Path`, `bool`
     """
     filepath = pathlib.Path(filepath)
     if filepath.exists():
