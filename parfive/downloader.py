@@ -133,6 +133,9 @@ class Downloader:
         """
         overwrite = overwrite or self.overwrite
 
+        if 'max_splits' in kwargs:
+            kwargs.pop('max_splits')
+
         if path is None and filename is None:
             raise ValueError("Either path or filename must be specified.")
         elif path is None:
