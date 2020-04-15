@@ -323,3 +323,12 @@ def test_ftp_http(tmpdir, httpserver):
     f = dl.download()
     assert len(f) == 2
     assert len(f.errors) == 4
+
+
+def test_handling_future_version_kwargs(tmpdir):
+    tmpdir = str(tmpdir)
+    dl = Downloader()
+    dl.enqueue_file("http://notaurl.notadomain/notafile", path=tmpdir, max_splits=5)
+
+    assert dl.queued_downloads == 1
+    assert 'max_splits' not in dl.http_queue._queue[0].keywords.keys()
