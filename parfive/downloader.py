@@ -343,7 +343,7 @@ class Downloader:
         return futures
 
     async def _get_http(self, session, *, url, filepath_partial, chunksize=100,
-                        file_pb=None, token, overwrite, timeouts, max_splits=12, **kwargs):
+                        file_pb=None, token, overwrite, timeouts, max_splits=5, **kwargs):
         """
         Read the file from the given url into the filename given by ``filepath_partial``.
 
@@ -370,7 +370,7 @@ class Downloader:
             A token for this download slot.
 
         max_splits: `int`
-            Number of maximum concurrent connections.
+            Number of maximum concurrent connections per file.
 
         kwargs : `dict`
             Extra keyword arguments are passed to `aiohttp.ClientSession.get`.

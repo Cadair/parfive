@@ -1,3 +1,4 @@
+import platform
 from pathlib import Path
 from unittest import mock
 from unittest.mock import patch
@@ -15,6 +16,7 @@ import sys
 import os
 import hashlib
 
+skip_windows = pytest.mark.skipif(platform.system() == 'Windows', reason="Windows.")
 
 def test_setup(event_loop):
     dl = Downloader(loop=event_loop)
@@ -315,6 +317,7 @@ def test_empty_retry():
     dl.retry(f)
 
 
+@skip_windows
 @pytest.mark.allow_hosts(True)
 def test_ftp(tmpdir):
     tmpdir = str(tmpdir)
@@ -330,6 +333,7 @@ def test_ftp(tmpdir):
     assert len(f.errors) == 3
 
 
+@skip_windows
 @pytest.mark.allow_hosts(True)
 def test_ftp_http(tmpdir, httpserver):
     tmpdir = str(tmpdir)
