@@ -5,7 +5,9 @@ ParFive
     :target: https://pypi.python.org/pypi/parfive
     :alt: Latest PyPI version
 
-A parallel file downloader using asyncio.
+A parallel file downloader using asyncio. parfive can handle downloading
+multiple files in parallel as well as downloading each file in a number of
+chunks.
 
 Usage
 -----
@@ -82,7 +84,7 @@ or if you want to use FTP downloads::
 Requirements
 ^^^^^^^^^^^^
 
-- Python 3.6+
+- Python 3.7 or above
 - aiohttp
 - tqdm
 - aioftp (for downloads over FTP)

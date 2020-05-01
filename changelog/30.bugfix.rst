@@ -1,1 +1,0 @@
-Remove use of the deprecated ``loop=`` keyword argument to `aiohttp.ClientSession`.

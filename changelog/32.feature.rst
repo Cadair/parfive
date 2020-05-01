@@ -1,2 +1,0 @@
-Support for `HTTP_PROXY` and `HTTPS_PROXY` environment variables have been
-added.
