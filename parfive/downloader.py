@@ -387,8 +387,12 @@ class Downloader:
             scheme = urllib.parse.urlparse(url).scheme
             if 'HTTP_PROXY' in os.environ and scheme == 'http':
                 kwargs['proxy'] = os.environ['HTTP_PROXY']
+            elif 'http_proxy' in os.environ and scheme == 'http':
+                kwargs['proxy'] = os.environ['http_proxy']
             elif 'HTTPS_PROXY' in os.environ and scheme == 'https':
                 kwargs['proxy'] = os.environ['HTTPS_PROXY']
+            elif 'https_proxy' in os.environ and scheme == 'https':
+                kwargs['proxy'] = os.environ['https_proxy']
 
             async with session.get(url, timeout=timeout, **kwargs) as resp:
                 if resp.status != 200:
