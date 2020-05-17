@@ -1,20 +1,18 @@
+import os
+import sys
 import platform
 from pathlib import Path
 from unittest import mock
 from unittest.mock import patch
 
 import aiohttp
-from aiohttp import ClientTimeout
-from aiohttp.test_utils import AioHTTPTestCase, unittest_run_loop
-
 import pytest
+from aiohttp import ClientTimeout
 from pytest_localserver.http import WSGIServer
-from parfive.downloader import Downloader, Token, FailedDownload, Results
-from parfive.utils import sha256sum
+
 import parfive
-import sys
-import os
-import hashlib
+from parfive.downloader import Downloader, FailedDownload, Results, Token
+from parfive.utils import sha256sum
 
 skip_windows = pytest.mark.skipif(platform.system() == 'Windows', reason="Windows.")
 
@@ -155,7 +153,7 @@ def test_download_unique(httpserver, tmpdir):
     fname = "testing123"
     filename = str(tmpdir.join(fname))
 
-    filenames = [filename, filename+'.fits', filename+'.fits.gz']
+    filenames = [filename, filename + '.fits', filename + '.fits.gz']
 
     dl = Downloader(overwrite='unique')
 
@@ -178,11 +176,15 @@ def test_download_unique(httpserver, tmpdir):
 
 @pytest.fixture
 def testserver(request):
-    """A server that throws a 404 for the second request"""
+    """
+    A server that throws a 404 for the second request.
+    """
     counter = 0
 
     def simple_app(environ, start_response):
-        """Simplest possible WSGI application"""
+        """
+        Simplest possible WSGI application.
+        """
         nonlocal counter
 
         counter += 1
@@ -348,7 +350,6 @@ def test_ftp_http(tmpdir, httpserver):
     dl.enqueue_file(httpserver.url, path=tmpdir)
     dl.enqueue_file("http://noaurl.notadomain/noafile", path=tmpdir)
 
-
     assert dl.queued_downloads == 6
 
     f = dl.download()
@@ -369,7 +370,8 @@ def test_default_user_agent(httpserver, tmpdir):
     dl.download()
 
     assert 'User-Agent' in httpserver.requests[0].headers
-    assert httpserver.requests[0].headers['User-Agent'] == f"parfive/{parfive.__version__} aiohttp/{aiohttp.__version__} python/{sys.version[:5]}"
+    assert httpserver.requests[0].headers[
+        'User-Agent'] == f"parfive/{parfive.__version__} aiohttp/{aiohttp.__version__} python/{sys.version[:5]}"
 
 
 def test_custom_user_agent(httpserver, tmpdir):
@@ -388,14 +390,15 @@ def test_custom_user_agent(httpserver, tmpdir):
     assert httpserver.requests[0].headers['User-Agent'] == "test value 299792458"
 
 
-@patch.dict(os.environ, {'HTTP_PROXY': "http_proxy_url",'HTTPS_PROXY': "https_proxy_url"})
-@pytest.mark.parametrize("url,proxy",[('http://test.example.com','http_proxy_url'),('https://test.example.com','https_proxy_url')])
+@patch.dict(os.environ, {'HTTP_PROXY': "http_proxy_url", 'HTTPS_PROXY': "https_proxy_url"})
+@pytest.mark.parametrize("url,proxy", [('http://test.example.com',
+                                        'http_proxy_url'), ('https://test.example.com', 'https_proxy_url')])
 def test_proxy_passed_as_kwargs_to_get(tmpdir, url, proxy):
 
     with mock.patch(
-                    "aiohttp.client.ClientSession._request",
-                    new_callable=mock.MagicMock
-                   ) as patched:
+        "aiohttp.client.ClientSession._request",
+        new_callable=mock.MagicMock
+    ) as patched:
 
         dl = Downloader()
         dl.enqueue_file(url, path=Path(tmpdir), max_splits=None)
@@ -409,4 +412,4 @@ def test_proxy_passed_as_kwargs_to_get(tmpdir, url, proxy):
                                        {'allow_redirects': True,
                                         'timeout': ClientTimeout(total=300, connect=None, sock_read=90, sock_connect=None),
                                         'proxy': proxy
-                                       }]
+                                        }]

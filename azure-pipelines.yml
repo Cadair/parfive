@@ -1,4 +1,8 @@
 name: $(BuildDefinitionName)_$(Date:yyyyMMdd)$(Rev:.rr)
+variables:
+  CI_NAME: Azure Pipelines
+  CI_BUILD_ID: $(Build.BuildId)
+  CI_BUILD_URL: "https://dev.azure.com/Cadair/parfive/_build/results?buildId=$(Build.BuildId)"
 
 resources:
   repositories:
@@ -31,6 +35,8 @@ jobs:
         name: Windows_py38
       - macos: py37
         name: macos_py37
+      - linux: py38-conda
+        name: Linux_py38_conda
 
 - ${{ if ne(variables['Build.Reason'], 'PullRequest') }}:
   - template: publish.yml@OpenAstronomy

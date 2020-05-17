@@ -14,7 +14,7 @@ copyright = '2020, Stuart Mumford and Contributors'
 author = 'Stuart Mumford'
 
 # The full version, including alpha/beta/rc tags
-from parfive import __version__ as release
+from parfive import __version__ as release  # NOQA
 
 # -- General configuration ---------------------------------------------------
 
@@ -60,7 +60,7 @@ intersphinx_mapping = {'https://docs.python.org/': None,
 # -- Options for HTML output -------------------------------------------------
 
 try:
-    from sunpy_sphinx_theme.conf import *
+    from sunpy_sphinx_theme.conf import *  # NOQA
 except ImportError:
     html_theme = 'alabaster'
 

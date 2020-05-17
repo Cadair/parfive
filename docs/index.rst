@@ -59,7 +59,7 @@ A simple example is::
 Parfive also bundles a CLI. The following example will download the two files concurrently.::
 
   $ parfive 'http://212.183.159.230/5MB.zip' 'http://212.183.159.230/10MB.zip'
-  $ parfive --help                                                                           
+  $ parfive --help
   usage: parfive [-h] [--max-conn MAX_CONN] [--overwrite] [--no-file-progress]
                 [--directory DIRECTORY] [--print-filenames]
                 URLS [URLS ...]

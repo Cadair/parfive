@@ -28,7 +28,6 @@ Features
 - Support for `HTTP_PROXY` and `HTTPS_PROXY` environment variables have been
   added. (`#32 <https://github.com/Cadair/parfive/pull/32>`__)
 
-
 Bugfixes
 --------
 
@@ -39,11 +38,9 @@ Bugfixes
 - Reduce the number of parallel connections to 25 (5 parallel files, 5 parallel
   downloads per file). (`#37 <https://github.com/Cadair/parfive/pull/37>`__)
 
-
 Parfive 1.0.0 (2019-05-01)
 ==========================
 
 Features
 --------
-
 - First stable release of Parfive. (`#13 <https://github.com/Cadair/parfive/pull/13>`__)

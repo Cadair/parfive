@@ -1,4 +1,4 @@
-ParFive
+Parfive
 =======
 
 .. image:: https://img.shields.io/pypi/v/parfive.svg
@@ -17,19 +17,15 @@ running the download. parfive has a synchronous API, but uses asyncio to
 paralellise downloading the files.
 
 A simple example is::
-
   from parfive import Downloader
-
   dl = Downloader()
-
   dl.enqueue_file("http://data.sunpy.org/sample-data/predicted-sunspot-radio-flux.txt", path="./")
-
   files = dl.download()
 
 Parfive also bundles a CLI. The following example will download the two files concurrently.::
 
   $ parfive 'http://212.183.159.230/5MB.zip' 'http://212.183.159.230/10MB.zip'
-  $ parfive --help                                                                           
+  $ parfive --help
   usage: parfive [-h] [--max-conn MAX_CONN] [--overwrite] [--no-file-progress]
                 [--directory DIRECTORY] [--print-filenames]
                 URLS [URLS ...]
@@ -55,7 +51,6 @@ Results
 ``parfive.Downloader.download`` returns a ``parfive.Results`` object, which is a
 list of the filenames that have been downloaded. It also tracks any files which
 failed to download.
-
 
 Handling Errors
 ^^^^^^^^^^^^^^^
@@ -97,4 +92,4 @@ MIT Licensed
 Authors
 -------
 
-`parfive` was written by `Stuart Mumford <http://stuartmumford.uk>`_.
+`parfive` was written by `Stuart Mumford <http://stuartmumford.uk>`__.
