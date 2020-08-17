@@ -42,3 +42,4 @@ htmlcov/
 
 .vscode/
 pip-wheel-metadata/
+parfive/version.py
