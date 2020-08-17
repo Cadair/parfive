@@ -143,7 +143,7 @@ class Downloader:
 
         kwargs : `dict`
             Extra keyword arguments are passed to `aiohttp.ClientSession.get`
-            or `aioftp.ClientSession` depending on the protocol.
+            or `aioftp.Client.context` depending on the protocol.
 
         Notes
         -----
@@ -549,7 +549,7 @@ class Downloader:
             A token for this download slot.
 
         kwargs : `dict`
-            Extra keyword arguments are passed to `~aioftp.ClientSession`.
+            Extra keyword arguments are passed to `~aioftp.Client.context`.
 
         Returns
         -------
@@ -560,7 +560,7 @@ class Downloader:
         """
         parse = urllib.parse.urlparse(url)
         try:
-            async with aioftp.ClientSession(parse.hostname, **kwargs) as client:
+            async with aioftp.Client.context(parse.hostname, **kwargs) as client:
                 if parse.username and parse.password:
                     await client.login(parse.username, parse.password)
 
