@@ -23,8 +23,6 @@ trigger:
     - 'v*'
     exclude:
     - '*dev*'
-    - '*pre*'
-    - '*post*'
 
 jobs:
 - template: run-tox-env.yml@OpenAstronomy
