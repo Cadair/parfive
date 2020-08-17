@@ -1,3 +1,13 @@
+Parfive v1.1.1 (2020-08-17)
+===========================
+
+Bugfixes
+--------
+
+- Fix pypi metadata and some packaging improvements. (`#48 <https://github.com/Cadair/parfive/pull/48>`__)
+- Update aioftp to the latest version because of an API change. (`#48 <https://github.com/Cadair/parfive/pull/48>`__)
+
+
 Parfive v1.1.0 (2020-05-01)
 ===========================
 
