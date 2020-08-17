@@ -1,8 +1,4 @@
 name: $(BuildDefinitionName)_$(Date:yyyyMMdd)$(Rev:.rr)
-variables:
-  CI_NAME: Azure Pipelines
-  CI_BUILD_ID: $(Build.BuildId)
-  CI_BUILD_URL: "https://dev.azure.com/DrCadair/parfive/_build/results?buildId=$(Build.BuildId)"
 
 resources:
   repositories:
@@ -27,6 +23,7 @@ trigger:
 jobs:
 - template: run-tox-env.yml@OpenAstronomy
   parameters:
+    coverage: codecov
     envs:
       - linux: py38
         name: Linux_py38
