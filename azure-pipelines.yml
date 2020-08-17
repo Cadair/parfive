@@ -2,7 +2,7 @@ name: $(BuildDefinitionName)_$(Date:yyyyMMdd)$(Rev:.rr)
 variables:
   CI_NAME: Azure Pipelines
   CI_BUILD_ID: $(Build.BuildId)
-  CI_BUILD_URL: "https://dev.azure.com/Cadair/parfive/_build/results?buildId=$(Build.BuildId)"
+  CI_BUILD_URL: "https://dev.azure.com/DrCadair/parfive/_build/results?buildId=$(Build.BuildId)"
 
 resources:
   repositories:
@@ -30,8 +30,8 @@ jobs:
     envs:
       - linux: py38
         name: Linux_py38
-      - windows: py36
-        name: Windows_py36
+      - windows: py38
+        name: Windows_py38
       - macos: py37
         name: macos_py37
 
@@ -44,8 +44,8 @@ jobs:
       test_command: pytest --pyargs parfive
       targets:
         - sdist
-        # - wheels_universal
+        - wheels_universal
       dependsOn:
         - Linux_py38
-        - Windows_py36
+        - Windows_py38
         - macos_py37
