@@ -23,9 +23,9 @@ def test_setup(event_loop):
 
     assert isinstance(dl, Downloader)
 
-    assert dl.http_queue.qsize() == 0
+    assert len(dl.http_queue) == 0
     assert dl.http_tokens.qsize() == 5
-    assert dl.ftp_queue.qsize() == 0
+    assert len(dl.ftp_queue) == 0
     assert dl.ftp_tokens.qsize() == 5
 
 
@@ -405,7 +405,7 @@ def test_proxy_passed_as_kwargs_to_get(event_loop, tmpdir, url, proxy):
 
     assert patched.called, "`ClientSession._request` not called"
     assert list(patched.call_args) == [('GET', url),
-                                       {'allow_redirects': True, 
+                                       {'allow_redirects': True,
                                         'timeout': ClientTimeout(total=300, connect=None, sock_read=90, sock_connect=None),
                                         'proxy': proxy
                                        }]
