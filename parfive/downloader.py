@@ -216,8 +216,15 @@ class Downloader:
             future = self.run_until_complete(self._run_download(timeouts))
         finally:
             self.loop.stop()
-        dlresults = future.result()
 
+        return self._future_to_results(future)
+
+    def _future_to_results(future):
+        """
+        Take the future returned by _run_download, and convert it into a
+        `Results` object.
+        """
+        dlresults = future.result()
         results = Results()
 
         # Iterate through the results and store any failed download errors in
