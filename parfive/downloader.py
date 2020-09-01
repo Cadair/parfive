@@ -85,17 +85,6 @@ class Downloader:
             self.headers = {'User-Agent': f"parfive/{parfive.__version__} aiohttp/{aiohttp.__version__} python/{sys.version[:5]}"}
 
     def _start_loop(self, loop):
-        # Setup asyncio loops
-        if not loop:
-            aio_pool = ThreadPoolExecutor(1)
-            self.loop = asyncio.new_event_loop()
-            self.run_until_complete = partial(run_in_thread, aio_pool, self.loop)
-        else:
-            self.loop = loop
-            self.run_until_complete = self.loop.run_until_complete
-
-        asyncio.set_event_loop(self.loop)
-
         # Setup queues
         self.http_queue = []
         self.http_tokens = []
@@ -152,7 +141,6 @@ class Downloader:
         Authentication `proxy_auth` should be passed as a `aiohttp.BasicAuth`
         object. Proxy Headers `proxy_headers` should be passed as `dict`
         object.
-
         """
         overwrite = overwrite or self.overwrite
 
@@ -212,10 +200,7 @@ class Downloader:
         """
         timeouts = timeouts or {"total": os.environ.get("PARFIVE_TOTAL_TIMEOUT", 5 * 60),
                                 "sock_read": os.environ.get("PARFIVE_SOCK_READ_TIMEOUT", 90)}
-        try:
-            future = self.run_until_complete(self._run_download(timeouts))
-        finally:
-            self.loop.stop()
+        future = asyncio.run(self._run_download(timeouts))
         dlresults = future.result()
 
         results = Results()
@@ -285,17 +270,17 @@ class Downloader:
         Take the queued http and ftp downloads from their lists and put them
         in a asyncio queue.
         """
-        self._http_async_queue = asyncio.Queue(loop=self.loop)
+        self._http_async_queue = asyncio.Queue()
         self.http_queue = self._list_to_queue(
             self.http_queue, self._http_async_queue)
-        self._http_async_tokens = asyncio.Queue(maxsize=self.max_conn, loop=self.loop)
+        self._http_async_tokens = asyncio.Queue(maxsize=self.max_conn)
         self.http_tokens = self._list_to_queue(
             self.http_tokens, self._http_async_tokens)
 
-        self._ftp_async_queue = asyncio.Queue(loop=self.loop)
+        self._ftp_async_queue = asyncio.Queue()
         self.ftp_queue = self._list_to_queue(
             self.ftp_queue, self._ftp_async_queue)
-        self._ftp_async_tokens = asyncio.Queue(maxsize=self.max_conn, loop=self.loop)
+        self._ftp_async_tokens = asyncio.Queue(maxsize=self.max_conn)
         self.ftp_tokens = self._list_to_queue(
             self.ftp_tokens, self._ftp_async_tokens)
 
@@ -336,7 +321,7 @@ class Downloader:
                                                  main_pb, session=session, timeouts=timeouts)
 
             # Wait for all the coroutines to finish
-            done, _ = await asyncio.wait(futures, loop=self.loop)
+            done, _ = await asyncio.wait(futures)
 
             return done
 
@@ -344,7 +329,7 @@ class Downloader:
         futures = await self._run_from_queue(self._ftp_async_queue, self._ftp_async_tokens,
                                              main_pb, timeouts=timeouts)
         # Wait for all the coroutines to finish
-        done, _ = await asyncio.wait(futures, loop=self.loop)
+        done, _ = await asyncio.wait(futures)
 
         return done
 
@@ -355,8 +340,8 @@ class Downloader:
             token = await tokens.get()
             file_pb = self.tqdm if self.file_progress else False
             future = asyncio.ensure_future(get_file(session, token=token,
-                                                    file_pb=file_pb, timeouts=timeouts),
-                                           loop=self.loop)
+                                                    file_pb=file_pb,
+                                                    timeouts=timeouts))
 
             def callback(token, future, main_pb):
                 tokens.put_nowait(token)
@@ -436,7 +421,7 @@ class Downloader:
                     downloaded_chunk_queue = asyncio.Queue()
 
                     download_workers = []
-                    writer = self.loop.create_task(
+                    writer = asyncio.create_task(
                         self._write_worker(downloaded_chunk_queue, file_pb, filepath))
 
                     if max_splits and resp.headers.get('Accept-Ranges', None) == "bytes":
@@ -450,13 +435,13 @@ class Downloader:
                         ranges[-1][1] = ''
                         for _range in ranges:
                             download_workers.append(
-                                self.loop.create_task(self._http_download_worker(
+                                asyncio.create_task(self._http_download_worker(
                                     session, url, chunksize, _range, timeout, downloaded_chunk_queue, **kwargs
                                 ))
                             )
                     else:
                         download_workers.append(
-                            self.loop.create_task(self._http_download_worker(
+                            asyncio.create_task(self._http_download_worker(
                                 session, url, chunksize, None, timeout, downloaded_chunk_queue, **kwargs
                             ))
                         )
@@ -605,11 +590,11 @@ class Downloader:
 
                     downloaded_chunks_queue = asyncio.Queue()
                     download_workers = []
-                    writer = self.loop.create_task(
+                    writer = asyncio.create_task(
                         self._write_worker(downloaded_chunks_queue, file_pb, filepath))
 
                     download_workers.append(
-                        self.loop.create_task(self._ftp_download_worker(stream, downloaded_chunks_queue))
+                        asyncio.create_task(self._ftp_download_worker(stream, downloaded_chunks_queue))
                     )
 
                     await asyncio.gather(*download_workers)
