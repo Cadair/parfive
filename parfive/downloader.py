@@ -97,10 +97,10 @@ class Downloader:
         asyncio.set_event_loop(self.loop)
 
         # Setup queues
-        self.http_queue = []  # asyncio.Queue(loop=self.loop)
-        self.http_tokens = [] # asyncio.Queue(maxsize=self.max_conn, loop=self.loop)
-        self.ftp_queue = []  # asyncio.Queue(loop=self.loop)
-        self.ftp_tokens = [] # asyncio.Queue(maxsize=self.max_conn, loop=self.loop)
+        self.http_queue = []
+        self.http_tokens = []
+        self.ftp_queue = []
+        self.ftp_tokens = []
         for i in range(self.max_conn):
             self.http_tokens.append(Token(i + 1))
             self.ftp_tokens.append(Token(i + 1))

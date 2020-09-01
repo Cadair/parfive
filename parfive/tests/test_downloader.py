@@ -18,6 +18,7 @@ import hashlib
 
 skip_windows = pytest.mark.skipif(platform.system() == 'Windows', reason="Windows.")
 
+
 def test_setup(event_loop):
     dl = Downloader(loop=event_loop)
 
