@@ -97,9 +97,9 @@ class Downloader:
         asyncio.set_event_loop(self.loop)
 
         # Setup queues
-        self.http_queue = asyncio.Queue(loop=self.loop)
+        self.http_queue = []  # asyncio.Queue(loop=self.loop)
         self.http_tokens = asyncio.Queue(maxsize=self.max_conn, loop=self.loop)
-        self.ftp_queue = asyncio.Queue(loop=self.loop)
+        self.ftp_queue = []  # asyncio.Queue(loop=self.loop)
         self.ftp_tokens = asyncio.Queue(maxsize=self.max_conn, loop=self.loop)
         for i in range(self.max_conn):
             self.http_tokens.put_nowait(Token(i + 1))
@@ -111,7 +111,7 @@ class Downloader:
         The total number of files already queued for download.
         """
 
-        return self.http_queue.qsize() + self.ftp_queue.qsize()
+        return len(self.http_queue) + len(self.ftp_queue)
 
     def enqueue_file(self, url, path=None, filename=None, overwrite=None, **kwargs):
         """
@@ -176,13 +176,13 @@ class Downloader:
         if scheme in ('http', 'https'):
             get_file = partial(self._get_http, url=url, filepath_partial=filepath,
                                overwrite=overwrite, **kwargs)
-            self.http_queue.put_nowait(get_file)
+            self.http_queue.append(get_file)
         elif scheme == 'ftp':
             if aioftp is None:
                 raise ValueError("The aioftp package must be installed to download over FTP.")
             get_file = partial(self._get_ftp, url=url, filepath_partial=filepath,
                                overwrite=overwrite, **kwargs)
-            self.ftp_queue.put_nowait(get_file)
+            self.ftp_queue.append(get_file)
         else:
             raise ValueError("URL must start with either 'http' or 'ftp'.")
 
@@ -280,6 +280,25 @@ class Downloader:
         else:
             return contextlib.contextmanager(lambda: iter([None]))()
 
+    def _setup_queues(self):
+        """
+        Take the queued http and ftp downloads from their lists and put them
+        in a asyncio queue.
+        """
+        self._http_async_queue = asyncio.Queue(loop=self.loop)
+        self.http_queue = self._list_to_queue(
+            self.http_queue, self._http_async_queue)
+        self._ftp_async_queue = asyncio.Queue(loop=self.loop)
+        self.ftp_queue = self._list_to_queue(
+            self.ftp_queue, self._ftp_async_queue)
+
+    @staticmethod
+    def _list_to_queue(list, queue):
+        for item in list:
+            queue.put_nowait(item)
+        list = []
+        return list
+
     async def _run_download(self, timeouts):
         """
         Download all files in the queue.
@@ -292,12 +311,13 @@ class Downloader:
             has an attribute ``errors`` which lists any failed urls and their
             error.
         """
-        total_files = self.http_queue.qsize() + self.ftp_queue.qsize()
+        total_files = self.queued_downloads
+        self._setup_queues()
         done = set()
         with self._get_main_pb(total_files) as main_pb:
-            if not self.http_queue.empty():
+            if not self._http_async_queue.empty():
                 done.update(await self._run_http_download(main_pb, timeouts))
-            if not self.ftp_queue.empty():
+            if not self._ftp_async_queue.empty():
                 done.update(await self._run_ftp_download(main_pb, timeouts))
 
         # Return one future to represent all the results.
@@ -305,7 +325,7 @@ class Downloader:
 
     async def _run_http_download(self, main_pb, timeouts):
         async with aiohttp.ClientSession(headers=self.headers) as session:
-            futures = await self._run_from_queue(self.http_queue, self.http_tokens,
+            futures = await self._run_from_queue(self._http_async_queue, self.http_tokens,
                                                  main_pb, session=session, timeouts=timeouts)
 
             # Wait for all the coroutines to finish
@@ -314,7 +334,7 @@ class Downloader:
             return done
 
     async def _run_ftp_download(self, main_pb, timeouts):
-        futures = await self._run_from_queue(self.ftp_queue, self.ftp_tokens,
+        futures = await self._run_from_queue(self._ftp_async_queue, self.ftp_tokens,
                                              main_pb, timeouts=timeouts)
         # Wait for all the coroutines to finish
         done, _ = await asyncio.wait(futures, loop=self.loop)
