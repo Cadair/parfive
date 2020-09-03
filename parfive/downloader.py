@@ -174,6 +174,25 @@ class Downloader:
         else:
             raise ValueError("URL must start with either 'http' or 'ftp'.")
 
+    @staticmethod
+    def _run_in_loop(coro):
+        """
+        Detect an existing, running loop and run in a separate loop if needed.
+
+        If no loop is running, use asyncio.run to run the coroutine instead.
+        """
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            loop = None
+
+        if loop and loop.is_running():
+            aio_pool = ThreadPoolExecutor(1)
+            new_loop = asyncio.new_event_loop()
+            return run_in_thread(aio_pool, new_loop, coro)
+
+        return asyncio.run(coro)
+
     def download(self, timeouts=None):
         """
         Download all files in the queue.
@@ -200,7 +219,7 @@ class Downloader:
         """
         timeouts = timeouts or {"total": os.environ.get("PARFIVE_TOTAL_TIMEOUT", 5 * 60),
                                 "sock_read": os.environ.get("PARFIVE_SOCK_READ_TIMEOUT", 90)}
-        future = asyncio.run(self._run_download(timeouts))
+        future = self._run_in_loop(self._run_download(timeouts))
         dlresults = future.result()
 
         results = Results()
