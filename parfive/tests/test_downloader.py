@@ -20,7 +20,7 @@ skip_windows = pytest.mark.skipif(platform.system() == 'Windows', reason="Window
 
 
 def test_setup(event_loop):
-    dl = Downloader(loop=event_loop)
+    dl = Downloader()
 
     assert isinstance(dl, Downloader)
 

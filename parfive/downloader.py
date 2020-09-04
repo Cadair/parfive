@@ -19,7 +19,7 @@ from .utils import (FailedDownload, Token, default_name, get_filepath,
 
 try:
     import aioftp
-except ImportError:
+except ImportError:  # pragma: nocover
     aioftp = None
 
 
