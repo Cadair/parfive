@@ -19,7 +19,7 @@ import hashlib
 skip_windows = pytest.mark.skipif(platform.system() == 'Windows', reason="Windows.")
 
 
-def test_setup(event_loop):
+def test_setup():
     dl = Downloader()
 
     assert isinstance(dl, Downloader)
@@ -30,11 +30,11 @@ def test_setup(event_loop):
     assert len(dl.ftp_tokens) == 5
 
 
-def test_download(event_loop, httpserver, tmpdir):
+def test_download(httpserver, tmpdir):
     tmpdir = str(tmpdir)
     httpserver.serve_content('SIMPLE  = T',
                              headers={'Content-Disposition': "attachment; filename=testfile.fits"})
-    dl = Downloader(loop=event_loop)
+    dl = Downloader()
 
     dl.enqueue_file(httpserver.url, path=Path(tmpdir), max_splits=None)
 
@@ -47,11 +47,11 @@ def test_download(event_loop, httpserver, tmpdir):
     assert sha256sum(f[0]) == "a1c58cd340e3bd33f94524076f1fa5cf9a7f13c59d5272a9d4bc0b5bc436d9b3"
 
 
-def test_download_ranged_http(event_loop, httpserver, tmpdir):
+def test_download_ranged_http(httpserver, tmpdir):
     tmpdir = str(tmpdir)
     httpserver.serve_content('SIMPLE  = T',
                              headers={'Content-Disposition': "attachment; filename=testfile.fits"})
-    dl = Downloader(loop=event_loop)
+    dl = Downloader()
 
     dl.enqueue_file(httpserver.url, path=Path(tmpdir))
 
@@ -64,10 +64,10 @@ def test_download_ranged_http(event_loop, httpserver, tmpdir):
     assert sha256sum(f[0]) == "a1c58cd340e3bd33f94524076f1fa5cf9a7f13c59d5272a9d4bc0b5bc436d9b3"
 
 
-def test_download_partial(event_loop, httpserver, tmpdir):
+def test_download_partial(httpserver, tmpdir):
     tmpdir = str(tmpdir)
     httpserver.serve_content('SIMPLE  = T')
-    dl = Downloader(loop=event_loop)
+    dl = Downloader()
 
     dl.enqueue_file(httpserver.url, filename=lambda resp, url: Path(tmpdir) / "filename")
     f = dl.download()
@@ -77,14 +77,14 @@ def test_download_partial(event_loop, httpserver, tmpdir):
     assert "filename" in f[0]
 
 
-def test_empty_download(event_loop, tmpdir):
-    dl = Downloader(loop=event_loop)
+def test_empty_download(tmpdir):
+    dl = Downloader()
 
     f = dl.download()
     assert len(f) == 0
 
 
-def test_download_filename(event_loop, httpserver, tmpdir):
+def test_download_filename(httpserver, tmpdir):
     httpserver.serve_content('SIMPLE  = T')
 
     fname = "testing123"
@@ -92,7 +92,7 @@ def test_download_filename(event_loop, httpserver, tmpdir):
     with open(filename, "w") as fh:
         fh.write("SIMPLE = T")
 
-    dl = Downloader(loop=event_loop)
+    dl = Downloader()
 
     dl.enqueue_file(httpserver.url, filename=filename, chunksize=200)
     f = dl.download()
@@ -103,7 +103,7 @@ def test_download_filename(event_loop, httpserver, tmpdir):
     assert f[0] == filename
 
 
-def test_download_no_overwrite(event_loop, httpserver, tmpdir):
+def test_download_no_overwrite(httpserver, tmpdir):
     httpserver.serve_content('SIMPLE  = T')
 
     fname = "testing123"
@@ -111,7 +111,7 @@ def test_download_no_overwrite(event_loop, httpserver, tmpdir):
     with open(filename, "w") as fh:
         fh.write("Hello world")
 
-    dl = Downloader(loop=event_loop)
+    dl = Downloader()
 
     dl.enqueue_file(httpserver.url, filename=filename, chunksize=200)
     f = dl.download()
@@ -127,7 +127,7 @@ def test_download_no_overwrite(event_loop, httpserver, tmpdir):
         assert fh.read() == "Hello world"
 
 
-def test_download_overwrite(event_loop, httpserver, tmpdir):
+def test_download_overwrite(httpserver, tmpdir):
     httpserver.serve_content('SIMPLE  = T')
 
     fname = "testing123"
@@ -135,7 +135,7 @@ def test_download_overwrite(event_loop, httpserver, tmpdir):
     with open(filename, "w") as fh:
         fh.write("Hello world")
 
-    dl = Downloader(loop=event_loop, overwrite=True)
+    dl = Downloader(overwrite=True)
 
     dl.enqueue_file(httpserver.url, filename=filename, chunksize=200)
     f = dl.download()
@@ -149,7 +149,7 @@ def test_download_overwrite(event_loop, httpserver, tmpdir):
         assert fh.read() == "SIMPLE  = T"
 
 
-def test_download_unique(event_loop, httpserver, tmpdir):
+def test_download_unique(httpserver, tmpdir):
     httpserver.serve_content('SIMPLE  = T')
 
     fname = "testing123"
@@ -157,7 +157,7 @@ def test_download_unique(event_loop, httpserver, tmpdir):
 
     filenames = [filename, filename+'.fits', filename+'.fits.gz']
 
-    dl = Downloader(loop=event_loop, overwrite='unique')
+    dl = Downloader(overwrite='unique')
 
     # Write files to both the target filenames.
     for fn in filenames:
@@ -356,12 +356,12 @@ def test_ftp_http(tmpdir, httpserver):
     assert len(f.errors) == 4
 
 
-def test_default_user_agent(event_loop, httpserver, tmpdir):
+def test_default_user_agent(httpserver, tmpdir):
     tmpdir = str(tmpdir)
     httpserver.serve_content('SIMPLE  = T',
                              headers={'Content-Disposition': "attachment; filename=testfile.fits"})
 
-    dl = Downloader(loop=event_loop)
+    dl = Downloader()
     dl.enqueue_file(httpserver.url, path=Path(tmpdir), max_splits=None)
 
     assert dl.queued_downloads == 1
@@ -372,12 +372,12 @@ def test_default_user_agent(event_loop, httpserver, tmpdir):
     assert httpserver.requests[0].headers['User-Agent'] == f"parfive/{parfive.__version__} aiohttp/{aiohttp.__version__} python/{sys.version[:5]}"
 
 
-def test_custom_user_agent(event_loop, httpserver, tmpdir):
+def test_custom_user_agent(httpserver, tmpdir):
     tmpdir = str(tmpdir)
     httpserver.serve_content('SIMPLE  = T',
                              headers={'Content-Disposition': "attachment; filename=testfile.fits"})
 
-    dl = Downloader(loop=event_loop, headers={'User-Agent': 'test value 299792458'})
+    dl = Downloader(headers={'User-Agent': 'test value 299792458'})
     dl.enqueue_file(httpserver.url, path=Path(tmpdir), max_splits=None)
 
     assert dl.queued_downloads == 1
@@ -390,14 +390,14 @@ def test_custom_user_agent(event_loop, httpserver, tmpdir):
 
 @patch.dict(os.environ, {'HTTP_PROXY': "http_proxy_url",'HTTPS_PROXY': "https_proxy_url"})
 @pytest.mark.parametrize("url,proxy",[('http://test.example.com','http_proxy_url'),('https://test.example.com','https_proxy_url')])
-def test_proxy_passed_as_kwargs_to_get(event_loop, tmpdir, url, proxy):
+def test_proxy_passed_as_kwargs_to_get(tmpdir, url, proxy):
 
     with mock.patch(
                     "aiohttp.client.ClientSession._request",
                     new_callable=mock.MagicMock
                    ) as patched:
 
-        dl = Downloader(loop=event_loop)
+        dl = Downloader()
         dl.enqueue_file(url, path=Path(tmpdir), max_splits=None)
 
         assert dl.queued_downloads == 1
