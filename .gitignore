@@ -43,3 +43,6 @@ htmlcov/
 .vscode/
 pip-wheel-metadata/
 parfive/version.py
+parfive/tests/.ipynb_checkpoints/
+parfive/tests/predicted-sunspot-radio-flux.txt
+
