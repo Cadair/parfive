@@ -1,3 +1,4 @@
+import asyncio
 import cgi
 import hashlib
 import pathlib
@@ -152,3 +153,17 @@ class Token:
 
     def __str__(self):
         return f"Token {self.n}"
+
+
+class _QueueList(list):
+    """
+    A list, with an extra method that empties the list and puts
+    it into a `asyncio.Queue`. Creating the queue can only be done inside
+    a running asyncio loop.
+    """
+    def generate_queue(self, maxsize=0):
+        queue = asyncio.Queue(maxsize=maxsize)
+        for item in self:
+            queue.put_nowait(item)
+        self.clear()
+        return queue
