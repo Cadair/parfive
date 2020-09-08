@@ -70,7 +70,7 @@ class Downloader:
                  loop=None, notebook=None, overwrite=False, headers=None):
 
         self.max_conn = max_conn
-        self._start_loop(loop)
+        self._init_queues()
 
         # Configure progress bars
         if notebook is None:
@@ -85,7 +85,7 @@ class Downloader:
         if headers is None or 'User-Agent' not in headers:
             self.headers = {'User-Agent': f"parfive/{parfive.__version__} aiohttp/{aiohttp.__version__} python/{sys.version[:5]}"}
 
-    def _start_loop(self, loop):
+    def _init_queues(self):
         # Setup queues
         self.http_queue = _QueueList()
         self.http_tokens = _QueueList()
@@ -260,8 +260,8 @@ class Downloader:
             file paths.
 
         """
-        # Restart the loop.
-        self._start_loop(None)
+        # Reset the queues
+        self._init_queues(None)
 
         for err in results.errors:
             self.enqueue_file(err.url, filename=err.filepath_partial)
