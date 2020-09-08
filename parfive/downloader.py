@@ -2,6 +2,7 @@ import asyncio
 import contextlib
 import os
 import sys
+import warnings
 
 import pathlib
 import urllib.parse
@@ -45,9 +46,7 @@ class Downloader:
         detailing the progress of each individual file being downloaded.
 
     loop : `asyncio.AbstractEventLoop`, optional
-        The event loop to use to download the files. If not specified a new
-        loop will be created and executed in a new thread so it does not
-        interfere with any currently running event loop.
+        No longer used, and will be removed in a future release.
 
     notebook : `bool`, optional
         If `True` tqdm will be used in notebook mode. If `None` an attempt will
@@ -69,6 +68,9 @@ class Downloader:
     def __init__(self, max_conn=5, progress=True, file_progress=True,
                  loop=None, notebook=None, overwrite=False, headers=None):
 
+        if loop:
+            warnings.warn('The loop argument is no longer used, and will be '
+                          'removed in a future release.')
         self.max_conn = max_conn
         self._init_queues()
 
