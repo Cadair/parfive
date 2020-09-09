@@ -6,7 +6,7 @@ resources:
     type: github
     endpoint: Cadair
     name: OpenAstronomy/azure-pipelines-templates
-    ref: codecov
+    ref: master
 
 trigger:
   branches:
