@@ -17,15 +17,20 @@ from parfive.utils import sha256sum
 skip_windows = pytest.mark.skipif(platform.system() == 'Windows', reason="Windows.")
 
 
+def validate_test_file(f):
+    assert len(f) == 1
+    assert Path(f[0]).name == "testfile.fits"
+    assert sha256sum(f[0]) == "a1c58cd340e3bd33f94524076f1fa5cf9a7f13c59d5272a9d4bc0b5bc436d9b3"
+
+
 def test_setup():
     dl = Downloader()
 
     assert isinstance(dl, Downloader)
 
     assert len(dl.http_queue) == 0
-    assert len(dl.http_tokens) == 5
     assert len(dl.ftp_queue) == 0
-    assert len(dl.ftp_tokens) == 5
+    assert dl._generate_tokens().qsize() == 5
 
 
 def test_download(httpserver, tmpdir):
@@ -39,10 +44,20 @@ def test_download(httpserver, tmpdir):
     assert dl.queued_downloads == 1
 
     f = dl.download()
+    validate_test_file(f)
 
-    assert len(f) == 1
-    assert Path(f[0]).name == "testfile.fits"
-    assert sha256sum(f[0]) == "a1c58cd340e3bd33f94524076f1fa5cf9a7f13c59d5272a9d4bc0b5bc436d9b3"
+
+def test_changed_max_conn(httpserver, tmpdir):
+    # Check that changing max_conn works after creating Downloader
+    tmpdir = str(tmpdir)
+    httpserver.serve_content('SIMPLE  = T',
+                             headers={'Content-Disposition': "attachment; filename=testfile.fits"})
+    dl = Downloader(max_conn=4)
+    dl.enqueue_file(httpserver.url, path=Path(tmpdir), max_splits=None)
+    dl.max_conn = 3
+
+    f = dl.download()
+    validate_test_file(f)
 
 
 @pytest.mark.asyncio
@@ -56,10 +71,7 @@ async def test_async_download(httpserver, tmpdir):
     assert dl.queued_downloads == 1
 
     f = await dl.run_download()
-
-    assert len(f) == 1
-    assert Path(f[0]).name == "testfile.fits"
-    assert sha256sum(f[0]) == "a1c58cd340e3bd33f94524076f1fa5cf9a7f13c59d5272a9d4bc0b5bc436d9b3"
+    validate_test_file(f)
 
 
 def test_download_ranged_http(httpserver, tmpdir):
@@ -73,10 +85,7 @@ def test_download_ranged_http(httpserver, tmpdir):
     assert dl.queued_downloads == 1
 
     f = dl.download()
-
-    assert len(f) == 1
-    assert Path(f[0]).name == "testfile.fits"
-    assert sha256sum(f[0]) == "a1c58cd340e3bd33f94524076f1fa5cf9a7f13c59d5272a9d4bc0b5bc436d9b3"
+    validate_test_file(f)
 
 
 def test_download_partial(httpserver, tmpdir):
