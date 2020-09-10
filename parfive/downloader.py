@@ -90,12 +90,14 @@ class Downloader:
     def _init_queues(self):
         # Setup queues
         self.http_queue = _QueueList()
-        self.http_tokens = _QueueList()
         self.ftp_queue = _QueueList()
-        self.ftp_tokens = _QueueList()
+
+    def _generate_tokens(self):
+        # Create a Queue with max_conn tokens
+        queue = asyncio.Queue(maxsize=self.max_conn)
         for i in range(self.max_conn):
-            self.http_tokens.append(Token(i + 1))
-            self.ftp_tokens.append(Token(i + 1))
+            queue.put_nowait(Token(i + 1))
+        return queue
 
     @property
     def queued_downloads(self):
@@ -319,9 +321,10 @@ class Downloader:
 
     async def _run_http_download(self, main_pb, timeouts):
         async with aiohttp.ClientSession(headers=self.headers) as session:
+            self._generate_tokens()
             futures = await self._run_from_queue(
                 self.http_queue.generate_queue(),
-                self.http_tokens.generate_queue(maxsize=self.max_conn),
+                self._generate_tokens(),
                 main_pb, session=session, timeouts=timeouts)
 
             # Wait for all the coroutines to finish
@@ -332,7 +335,7 @@ class Downloader:
     async def _run_ftp_download(self, main_pb, timeouts):
         futures = await self._run_from_queue(
             self.ftp_queue.generate_queue(),
-            self.ftp_tokens.generate_queue(maxsize=self.max_conn),
+            self._generate_tokens(),
             main_pb, timeouts=timeouts)
         # Wait for all the coroutines to finish
         done, _ = await asyncio.wait(futures)
