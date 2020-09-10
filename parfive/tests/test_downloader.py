@@ -45,6 +45,23 @@ def test_download(httpserver, tmpdir):
     assert sha256sum(f[0]) == "a1c58cd340e3bd33f94524076f1fa5cf9a7f13c59d5272a9d4bc0b5bc436d9b3"
 
 
+@pytest.mark.asyncio
+async def test_async_download(httpserver, tmpdir):
+    httpserver.serve_content('SIMPLE  = T',
+                             headers={'Content-Disposition': "attachment; filename=testfile.fits"})
+    dl = Downloader()
+
+    dl.enqueue_file(httpserver.url, path=Path(tmpdir), max_splits=None)
+
+    assert dl.queued_downloads == 1
+
+    f = await dl.run_download()
+
+    assert len(f) == 1
+    assert Path(f[0]).name == "testfile.fits"
+    assert sha256sum(f[0]) == "a1c58cd340e3bd33f94524076f1fa5cf9a7f13c59d5272a9d4bc0b5bc436d9b3"
+
+
 def test_download_ranged_http(httpserver, tmpdir):
     tmpdir = str(tmpdir)
     httpserver.serve_content('SIMPLE  = T',
