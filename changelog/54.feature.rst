@@ -1,3 +1,0 @@
-Make `parfive.Downloader.run_download` public API and move all of the
-`~parfive.Downloader.download` logic into ``run_download``. This enabled using
-parfive from inside an async context.

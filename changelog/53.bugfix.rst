@@ -1,3 +1,0 @@
-Handing a custom ``loop`` to `Downloader` now does nothing, and parfive spins
-up its own loop. This is to prepare for python 3.10 where support for passing
-custom loops to various `asyncio` methods will be removed.

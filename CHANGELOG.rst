@@ -1,3 +1,28 @@
+Parfive v1.2.0rc1 (2020-09-10)
+==============================
+
+Features
+--------
+
+- Make `parfive.Downloader.run_download` public API and move all of the
+  `~parfive.Downloader.download` logic into ``run_download``. This enabled using
+  parfive from inside an async context. (`#54 <https://github.com/Cadair/parfive/pull/54>`__)
+
+
+Bugfixes
+--------
+
+- Handing a custom ``loop`` to `Downloader` now does nothing, and parfive spins
+  up its own loop. This is to prepare for python 3.10 where support for passing
+  custom loops to various `asyncio` methods will be removed. (`#53 <https://github.com/Cadair/parfive/pull/53>`__)
+
+
+Misc
+----
+
+- `#49 <https://github.com/Cadair/parfive/pull/49>`__
+
+
 Parfive v1.1.1 (2020-08-17)
 ===========================
 
