@@ -42,7 +42,6 @@ class Downloader:
     ----------
     max_conn : `int`, optional
         The number of parallel download slots.
-
     progress : `bool`, optional
         If `True` show a main progress bar showing how many of the total files
         have been downloaded. If `False`, no progress bars will be shown at all.
@@ -51,7 +50,6 @@ class Downloader:
         detailing the progress of each individual file being downloaded.
     loop : `asyncio.AbstractEventLoop`, optional
         No longer used, and will be removed in a future release.
-
     notebook : `bool`, optional
         If `True` tqdm will be used in notebook mode. If `None` an attempt will
         be made to detect the notebook and guess which progress bar to use.
@@ -194,7 +192,7 @@ class Downloader:
 
         return asyncio.run(coro)
 
-    def download(self, timeouts=None):
+    async def run_download(self, timeouts=None):
         """
         Download all files in the queue.
 
@@ -219,8 +217,17 @@ class Downloader:
         """
         timeouts = timeouts or {"total": os.environ.get("PARFIVE_TOTAL_TIMEOUT", 5 * 60),
                                 "sock_read": os.environ.get("PARFIVE_SOCK_READ_TIMEOUT", 90)}
-        future = self._run_in_loop(self._run_download(timeouts))
-        dl_results = future.result()
+
+        total_files = self.queued_downloads
+
+        done = set()
+        with self._get_main_pb(total_files) as main_pb:
+            if len(self.http_queue):
+                done.update(await self._run_http_download(main_pb, timeouts))
+            if len(self.ftp_queue):
+                done.update(await self._run_ftp_download(main_pb, timeouts))
+
+        dl_results = await asyncio.gather(*done, return_exceptions=True)
 
         results = Results()
 
@@ -235,6 +242,35 @@ class Downloader:
                 results.append(res)
 
         return results
+
+    def download(self, timeouts=None):
+        """
+        Download all files in the queue.
+
+        Parameters
+        ----------
+        timeouts : `dict`, optional
+            Overrides for the default timeouts for http downloads. Supported
+            keys are any accepted by the `aiohttp.ClientTimeout` class. Defaults
+            to 5 minutes for total session timeout and 90 seconds for socket
+            read timeout.
+
+        Returns
+        -------
+        `parfive.Results`
+            A list of files downloaded.
+
+        Notes
+        -----
+        This is a synchronous version of `~parfive.Downloader.run_download`, an
+        `asyncio` event loop will be created to run the download (in it's own
+        thread if a loop is already running).
+
+        The defaults for the `'total'` and `'sock_read'` timeouts can be
+        overridden by two environment variables ``PARFIVE_TOTAL_TIMEOUT`` and
+        ``PARFIVE_SOCK_READ_TIMEOUT``.
+        """
+        return self._run_in_loop(self.run_download(timeouts))
 
     def retry(self, results):
         """
@@ -280,28 +316,6 @@ class Downloader:
                              position=0)
         else:
             return contextlib.contextmanager(lambda: iter([None]))()
-
-    async def _run_download(self, timeouts):
-        """
-        Download all files in the queue.
-
-        Returns
-        -------
-        `parfive.Results`
-            A list of filenames which successfully downloaded. This list also
-            has an attribute ``errors`` which lists any failed urls and their
-            error.
-        """
-        total_files = self.queued_downloads
-        done = set()
-        with self._get_main_pb(total_files) as main_pb:
-            if len(self.http_queue):
-                done.update(await self._run_http_download(main_pb, timeouts))
-            if len(self.ftp_queue):
-                done.update(await self._run_ftp_download(main_pb, timeouts))
-
-        # Return one future to represent all the results.
-        return asyncio.gather(*done, return_exceptions=True)
 
     async def _run_http_download(self, main_pb, timeouts):
         async with aiohttp.ClientSession(headers=self.headers) as session:
