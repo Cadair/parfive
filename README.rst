@@ -20,6 +20,7 @@ running the download. parfive has a synchronous API, but uses asyncio to
 paralellise downloading the files.
 
 A simple example is::
+
   from parfive import Downloader
   dl = Downloader()
   dl.enqueue_file("http://data.sunpy.org/sample-data/predicted-sunspot-radio-flux.txt", path="./")
