@@ -50,6 +50,10 @@ source_suffix = '.rst'
 # The master toctree document.
 master_doc = 'index'
 
+# The reST default role (used for this markup: `text`) to use for all
+# documents. Set to the "smart" one.
+default_role = 'obj'
+
 # -- Options for intersphinx extension ---------------------------------------
 
 # Example configuration for intersphinx: refer to the Python standard library.
