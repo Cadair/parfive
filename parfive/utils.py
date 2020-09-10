@@ -1,5 +1,5 @@
-import asyncio
 import cgi
+import asyncio
 import hashlib
 import pathlib
 from itertools import count
@@ -49,7 +49,9 @@ def default_name(path, resp, url):
 def run_in_thread(aio_pool, loop, coro):
     """
     This function returns the asyncio Future after running the loop in a
-    thread. This makes the return value of this function the same as the return
+    thread.
+
+    This makes the return value of this function the same as the return
     of ``loop.run_until_complete``.
     """
     return aio_pool.submit(loop.run_until_complete, coro).result()
@@ -119,11 +121,11 @@ def sha256sum(filename):
     """
     https://stackoverflow.com/a/44873382
     """
-    h  = hashlib.sha256()
-    b  = bytearray(128*1024)
+    h = hashlib.sha256()
+    b = bytearray(128 * 1024)
     mv = memoryview(b)
     with open(filename, 'rb', buffering=0) as f:
-        for n in iter(lambda : f.readinto(mv), 0):
+        for n in iter(lambda: f.readinto(mv), 0):
             h.update(mv[:n])
     return h.hexdigest()
 
@@ -157,10 +159,12 @@ class Token:
 
 class _QueueList(list):
     """
-    A list, with an extra method that empties the list and puts
-    it into a `asyncio.Queue`. Creating the queue can only be done inside
-    a running asyncio loop.
+    A list, with an extra method that empties the list and puts it into a
+    `asyncio.Queue`.
+
+    Creating the queue can only be done inside a running asyncio loop.
     """
+
     def generate_queue(self, maxsize=0):
         queue = asyncio.Queue(maxsize=maxsize)
         for item in self:

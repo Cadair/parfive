@@ -1,4 +1,5 @@
 import os
+
 import setuptools
 
 VERSION_TEMPLATE = """
@@ -14,4 +15,4 @@ except Exception:
 
 
 setuptools.setup(use_scm_version={'write_to': os.path.join('parfive', 'version.py'),
-                                  'write_to_template': VERSION_TEMPLATE})
+                                  'write_to_template': VERSION_TEMPLATE},)

@@ -1,11 +1,13 @@
-from parfive.main import parse_args
 import pytest
+
+from parfive.main import parse_args
 
 REQUIRED_ARGUMENTS = ['test_url']
 
+
 def test_no_url():
     with pytest.raises(SystemExit):
-        args = parse_args(['--overwrite'])
+        parse_args(['--overwrite'])
 
 
 def helper(args, name, expected):
@@ -32,7 +34,7 @@ def test_print_filenames():
     helper(['--print-filenames'], 'print_filenames', True)
     helper([], 'print_filenames', False)
 
+
 def test_directory():
     helper(['--directory', '/tmp'], 'directory', '/tmp')
     helper([], 'directory', './')
-

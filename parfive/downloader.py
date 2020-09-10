@@ -1,22 +1,29 @@
-import asyncio
-import contextlib
 import os
 import sys
-import warnings
-
+import asyncio
 import pathlib
+import warnings
+import contextlib
 import urllib.parse
-from concurrent.futures import ThreadPoolExecutor
 from functools import partial
+from concurrent.futures import ThreadPoolExecutor
 
-import parfive
 import aiohttp
 from tqdm import tqdm, tqdm_notebook
 
+import parfive
 from .results import Results
-from .utils import (FailedDownload, Token, default_name, get_filepath,
-                    get_ftp_size, get_http_size, in_notebook, run_in_thread,
-                    _QueueList)
+from .utils import (
+    FailedDownload,
+    Token,
+    _QueueList,
+    default_name,
+    get_filepath,
+    get_ftp_size,
+    get_http_size,
+    in_notebook,
+    run_in_thread,
+)
 
 try:
     import aioftp
@@ -33,36 +40,30 @@ class Downloader:
 
     Parameters
     ----------
-
     max_conn : `int`, optional
         The number of parallel download slots.
 
     progress : `bool`, optional
         If `True` show a main progress bar showing how many of the total files
         have been downloaded. If `False`, no progress bars will be shown at all.
-
     file_progress : `bool`, optional
         If `True` and ``progress`` is true, show ``max_conn`` progress bars
         detailing the progress of each individual file being downloaded.
-
     loop : `asyncio.AbstractEventLoop`, optional
         No longer used, and will be removed in a future release.
 
     notebook : `bool`, optional
         If `True` tqdm will be used in notebook mode. If `None` an attempt will
         be made to detect the notebook and guess which progress bar to use.
-
     overwrite : `bool` or `str`, optional
         Determine how to handle downloading if a file already exists with the
         same name. If `False` the file download will be skipped and the path
         returned to the existing file, if `True` the file will be downloaded
         and the existing file will be overwritten, if `'unique'` the filename
         will be modified to be unique.
-
     headers : `dict`
        Request headers to be passed to the server.
        Adds `User-Agent` information about `parfive`, `aiohttp` and `python` if not passed explicitely.
-
     """
 
     def __init__(self, max_conn=5, progress=True, file_progress=True,
@@ -85,7 +86,8 @@ class Downloader:
 
         self.headers = headers
         if headers is None or 'User-Agent' not in headers:
-            self.headers = {'User-Agent': f"parfive/{parfive.__version__} aiohttp/{aiohttp.__version__} python/{sys.version[:5]}"}
+            self.headers = {
+                'User-Agent': f"parfive/{parfive.__version__} aiohttp/{aiohttp.__version__} python/{sys.version[:5]}"}
 
     def _init_queues(self):
         # Setup queues
@@ -113,18 +115,15 @@ class Downloader:
         ----------
         url : `str`
             The URL to retrieve.
-
         path : `str`, optional
             The directory to retrieve the file into, if `None` defaults to the
             current directory.
-
         filename : `str` or `callable`, optional
             The filename to save the file as. Can also be a callable which
             takes two arguments the url and the response object from opening
             that URL, and returns the filename. (Note, for FTP downloads the
             response will be ``None``.) If `None` the HTTP headers will be read
             for the filename, or the last segment of the URL will be used.
-
         overwrite : `bool` or `str`, optional
             Determine how to handle downloading if a file already exists with the
             same name. If `False` the file download will be skipped and the path
@@ -132,7 +131,6 @@ class Downloader:
             and the existing file will be overwritten, if `'unique'` the filename
             will be modified to be unique. If `None` the value set when
             constructing the `~parfive.Downloader` object will be used.
-
         kwargs : `dict`
             Extra keyword arguments are passed to `aiohttp.ClientSession.get`
             or `aioftp.Client.context` depending on the protocol.
@@ -210,7 +208,7 @@ class Downloader:
 
         Returns
         -------
-        filenames : `parfive.Results`
+        `parfive.Results`
             A list of files downloaded.
 
         Notes
@@ -218,18 +216,17 @@ class Downloader:
         The defaults for the `'total'` and `'sock_read'` timeouts can be
         overridden by two environment variables ``PARFIVE_TOTAL_TIMEOUT`` and
         ``PARFIVE_SOCK_READ_TIMEOUT``.
-
         """
         timeouts = timeouts or {"total": os.environ.get("PARFIVE_TOTAL_TIMEOUT", 5 * 60),
                                 "sock_read": os.environ.get("PARFIVE_SOCK_READ_TIMEOUT", 90)}
         future = self._run_in_loop(self._run_download(timeouts))
-        dlresults = future.result()
+        dl_results = future.result()
 
         results = Results()
 
         # Iterate through the results and store any failed download errors in
         # the errors list of the results object.
-        for res in dlresults:
+        for res in dl_results:
             if isinstance(res, FailedDownload):
                 results.add_error(res.filepath_partial, res.url, res.exception)
             elif isinstance(res, Exception):
@@ -248,19 +245,16 @@ class Downloader:
 
         Parameters
         ----------
-
         results : `parfive.Results`
             A previous results object, the ``.errors`` property will be read
             and the downloads retried.
 
         Returns
         -------
-
-        results : `parfive.Results`
+        `parfive.Results`
             A modified version of the input ``results`` with all the errors from
             this download attempt and any new files appended to the list of
             file paths.
-
         """
         # Reset the queues
         self._init_queues()
@@ -293,8 +287,7 @@ class Downloader:
 
         Returns
         -------
-
-        results : `parfive.Results`
+        `parfive.Results`
             A list of filenames which successfully downloaded. This list also
             has an attribute ``errors`` which lists any failed urls and their
             error.
@@ -360,38 +353,28 @@ class Downloader:
 
         Parameters
         ----------
-
         session : `aiohttp.ClientSession`
             The `aiohttp.ClientSession` to use to retrieve the files.
-
         url : `str`
             The url to retrieve.
-
         filepath_partial : `callable`
             A function to call which returns the filepath to save the url to.
             Takes two arguments ``resp, url``.
-
         chunksize : `int`
             The number of bytes to read into the file at a time.
-
         file_pb : `tqdm.tqdm` or `False`
             Should progress bars be displayed for each file downloaded.
-
         token : `parfive.downloader.Token`
             A token for this download slot.
-
         max_splits: `int`
             Number of maximum concurrent connections per file.
-
         kwargs : `dict`
             Extra keyword arguments are passed to `aiohttp.ClientSession.get`.
 
         Returns
         -------
-
-        filepath : `str`
+        `str`
             The name of the file saved.
-
         """
         timeout = aiohttp.ClientTimeout(**timeouts)
         try:
@@ -465,13 +448,11 @@ class Downloader:
 
         Parameters
         ----------
-
         queue: `asyncio.Queue`
              Queue for chunks
 
         file_pb : `tqdm.tqdm` or `False`
             Should progress bars be displayed for each file downloaded.
-
         filepath: `pathlib.Path`
             Path to the which the file should be downloaded.
         """
@@ -499,23 +480,17 @@ class Downloader:
 
         Parameters
         ----------
-
         session : `aiohttp.ClientSession`
             The `aiohttp.ClientSession` to use to retrieve the files.
-
         url : `str`
             The url to retrieve.
-
         chunksize : `int`
             The number of bytes to read into the file at a time.
-
         http_range: (`int`, `int`) or `None`
             Start and end bytes of the file. In None, then no `Range` header is specified
             in request and the whole file will be downloaded.
-
         queue: `asyncio.Queue`
              Queue to put the download chunks.
-
         kwargs : `dict`
             Extra keyword arguments are passed to `aiohttp.ClientSession.get`.
         """
@@ -542,32 +517,24 @@ class Downloader:
 
         Parameters
         ----------
-
         session : `None`
             A placeholder for API compatibility with ``_get_http``
-
         url : `str`
             The url to retrieve.
-
         filepath_partial : `callable`
             A function to call which returns the filepath to save the url to.
             Takes two arguments ``resp, url``.
-
         file_pb : `tqdm.tqdm` or `False`
             Should progress bars be displayed for each file downloaded.
-
         token : `parfive.downloader.Token`
             A token for this download slot.
-
         kwargs : `dict`
             Extra keyword arguments are passed to `~aioftp.Client.context`.
 
         Returns
         -------
-
-        filepath : `str`
+        `str`
             The name of the file saved.
-
         """
         parse = urllib.parse.urlparse(url)
         try:
@@ -593,7 +560,8 @@ class Downloader:
                         self._write_worker(downloaded_chunks_queue, file_pb, filepath))
 
                     download_workers.append(
-                        asyncio.create_task(self._ftp_download_worker(stream, downloaded_chunks_queue))
+                        asyncio.create_task(self._ftp_download_worker(
+                            stream, downloaded_chunks_queue))
                     )
 
                     await asyncio.gather(*download_workers)
@@ -607,11 +575,11 @@ class Downloader:
 
     async def _ftp_download_worker(self, stream, queue):
         """
-        Similar to `Downloader._http_download_worker`. See that function's documentation for more info.
+        Similar to `Downloader._http_download_worker`.
+        See that function's documentation for more info.
 
         Parameters
         ----------
-
         stream: `aioftp.StreamIO`
             Stream of the file to be downloaded.
         queue: `asyncio.Queue`

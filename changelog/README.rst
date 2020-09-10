@@ -1,9 +1,9 @@
 Changelog
 =========
 
-parfive uses `towncrier <https://github.com/twisted/towncrier>`__ to build its changelog. 
+parfive uses `towncrier <https://github.com/twisted/towncrier>`__ to build its changelog.
 
-Please add a file to the ``changelog/`` directory with a filename matching ``<pr number>.<type>[.number].rst``. 
+Please add a file to the ``changelog/`` directory with a filename matching ``<pr number>.<type>[.number].rst``.
 
 The changelog types are:
 

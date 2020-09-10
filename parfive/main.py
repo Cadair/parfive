@@ -1,12 +1,13 @@
-import argparse
 import sys
+import argparse
 
 from parfive import Downloader
 
 
 def main():
     args = parse_args(sys.argv[1:])
-    downloader = Downloader(max_conn=args.max_conn, file_progress=not args.no_file_progress, overwrite=args.overwrite)
+    downloader = Downloader(max_conn=args.max_conn,
+                            file_progress=not args.no_file_progress, overwrite=args.overwrite)
     for url in args.urls:
         downloader.enqueue_file(url, path=args.directory)
     results = downloader.download()

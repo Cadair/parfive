@@ -11,9 +11,11 @@ class Results(UserList):
     """
     The results of a download from `parfive.Downloader.download`.
 
-    This object contains the filenames of successful downloads as well as a
-    list of any errors encountered in the `~parfive.Results.errors` property.
+    This object contains the filenames of successful downloads as well
+    as a list of any errors encountered in the `~parfive.Results.errors`
+    property.
     """
+
     def __init__(self, *args, errors=None):
         super().__init__(*args)
         self._errors = errors or list()
