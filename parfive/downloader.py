@@ -263,7 +263,7 @@ class Downloader:
 
         """
         # Reset the queues
-        self._init_queues(None)
+        self._init_queues()
 
         for err in results.errors:
             self.enqueue_file(err.url, filename=err.filepath_partial)
