@@ -1,0 +1,2 @@
+Fix a bug where downloads fail if ``max_conn`` is changed after construction of
+the `parfive.Downloader` instance.
