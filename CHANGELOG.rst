@@ -1,5 +1,5 @@
-Parfive v1.2.0rc1 (2020-09-10)
-==============================
+Parfive v1.2.0 (2020-09-30)
+===========================
 
 Features
 --------
@@ -15,6 +15,9 @@ Bugfixes
 - Handing a custom ``loop`` to `Downloader` now does nothing, and parfive spins
   up its own loop. This is to prepare for python 3.10 where support for passing
   custom loops to various `asyncio` methods will be removed. (`#53 <https://github.com/Cadair/parfive/pull/53>`__)
+
+- Fix a bug where downloads fail if ``max_conn`` is changed after construction of
+  the `parfive.Downloader` instance. (`#56 <https://github.com/Cadair/parfive/pull/56>`__)
 
 
 Misc
