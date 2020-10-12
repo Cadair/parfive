@@ -1,10 +1,15 @@
 import cgi
 import asyncio
 import hashlib
+import logging
 import pathlib
 from itertools import count
 
-__all__ = ['run_in_thread', 'Token', 'FailedDownload', 'default_name', 'in_notebook']
+__all__ = ['run_in_thread', 'Token', 'FailedDownload', 'default_name',
+           'in_notebook']
+
+
+log = logging.getLogger('parfive')
 
 
 def in_notebook():

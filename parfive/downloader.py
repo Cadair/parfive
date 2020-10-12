@@ -238,6 +238,8 @@ class Downloader:
         for res in dl_results:
             if isinstance(res, FailedDownload):
                 results.add_error(res.filepath_partial, res.url, res.exception)
+                parfive.log.debug(f'{res.url} failed to download with exception\n'
+                                  f'{res.exception}')
             elif isinstance(res, Exception):
                 raise res
             else:
