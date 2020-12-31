@@ -1,3 +1,5 @@
+.. currentmodule:: parfive
+
 Parfive
 =======
 
