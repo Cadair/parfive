@@ -1,0 +1,2 @@
+If aiofiles is present and PARFIVE_ENABLE_AIOFILES environment variable 
+is present, then aiofiles will be used to write files.
