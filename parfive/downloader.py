@@ -30,15 +30,8 @@ try:
 except ImportError:  # pragma: nocover
     aioftp = None
 
-try:
-    import aiofiles  # pragma: nocover
-except ImportError:
-    aiofiles = None
 
-USE_AIOFILES = "PARFIVE_ENABLE_AIOFILES" in os.environ and aiofiles is not None
-DEFAULT_DOWNLOAD_CHUNK = 1024 if USE_AIOFILES else 100
-
-__all__ = ["Downloader"]
+__all__ = ['Downloader']
 
 
 class Downloader:
@@ -71,22 +64,12 @@ class Downloader:
        Adds `User-Agent` information about `parfive`, `aiohttp` and `python` if not passed explicitely.
     """
 
-    def __init__(
-        self,
-        max_conn=5,
-        progress=True,
-        file_progress=True,
-        loop=None,
-        notebook=None,
-        overwrite=False,
-        headers=None,
-    ):
+    def __init__(self, max_conn=5, progress=True, file_progress=True,
+                 loop=None, notebook=None, overwrite=False, headers=None):
 
         if loop:
-            warnings.warn(
-                "The loop argument is no longer used, and will be "
-                "removed in a future release."
-            )
+            warnings.warn('The loop argument is no longer used, and will be '
+                          'removed in a future release.')
         self.max_conn = max_conn
         self._init_queues()
 
@@ -100,10 +83,9 @@ class Downloader:
         self.overwrite = overwrite
 
         self.headers = headers
-        if headers is None or "User-Agent" not in headers:
+        if headers is None or 'User-Agent' not in headers:
             self.headers = {
-                "User-Agent": f"parfive/{parfive.__version__} aiohttp/{aiohttp.__version__} python/{sys.version[:5]}"
-            }
+                'User-Agent': f"parfive/{parfive.__version__} aiohttp/{aiohttp.__version__} python/{sys.version[:5]}"}
 
     def _init_queues(self):
         # Setup queues
@@ -166,7 +148,7 @@ class Downloader:
         if path is None and filename is None:
             raise ValueError("Either path or filename must be specified.")
         elif path is None:
-            path = "./"
+            path = './'
 
         path = pathlib.Path(path)
         if not filename:
@@ -180,27 +162,15 @@ class Downloader:
 
         scheme = urllib.parse.urlparse(url).scheme
 
-        if scheme in ("http", "https"):
-            get_file = partial(
-                self._get_http,
-                url=url,
-                filepath_partial=filepath,
-                overwrite=overwrite,
-                **kwargs,
-            )
+        if scheme in ('http', 'https'):
+            get_file = partial(self._get_http, url=url, filepath_partial=filepath,
+                               overwrite=overwrite, **kwargs)
             self.http_queue.append(get_file)
-        elif scheme == "ftp":
+        elif scheme == 'ftp':
             if aioftp is None:
-                raise ValueError(
-                    "The aioftp package must be installed to download over FTP."
-                )
-            get_file = partial(
-                self._get_ftp,
-                url=url,
-                filepath_partial=filepath,
-                overwrite=overwrite,
-                **kwargs,
-            )
+                raise ValueError("The aioftp package must be installed to download over FTP.")
+            get_file = partial(self._get_ftp, url=url, filepath_partial=filepath,
+                               overwrite=overwrite, **kwargs)
             self.ftp_queue.append(get_file)
         else:
             raise ValueError("URL must start with either 'http' or 'ftp'.")
@@ -247,10 +217,8 @@ class Downloader:
         overridden by two environment variables ``PARFIVE_TOTAL_TIMEOUT`` and
         ``PARFIVE_SOCK_READ_TIMEOUT``.
         """
-        timeouts = timeouts or {
-            "total": os.environ.get("PARFIVE_TOTAL_TIMEOUT", 5 * 60),
-            "sock_read": os.environ.get("PARFIVE_SOCK_READ_TIMEOUT", 90),
-        }
+        timeouts = timeouts or {"total": os.environ.get("PARFIVE_TOTAL_TIMEOUT", 5 * 60),
+                                "sock_read": os.environ.get("PARFIVE_SOCK_READ_TIMEOUT", 90)}
 
         total_files = self.queued_downloads
 
@@ -270,9 +238,8 @@ class Downloader:
         for res in dl_results:
             if isinstance(res, FailedDownload):
                 results.add_error(res.filepath_partial, res.url, res.exception)
-                parfive.log.info(
-                    f"{res.url} failed to download with exception\n" f"{res.exception}"
-                )
+                parfive.log.info(f'{res.url} failed to download with exception\n'
+                                 f'{res.exception}')
             elif isinstance(res, Exception):
                 raise res
             else:
@@ -348,9 +315,9 @@ class Downloader:
         that just returns None.
         """
         if self.progress:
-            return self.tqdm(
-                total=total, unit="file", desc="Files Downloaded", position=0
-            )
+            return self.tqdm(total=total, unit='file',
+                             desc="Files Downloaded",
+                             position=0)
         else:
             return contextlib.contextmanager(lambda: iter([None]))()
 
@@ -360,10 +327,7 @@ class Downloader:
             futures = await self._run_from_queue(
                 self.http_queue.generate_queue(),
                 self._generate_tokens(),
-                main_pb,
-                session=session,
-                timeouts=timeouts,
-            )
+                main_pb, session=session, timeouts=timeouts)
 
             # Wait for all the coroutines to finish
             done, _ = await asyncio.wait(futures)
@@ -374,9 +338,7 @@ class Downloader:
         futures = await self._run_from_queue(
             self.ftp_queue.generate_queue(),
             self._generate_tokens(),
-            main_pb,
-            timeouts=timeouts,
-        )
+            main_pb, timeouts=timeouts)
         # Wait for all the coroutines to finish
         done, _ = await asyncio.wait(futures)
 
@@ -388,9 +350,9 @@ class Downloader:
             get_file = await queue.get()
             token = await tokens.get()
             file_pb = self.tqdm if self.file_progress else False
-            future = asyncio.ensure_future(
-                get_file(session, token=token, file_pb=file_pb, timeouts=timeouts)
-            )
+            future = asyncio.ensure_future(get_file(session, token=token,
+                                                    file_pb=file_pb,
+                                                    timeouts=timeouts))
 
             def callback(token, future, main_pb):
                 tokens.put_nowait(token)
@@ -403,20 +365,8 @@ class Downloader:
 
         return futures
 
-    async def _get_http(
-        self,
-        session,
-        *,
-        url,
-        filepath_partial,
-        chunksize=DEFAULT_DOWNLOAD_CHUNK,
-        file_pb=None,
-        token,
-        overwrite,
-        timeouts,
-        max_splits=5,
-        **kwargs,
-    ):
+    async def _get_http(self, session, *, url, filepath_partial, chunksize=100,
+                        file_pb=None, token, overwrite, timeouts, max_splits=5, **kwargs):
         """
         Read the file from the given url into the filename given by ``filepath_partial``.
 
@@ -448,29 +398,22 @@ class Downloader:
         timeout = aiohttp.ClientTimeout(**timeouts)
         try:
             scheme = urllib.parse.urlparse(url).scheme
-            if "HTTP_PROXY" in os.environ and scheme == "http":
-                kwargs["proxy"] = os.environ["HTTP_PROXY"]
-            elif "HTTPS_PROXY" in os.environ and scheme == "https":
-                kwargs["proxy"] = os.environ["HTTPS_PROXY"]
+            if 'HTTP_PROXY' in os.environ and scheme == 'http':
+                kwargs['proxy'] = os.environ['HTTP_PROXY']
+            elif 'HTTPS_PROXY' in os.environ and scheme == 'https':
+                kwargs['proxy'] = os.environ['HTTPS_PROXY']
 
             async with session.get(url, timeout=timeout, **kwargs) as resp:
                 if resp.status != 200:
                     raise FailedDownload(filepath_partial, url, resp)
                 else:
-                    filepath, skip = get_filepath(
-                        filepath_partial(resp, url), overwrite
-                    )
+                    filepath, skip = get_filepath(filepath_partial(resp, url), overwrite)
                     if skip:
                         return str(filepath)
                     if callable(file_pb):
-                        file_pb = file_pb(
-                            position=token.n,
-                            unit="B",
-                            unit_scale=True,
-                            desc=filepath.name,
-                            leave=False,
-                            total=get_http_size(resp),
-                        )
+                        file_pb = file_pb(position=token.n, unit='B', unit_scale=True,
+                                          desc=filepath.name, leave=False,
+                                          total=get_http_size(resp))
                     else:
                         file_pb = None
 
@@ -480,48 +423,28 @@ class Downloader:
 
                     download_workers = []
                     writer = asyncio.create_task(
-                        self._write_worker(downloaded_chunk_queue, file_pb, filepath)
-                    )
+                        self._write_worker(downloaded_chunk_queue, file_pb, filepath))
 
-                    if (
-                        max_splits
-                        and resp.headers.get("Accept-Ranges", None) == "bytes"
-                    ):
-                        content_length = int(resp.headers["Content-length"])
+                    if max_splits and resp.headers.get('Accept-Ranges', None) == "bytes":
+                        content_length = int(resp.headers['Content-length'])
                         split_length = content_length // max_splits
                         ranges = [
                             [start, start + split_length]
                             for start in range(0, content_length, split_length)
                         ]
                         # let the last part download everything
-                        ranges[-1][1] = ""
+                        ranges[-1][1] = ''
                         for _range in ranges:
                             download_workers.append(
-                                asyncio.create_task(
-                                    self._http_download_worker(
-                                        session,
-                                        url,
-                                        chunksize,
-                                        _range,
-                                        timeout,
-                                        downloaded_chunk_queue,
-                                        **kwargs,
-                                    )
-                                )
+                                asyncio.create_task(self._http_download_worker(
+                                    session, url, chunksize, _range, timeout, downloaded_chunk_queue, **kwargs
+                                ))
                             )
                     else:
                         download_workers.append(
-                            asyncio.create_task(
-                                self._http_download_worker(
-                                    session,
-                                    url,
-                                    chunksize,
-                                    None,
-                                    timeout,
-                                    downloaded_chunk_queue,
-                                    **kwargs,
-                                )
-                            )
+                            asyncio.create_task(self._http_download_worker(
+                                session, url, chunksize, None, timeout, downloaded_chunk_queue, **kwargs
+                            ))
                         )
 
                     # run all the download workers
@@ -541,8 +464,6 @@ class Downloader:
         The downloaded chunk is put into a asyncio Queue by a download worker.
         This worker gets the chunk from the queue and write it to the file
         using the specified offset of the chunk.
-        If aiofiles is installed and PARFIVE_ENABLE_AIOFILES environment
-        variable is set, aiofiles will be used to write files instad.
 
         Parameters
         ----------
@@ -554,28 +475,7 @@ class Downloader:
         filepath: `pathlib.Path`
             Path to the which the file should be downloaded.
         """
-        if USE_AIOFILES:
-            await self._async_write_worker(queue, file_pb, filepath)
-        else:
-            await self._blocking_write_worker(queue, file_pb, filepath)
-
-    async def _async_write_worker(self, queue, file_pb, filepath):
-        async with aiofiles.open(filepath, mode="wb") as f:
-            while True:
-                offset, chunk = await queue.get()
-
-                await f.seek(offset)
-                await f.write(chunk)
-                await f.flush()
-
-                # Update the progressbar for file
-                if file_pb is not None:
-                    file_pb.update(len(chunk))
-
-                queue.task_done()
-
-    async def _blocking_write_worker(self, queue, file_pb, filepath):
-        with open(filepath, "wb") as f:
+        with open(filepath, 'wb') as f:
             while True:
                 offset, chunk = await queue.get()
 
@@ -589,9 +489,7 @@ class Downloader:
 
                 queue.task_done()
 
-    async def _http_download_worker(
-        self, session, url, chunksize, http_range, timeout, queue, **kwargs
-    ):
+    async def _http_download_worker(self, session, url, chunksize, http_range, timeout, queue, **kwargs):
         """
         Worker for downloading chunks from http urls.
 
@@ -615,9 +513,9 @@ class Downloader:
         kwargs : `dict`
             Extra keyword arguments are passed to `aiohttp.ClientSession.get`.
         """
-        headers = kwargs.pop("headers", {})
+        headers = kwargs.pop('headers', {})
         if http_range:
-            headers["Range"] = "bytes={}-{}".format(*http_range)
+            headers['Range'] = 'bytes={}-{}'.format(*http_range)
             # init offset to start of range
             offset, _ = http_range
         else:
@@ -631,18 +529,8 @@ class Downloader:
                 await queue.put((offset, chunk))
                 offset += len(chunk)
 
-    async def _get_ftp(
-        self,
-        session=None,
-        *,
-        url,
-        filepath_partial,
-        file_pb=None,
-        token,
-        overwrite,
-        timeouts,
-        **kwargs,
-    ):
+    async def _get_ftp(self, session=None, *, url, filepath_partial,
+                       file_pb=None, token, overwrite, timeouts, **kwargs):
         """
         Read the file from the given url into the filename given by ``filepath_partial``.
 
@@ -676,33 +564,23 @@ class Downloader:
                 # This has to be done before we start streaming the file:
                 total_size = await get_ftp_size(client, parse.path)
                 async with client.download_stream(parse.path) as stream:
-                    filepath, skip = get_filepath(
-                        filepath_partial(None, url), overwrite
-                    )
+                    filepath, skip = get_filepath(filepath_partial(None, url), overwrite)
                     if skip:
                         return str(filepath)
                     if callable(file_pb):
-                        file_pb = file_pb(
-                            position=token.n,
-                            unit="B",
-                            unit_scale=True,
-                            desc=filepath.name,
-                            leave=False,
-                            total=total_size,
-                        )
+                        file_pb = file_pb(position=token.n, unit='B', unit_scale=True,
+                                          desc=filepath.name, leave=False, total=total_size)
                     else:
                         file_pb = None
 
                     downloaded_chunks_queue = asyncio.Queue()
                     download_workers = []
                     writer = asyncio.create_task(
-                        self._write_worker(downloaded_chunks_queue, file_pb, filepath)
-                    )
+                        self._write_worker(downloaded_chunks_queue, file_pb, filepath))
 
                     download_workers.append(
-                        asyncio.create_task(
-                            self._ftp_download_worker(stream, downloaded_chunks_queue)
-                        )
+                        asyncio.create_task(self._ftp_download_worker(
+                            stream, downloaded_chunks_queue))
                     )
 
                     await asyncio.gather(*download_workers)
