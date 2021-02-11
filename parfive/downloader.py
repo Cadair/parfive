@@ -30,6 +30,13 @@ try:
 except ImportError:  # pragma: nocover
     aioftp = None
 
+try:
+    import aiofiles  # pragma: nocover
+except ImportError:
+    aiofiles = None
+
+USE_AIOFILES = "PARFIVE_ENABLE_AIOFILES" in os.environ and aiofiles is not None
+DEFAULT_DOWNLOAD_CHUNK = 1024 if USE_AIOFILES else 100
 
 __all__ = ['Downloader']
 
@@ -365,7 +372,7 @@ class Downloader:
 
         return futures
 
-    async def _get_http(self, session, *, url, filepath_partial, chunksize=100,
+    async def _get_http(self, session, *, url, filepath_partial, chunksize=DEFAULT_DOWNLOAD_CHUNK,
                         file_pb=None, token, overwrite, timeouts, max_splits=5, **kwargs):
         """
         Read the file from the given url into the filename given by ``filepath_partial``.
@@ -464,6 +471,8 @@ class Downloader:
         The downloaded chunk is put into a asyncio Queue by a download worker.
         This worker gets the chunk from the queue and write it to the file
         using the specified offset of the chunk.
+        If aiofiles is installed and PARFIVE_ENABLE_AIOFILES environment
+        variable is set, aiofiles will be used to write files instad.
 
         Parameters
         ----------
@@ -475,7 +484,28 @@ class Downloader:
         filepath: `pathlib.Path`
             Path to the which the file should be downloaded.
         """
-        with open(filepath, 'wb') as f:
+        if USE_AIOFILES:
+            await self._async_write_worker(queue, file_pb, filepath)
+        else:
+            await self._blocking_write_worker(queue, file_pb, filepath)
+
+    async def _async_write_worker(self, queue, file_pb, filepath):
+        async with aiofiles.open(filepath, mode="wb") as f:
+            while True:
+                offset, chunk = await queue.get()
+
+                await f.seek(offset)
+                await f.write(chunk)
+                await f.flush()
+
+                # Update the progressbar for file
+                if file_pb is not None:
+                    file_pb.update(len(chunk))
+
+                queue.task_done()
+
+    async def _blocking_write_worker(self, queue, file_pb, filepath):
+        with open(filepath, "wb") as f:
             while True:
                 offset, chunk = await queue.get()
 
