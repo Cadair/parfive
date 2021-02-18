@@ -4,6 +4,7 @@ import asyncio
 import pathlib
 import warnings
 import contextlib
+import logging
 import urllib.parse
 from functools import partial
 from concurrent.futures import ThreadPoolExecutor
@@ -30,6 +31,10 @@ try:
 except ImportError:  # pragma: nocover
     aioftp = None
 
+SERIAL_MODE = "PARFIVE_SINGLE_DOWNLOAD" in os.environ
+DISABLE_RANGE = "PARFIVE_DISABLE_RANGE" in os.environ or SERIAL_MODE
+
+log = logging.getLogger(__name__)
 
 __all__ = ['Downloader']
 
@@ -70,7 +75,7 @@ class Downloader:
         if loop:
             warnings.warn('The loop argument is no longer used, and will be '
                           'removed in a future release.')
-        self.max_conn = max_conn
+        self.max_conn = max_conn if not SERIAL_MODE else 1
         self._init_queues()
 
         # Configure progress bars
@@ -404,6 +409,10 @@ class Downloader:
                 kwargs['proxy'] = os.environ['HTTPS_PROXY']
 
             async with session.get(url, timeout=timeout, **kwargs) as resp:
+                log.debug("%s request made to %s with headers=%s",
+                          resp.request_info.method,
+                          resp.request_info.url,
+                          resp.request_info.headers)
                 if resp.status != 200:
                     raise FailedDownload(filepath_partial, url, resp)
                 else:
@@ -425,7 +434,7 @@ class Downloader:
                     writer = asyncio.create_task(
                         self._write_worker(downloaded_chunk_queue, file_pb, filepath))
 
-                    if max_splits and resp.headers.get('Accept-Ranges', None) == "bytes":
+                    if not DISABLE_RANGE and max_splits and resp.headers.get('Accept-Ranges', None) == "bytes":
                         content_length = int(resp.headers['Content-length'])
                         split_length = content_length // max_splits
                         ranges = [
@@ -522,6 +531,10 @@ class Downloader:
             offset = 0
 
         async with session.get(url, timeout=timeout, headers=headers, **kwargs) as resp:
+            log.debug("%s request made to %s with headers=%s",
+                      resp.request_info.method,
+                      resp.request_info.url,
+                      resp.request_info.headers)
             while True:
                 chunk = await resp.content.read(chunksize)
                 if not chunk:
