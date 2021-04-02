@@ -27,16 +27,19 @@ trigger:
 jobs:
 - template: run-tox-env.yml@OpenAstronomy
   parameters:
+    libraries:
+      apt:
+        - graphviz
     coverage: codecov
     envs:
-      - linux: py38
-        name: Linux_py38
-      - windows: py38
-        name: Windows_py38
-      - macos: py37
-        name: macos_py37
+      - linux: codestyle
+        pytest: false
+      - linux: build_docs
+        pytest: false
       - linux: py38-conda
-        name: Linux_py38_conda
+      - linux: py39
+      - macos: py37
+      - windows: py38
 
 - ${{ if ne(variables['Build.Reason'], 'PullRequest') }}:
   - template: publish.yml@OpenAstronomy
@@ -49,6 +52,8 @@ jobs:
         - sdist
         - wheels_universal
       dependsOn:
-        - Linux_py38
-        - Windows_py38
-        - macos_py37
+        - codestyle
+        - py37
+        - py38
+        - py38-conda
+        - py39
