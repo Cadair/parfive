@@ -1,4 +1,10 @@
-Changelog
-*********
+.. _changelog:
 
-.. include:: ../CHANGELOG.rst
+**************
+Full Changelog
+**************
+
+.. changelog::
+   :towncrier: ../
+   :towncrier-skip-if-empty:
+   :changelog_file: ../CHANGELOG.rst

@@ -129,6 +129,7 @@ graphviz_dot_args = [
     '-Gfontname=Helvetica Neue, Helvetica, Arial, sans-serif'
 ]
 
-html_theme_options = {'logo_url': 'https://parfive.readthedocs.io/en/latest/'}
-# Sidebar broke the docs.
-html_sidebars.pop("**")
+html_theme_options = {
+    'logo_url': 'https://parfive.readthedocs.io/en/latest/',
+    "page_toctree_depths": {}
+}
