@@ -11,7 +11,7 @@ A parallel file downloader using asyncio.
 """
 from .downloader import Downloader
 from .results import Results
-from .utils import log
+import logging as _logging
 
 __all__ = ['Downloader', 'Results', 'log', "__version__"]
 
@@ -20,3 +20,5 @@ try:
 except ImportError:
     print("Version not found, please reinstall parfive.")
     __version__ = "unknown"
+
+log = _logging.getLogger('parfive')
