@@ -13,6 +13,9 @@ categories:
   - title: 'Documentation and code quality'
     labels:
       - 'documentation'
+  - title: 'Misc/Internal Changes'
+    labels:
+      - 'misc'
 change-template: '- $TITLE @$AUTHOR (#$NUMBER)'
 template: |
   ## Changes

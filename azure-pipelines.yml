@@ -57,7 +57,7 @@ stages:
           parameters:
             ${{ if startsWith(variables['Build.SourceBranch'], 'refs/tags/') }}:
               pypi_connection_name: 'PyPI'
-            test_extras: ftp,test
+            test_extras: ftp,tests
             test_command: pytest --pyargs parfive
             targets:
               - sdist
