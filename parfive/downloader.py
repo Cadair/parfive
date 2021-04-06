@@ -1,7 +1,7 @@
-import logging
 import os
 import sys
 import asyncio
+import logging
 import pathlib
 import warnings
 import contextlib
@@ -219,7 +219,6 @@ class Downloader:
         aiohttp_logger.setLevel(logging.DEBUG)
 
         parfive.log.debug("Configured parfive to run with debug logging...")
-
 
     async def run_download(self, timeouts=None):
         """
