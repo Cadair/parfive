@@ -4,12 +4,6 @@
 Parfive
 =======
 
-.. toctree::
-  :maxdepth: 1
-  :hidden:
-
-  changelog
-
 Parfive is a small library for downloading files, its objective is to provide a simple API for queuing files for download and then providing excellent feedback to the user about the in progress downloads.
 It also aims to provide a clear interface for inspecting any failed downloads.
 
@@ -69,3 +63,8 @@ Parfive also bundles a CLI. The following example will download the two files co
 .. automodapi:: parfive
    :no-heading:
    :no-main-docstr:
+
+Changelog
+---------
+
+See `GitHub Releases <https://github.com/Cadair/parfive/releases>`__ for the release history and changelog.

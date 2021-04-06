@@ -6,27 +6,8 @@ isort:skip_file
 # flake8: NOQA: E402
 
 # -- stdlib imports ------------------------------------------------------------
-import os
-import sys
 import datetime
-from pkg_resources import get_distribution
 from packaging.version import Version
-
-# -- Check for dependencies ----------------------------------------------------
-
-doc_requires = get_distribution("parfive").requires(extras=("docs",))
-missing_requirements = []
-for requirement in doc_requires:
-    try:
-        get_distribution(requirement)
-    except Exception as e:
-        missing_requirements.append(requirement.name)
-if missing_requirements:
-    print(
-        f"The {' '.join(missing_requirements)} package(s) could not be found and "
-        "is needed to build the documentation, please install the 'docs' requirements."
-    )
-    sys.exit(1)
 
 # -- Project information -------------------------------------------------------
 
@@ -40,14 +21,7 @@ release = __version__
 parfive_version = Version(__version__)
 is_release = not(parfive_version.is_prerelease or parfive_version.is_devrelease)
 
-# -- SunPy Sample Data and Config ----------------------------------------------
-
-
 # -- General configuration -----------------------------------------------------
-
-# Suppress warnings about overriding directives as we overload some of the
-# doctest extensions.
-suppress_warnings = ['app.add_directive', ]
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
@@ -64,7 +38,6 @@ extensions = [
     'sphinx.ext.viewcode',
     'sphinx_automodapi.automodapi',
     'sphinx_automodapi.smart_resolver',
-    'sphinx_changelog',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -110,7 +83,16 @@ intersphinx_mapping = {'https://docs.python.org/': None,
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 
-from sunpy_sphinx_theme.conf import *  # NOQA
+try:
+    from sunpy_sphinx_theme.conf import *  # NOQA
+
+    html_theme_options = {
+        'logo_url': 'https://parfive.readthedocs.io/en/latest/',
+        "page_toctree_depths": {}
+    }
+
+except ImportError:
+    pass
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
@@ -128,8 +110,3 @@ graphviz_dot_args = [
     '-Gfontsize=10',
     '-Gfontname=Helvetica Neue, Helvetica, Arial, sans-serif'
 ]
-
-html_theme_options = {
-    'logo_url': 'https://parfive.readthedocs.io/en/latest/',
-    "page_toctree_depths": {}
-}
