@@ -364,7 +364,7 @@ def test_ftp(tmpdir):
 
 @skip_windows
 @pytest.mark.allow_hosts(True)
-def test_ftp_login_anon(tmpdir):
+def test_ftp_pasv_command(tmpdir):
     tmpdir = str(tmpdir)
     dl = Downloader()
     dl.enqueue_file(
