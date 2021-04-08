@@ -1,15 +1,13 @@
 import cgi
 import asyncio
 import hashlib
-import logging
 import pathlib
 from itertools import count
 
+import parfive
+
 __all__ = ['run_in_thread', 'Token', 'FailedDownload', 'default_name',
            'in_notebook']
-
-
-log = logging.getLogger('parfive')
 
 
 def in_notebook():
@@ -71,6 +69,7 @@ async def get_ftp_size(client, filepath):
         size = await client.stat(filepath)
         size = size.get("size", None)
     except Exception:
+        parfive.log.exception("Failed to get size of FTP file")
         size = None
 
     return int(size) if size else size
