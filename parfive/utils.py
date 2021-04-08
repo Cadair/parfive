@@ -9,6 +9,7 @@ import parfive
 __all__ = ['run_in_thread', 'Token', 'FailedDownload', 'default_name',
            'in_notebook']
 
+
 def in_notebook():
     try:
         import ipykernel.zmqshell
