@@ -560,7 +560,6 @@ class Downloader:
             async with aioftp.Client.context(parse.hostname, **kwargs) as client:
                 if parse.username and parse.password:
                     await client.login(parse.username, parse.password)
-
                 # This has to be done before we start streaming the file:
                 total_size = await get_ftp_size(client, parse.path)
                 async with client.download_stream(parse.path) as stream:

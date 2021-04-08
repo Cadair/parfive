@@ -1,2 +1,0 @@
-Any errors encountered downloading files are now logged to the built in python
-logging system at the INFO level.
