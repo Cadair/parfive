@@ -380,9 +380,9 @@ class Downloader:
             get_file = await queue.get()
             token = await tokens.get()
             file_pb = self.tqdm if self.file_progress else False
-            future = asyncio.ensure_future(get_file(session, token=token,
-                                                    file_pb=file_pb,
-                                                    timeouts=timeouts))
+            future = asyncio.create_task(get_file(session, token=token,
+                                                  file_pb=file_pb,
+                                                  timeouts=timeouts))
 
             def callback(token, future, main_pb):
                 tokens.put_nowait(token)
