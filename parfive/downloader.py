@@ -198,7 +198,7 @@ class Downloader:
         return asyncio.run(coro)
 
     @staticmethod
-    def _configure_debug():
+    def _configure_debug():  # pragma: no cover
 
         sh = logging.StreamHandler()
         sh.setLevel(logging.DEBUG)
