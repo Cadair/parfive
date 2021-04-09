@@ -364,6 +364,19 @@ def test_ftp(tmpdir):
 
 @skip_windows
 @pytest.mark.allow_hosts(True)
+def test_ftp_pasv_command(tmpdir):
+    tmpdir = str(tmpdir)
+    dl = Downloader()
+    dl.enqueue_file(
+        "ftp://ftp.ngdc.noaa.gov/STP/swpc_products/daily_reports/solar_region_summaries/2002/04/20020414SRS.txt", path=tmpdir, passive_commands=["pasv"])
+    assert dl.queued_downloads == 1
+    f = dl.download()
+    assert len(f) == 1
+    assert len(f.errors) == 0
+
+
+@skip_windows
+@pytest.mark.allow_hosts(True)
 def test_ftp_http(tmpdir, httpserver):
     tmpdir = str(tmpdir)
     httpserver.serve_content('SIMPLE  = T')

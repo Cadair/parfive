@@ -1,6 +1,7 @@
 import os
 import sys
 import asyncio
+import logging
 import pathlib
 import warnings
 import contextlib
@@ -30,6 +31,7 @@ try:
 except ImportError:  # pragma: nocover
     aioftp = None
 
+
 try:
     import aiofiles  # pragma: nocover
 except ImportError:
@@ -37,6 +39,9 @@ except ImportError:
 
 USE_AIOFILES = "PARFIVE_ENABLE_AIOFILES" in os.environ and aiofiles is not None
 DEFAULT_DOWNLOAD_CHUNK = 1024 if USE_AIOFILES else 100
+
+SERIAL_MODE = "PARFIVE_SINGLE_DOWNLOAD" in os.environ
+DISABLE_RANGE = "PARFIVE_DISABLE_RANGE" in os.environ or SERIAL_MODE
 
 __all__ = ['Downloader']
 
@@ -77,7 +82,7 @@ class Downloader:
         if loop:
             warnings.warn('The loop argument is no longer used, and will be '
                           'removed in a future release.')
-        self.max_conn = max_conn
+        self.max_conn = max_conn if not SERIAL_MODE else 1
         self._init_queues()
 
         # Configure progress bars
@@ -201,6 +206,29 @@ class Downloader:
 
         return asyncio.run(coro)
 
+    @staticmethod
+    def _configure_debug():  # pragma: no cover
+
+        sh = logging.StreamHandler()
+        sh.setLevel(logging.DEBUG)
+
+        formatter = logging.Formatter('%(name)s - %(levelname)s - %(message)s')
+        sh.setFormatter(formatter)
+
+        parfive.log.addHandler(sh)
+        parfive.log.setLevel(logging.DEBUG)
+
+        aiohttp_logger = logging.getLogger('aiohttp.client')
+        aioftp_logger = logging.getLogger('aioftp.client')
+
+        aioftp_logger.addHandler(sh)
+        aioftp_logger.setLevel(logging.DEBUG)
+
+        aiohttp_logger.addHandler(sh)
+        aiohttp_logger.setLevel(logging.DEBUG)
+
+        parfive.log.debug("Configured parfive to run with debug logging...")
+
     async def run_download(self, timeouts=None):
         """
         Download all files in the queue.
@@ -224,6 +252,10 @@ class Downloader:
         overridden by two environment variables ``PARFIVE_TOTAL_TIMEOUT`` and
         ``PARFIVE_SOCK_READ_TIMEOUT``.
         """
+        # Setup debug logging before starting a download
+        if "PARFIVE_DEBUG" in os.environ:
+            self._configure_debug()
+
         timeouts = timeouts or {"total": os.environ.get("PARFIVE_TOTAL_TIMEOUT", 5 * 60),
                                 "sock_read": os.environ.get("PARFIVE_SOCK_READ_TIMEOUT", 90)}
 
@@ -357,9 +389,9 @@ class Downloader:
             get_file = await queue.get()
             token = await tokens.get()
             file_pb = self.tqdm if self.file_progress else False
-            future = asyncio.ensure_future(get_file(session, token=token,
-                                                    file_pb=file_pb,
-                                                    timeouts=timeouts))
+            future = asyncio.create_task(get_file(session, token=token,
+                                                  file_pb=file_pb,
+                                                  timeouts=timeouts))
 
             def callback(token, future, main_pb):
                 tokens.put_nowait(token)
@@ -411,11 +443,16 @@ class Downloader:
                 kwargs['proxy'] = os.environ['HTTPS_PROXY']
 
             async with session.get(url, timeout=timeout, **kwargs) as resp:
+                parfive.log.debug("%s request made to %s with headers=%s",
+                                  resp.request_info.method,
+                                  resp.request_info.url,
+                                  resp.request_info.headers)
                 if resp.status != 200:
                     raise FailedDownload(filepath_partial, url, resp)
                 else:
                     filepath, skip = get_filepath(filepath_partial(resp, url), overwrite)
                     if skip:
+                        parfive.log.debug("File %s already exists and overwrite is False; skipping download.", filepath)
                         return str(filepath)
                     if callable(file_pb):
                         file_pb = file_pb(position=token.n, unit='B', unit_scale=True,
@@ -432,7 +469,7 @@ class Downloader:
                     writer = asyncio.create_task(
                         self._write_worker(downloaded_chunk_queue, file_pb, filepath))
 
-                    if max_splits and resp.headers.get('Accept-Ranges', None) == "bytes":
+                    if not DISABLE_RANGE and max_splits and resp.headers.get('Accept-Ranges', None) == "bytes":
                         content_length = int(resp.headers['Content-length'])
                         split_length = content_length // max_splits
                         ranges = [
@@ -552,6 +589,10 @@ class Downloader:
             offset = 0
 
         async with session.get(url, timeout=timeout, headers=headers, **kwargs) as resp:
+            parfive.log.debug("%s request made to %s with headers=%s",
+                              resp.request_info.method,
+                              resp.request_info.url,
+                              resp.request_info.headers)
             while True:
                 chunk = await resp.content.read(chunksize)
                 if not chunk:
@@ -588,21 +629,26 @@ class Downloader:
         parse = urllib.parse.urlparse(url)
         try:
             async with aioftp.Client.context(parse.hostname, **kwargs) as client:
+                parfive.log.debug("Connected to ftp server %s", parse.hostname)
                 if parse.username and parse.password:
+                    parfive.log.debug("Explicitly Logging in with %s:%s", parse.username, parse.password)
                     await client.login(parse.username, parse.password)
 
                 # This has to be done before we start streaming the file:
-                total_size = await get_ftp_size(client, parse.path)
-                async with client.download_stream(parse.path) as stream:
-                    filepath, skip = get_filepath(filepath_partial(None, url), overwrite)
-                    if skip:
-                        return str(filepath)
-                    if callable(file_pb):
-                        file_pb = file_pb(position=token.n, unit='B', unit_scale=True,
-                                          desc=filepath.name, leave=False, total=total_size)
-                    else:
-                        file_pb = None
+                filepath, skip = get_filepath(filepath_partial(None, url), overwrite)
+                if skip:
+                    parfive.log.debug("File %s already exists and overwrite is False; skipping download.", filepath)
+                    return str(filepath)
 
+                if callable(file_pb):
+                    total_size = await get_ftp_size(client, parse.path)
+                    file_pb = file_pb(position=token.n, unit='B', unit_scale=True,
+                                      desc=filepath.name, leave=False, total=total_size)
+                else:
+                    file_pb = None
+
+                parfive.log.debug("Downloading file %s from %s", parse.path, parse.hostname)
+                async with client.download_stream(parse.path) as stream:
                     downloaded_chunks_queue = asyncio.Queue()
                     download_workers = []
                     writer = asyncio.create_task(
