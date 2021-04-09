@@ -119,15 +119,15 @@ class Downloader:
         aiofiles will be used if installed and must be explicitly enabled
 
         PARFIVE_OVERWRITE_ENABLE_AIOFILES takes precedence if present,
-        if the value is != "enable" aiofiles will not be used
+        aiofiles will not be used
 
-        finally the Downloader's constructure argument is considered.
+        finally the Downloader's constructor argument is considered.
         """
         if aiofiles is None:
             return False
 
         if "PARFIVE_OVERWRITE_ENABLE_AIOFILES" in os.environ:
-            return os.environ["PARFIVE_OVERWRITE_ENABLE_AIOFILES"] == "enable"
+            return True
 
         return self._use_aiofiles
 
