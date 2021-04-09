@@ -62,7 +62,7 @@ def test_changed_max_conn(httpserver, tmpdir):
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("use_aiofiles", [True, False])
-async def test_async_download(httpserver, tmpdir,use_aiofiles):
+async def test_async_download(httpserver, tmpdir, use_aiofiles):
     httpserver.serve_content('SIMPLE  = T',
                              headers={'Content-Disposition': "attachment; filename=testfile.fits"})
     dl = Downloader(use_aiofiles=use_aiofiles)
@@ -465,11 +465,11 @@ def test_enable_aiofiles_constructor(use_aiofiles):
 @pytest.mark.parametrize("use_aiofiles", [True, False])
 def test_enable_aiofiles_env_overwrite_always_enabled(use_aiofiles):
     dl = Downloader(use_aiofiles=use_aiofiles)
-    assert dl.use_aiofiles == True
+    assert dl.use_aiofiles is True
 
 
 @patch.dict(os.environ, {'PARFIVE_OVERWRITE_ENABLE_AIOFILES': "other_value"})
 @pytest.mark.parametrize("use_aiofiles", [True, False])
 def test_enable_aiofiles_env_overwrite_always_disabled(use_aiofiles):
     dl = Downloader(use_aiofiles=use_aiofiles)
-    assert dl.use_aiofiles == False
+    assert dl.use_aiofiles is False

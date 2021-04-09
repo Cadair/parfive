@@ -122,7 +122,7 @@ class Downloader:
 
         finally the Downloader's constructure argument is considered.
         """
-        if aiofiles is  None:
+        if aiofiles is None:
             return False
 
         if "PARFIVE_OVERWRITE_ENABLE_AIOFILES" in os.environ:
