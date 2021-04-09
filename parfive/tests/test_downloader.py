@@ -61,10 +61,11 @@ def test_changed_max_conn(httpserver, tmpdir):
 
 
 @pytest.mark.asyncio
-async def test_async_download(httpserver, tmpdir):
+@pytest.mark.parametrize("use_aiofiles", [True, False])
+async def test_async_download(httpserver, tmpdir,use_aiofiles):
     httpserver.serve_content('SIMPLE  = T',
                              headers={'Content-Disposition': "attachment; filename=testfile.fits"})
-    dl = Downloader()
+    dl = Downloader(use_aiofiles=use_aiofiles)
 
     dl.enqueue_file(httpserver.url, path=Path(tmpdir), max_splits=None)
 
@@ -452,3 +453,23 @@ def test_proxy_passed_as_kwargs_to_get(tmpdir, url, proxy):
                                         'timeout': ClientTimeout(total=300, connect=None, sock_read=90, sock_connect=None),
                                         'proxy': proxy
                                         }]
+
+
+@pytest.mark.parametrize("use_aiofiles", [True, False])
+def test_enable_aiofiles_constructor(use_aiofiles):
+    dl = Downloader(use_aiofiles=use_aiofiles)
+    assert dl.use_aiofiles == use_aiofiles, f"expected={dl.use_aiofiles}, got={use_aiofiles}"
+
+
+@patch.dict(os.environ, {'PARFIVE_OVERWRITE_ENABLE_AIOFILES': "enable"})
+@pytest.mark.parametrize("use_aiofiles", [True, False])
+def test_enable_aiofiles_env_overwrite_always_enabled(use_aiofiles):
+    dl = Downloader(use_aiofiles=use_aiofiles)
+    assert dl.use_aiofiles == True
+
+
+@patch.dict(os.environ, {'PARFIVE_OVERWRITE_ENABLE_AIOFILES': "other_value"})
+@pytest.mark.parametrize("use_aiofiles", [True, False])
+def test_enable_aiofiles_env_overwrite_always_disabled(use_aiofiles):
+    dl = Downloader(use_aiofiles=use_aiofiles)
+    assert dl.use_aiofiles == False
