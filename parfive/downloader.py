@@ -6,7 +6,7 @@ import pathlib
 import warnings
 import contextlib
 import urllib.parse
-from functools import partial, cached_property
+from functools import partial, lru_cache
 from concurrent.futures import ThreadPoolExecutor
 
 import aiohttp
@@ -112,7 +112,9 @@ class Downloader:
             queue.put_nowait(Token(i + 1))
         return queue
 
-    @cached_property
+
+    @property
+    @lru_cache()
     def use_aiofiles(self):
         """
         aiofiles will be used if installed and must be explicitly enabled
@@ -130,7 +132,8 @@ class Downloader:
 
         return self._use_aiofiles
 
-    @cached_property
+    @property
+    @lru_cache()
     def default_chunk_size(self):
         """
         aiofiles requires a different default chunk size
