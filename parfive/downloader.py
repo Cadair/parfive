@@ -112,7 +112,6 @@ class Downloader:
             queue.put_nowait(Token(i + 1))
         return queue
 
-
     @property
     @lru_cache()
     def use_aiofiles(self):
