@@ -539,8 +539,6 @@ class Downloader:
         The downloaded chunk is put into a asyncio Queue by a download worker.
         This worker gets the chunk from the queue and write it to the file
         using the specified offset of the chunk.
-        If aiofiles is installed and PARFIVE_ENABLE_AIOFILES environment
-        variable is set, aiofiles will be used to write files instad.
 
         Parameters
         ----------
