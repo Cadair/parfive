@@ -1,7 +1,1 @@
-aiofiles will be used if installed and must be explicitly enabled
-"PARFIVE_OVERWRITE_ENABLE_AIOFILES" environment variable takes
-precedence if present. If the value is != "enable" aiofiles will
-not be used.
 
-Finally if the "Downloader" receives an argument "use_aiofiles=True"
-during instantiation the aiofiles will be used.
