@@ -119,7 +119,7 @@ class Downloader:
         aiofiles will be used if installed and must be explicitly enabled
 
         PARFIVE_OVERWRITE_ENABLE_AIOFILES takes precedence if present,
-        if thevalue is != "enable" aiofiles will not be used
+        if the value is != "enable" aiofiles will not be used
 
         finally the Downloader's constructure argument is considered.
         """
