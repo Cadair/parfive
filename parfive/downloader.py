@@ -6,7 +6,7 @@ import pathlib
 import warnings
 import contextlib
 import urllib.parse
-from functools import partial
+from functools import partial, lru_cache
 from concurrent.futures import ThreadPoolExecutor
 
 import aiohttp
@@ -30,6 +30,13 @@ try:
     import aioftp
 except ImportError:  # pragma: nocover
     aioftp = None
+
+
+try:
+    import aiofiles  # pragma: nocover
+except ImportError:
+    aiofiles = None
+
 
 SERIAL_MODE = "PARFIVE_SINGLE_DOWNLOAD" in os.environ
 DISABLE_RANGE = "PARFIVE_DISABLE_RANGE" in os.environ or SERIAL_MODE
@@ -68,7 +75,8 @@ class Downloader:
     """
 
     def __init__(self, max_conn=5, progress=True, file_progress=True,
-                 loop=None, notebook=None, overwrite=False, headers=None):
+                 loop=None, notebook=None, overwrite=False, headers=None,
+                 use_aiofiles=False):
 
         if loop:
             warnings.warn('The loop argument is no longer used, and will be '
@@ -90,6 +98,8 @@ class Downloader:
             self.headers = {
                 'User-Agent': f"parfive/{parfive.__version__} aiohttp/{aiohttp.__version__} python/{sys.version[:5]}"}
 
+        self._use_aiofiles = use_aiofiles
+
     def _init_queues(self):
         # Setup queues
         self.http_queue = _QueueList()
@@ -101,6 +111,33 @@ class Downloader:
         for i in range(self.max_conn):
             queue.put_nowait(Token(i + 1))
         return queue
+
+    @property
+    @lru_cache()
+    def use_aiofiles(self):
+        """
+        aiofiles will be used if installed and must be explicitly enabled
+
+        PARFIVE_OVERWRITE_ENABLE_AIOFILES takes precedence if present,
+        aiofiles will not be used
+
+        finally the Downloader's constructor argument is considered.
+        """
+        if aiofiles is None:
+            return False
+
+        if "PARFIVE_OVERWRITE_ENABLE_AIOFILES" in os.environ:
+            return True
+
+        return self._use_aiofiles
+
+    @property
+    @lru_cache()
+    def default_chunk_size(self):
+        """
+        aiofiles requires a different default chunk size
+        """
+        return 1024 if self.use_aiofiles else 100
 
     @property
     def queued_downloads(self):
@@ -395,7 +432,7 @@ class Downloader:
 
         return futures
 
-    async def _get_http(self, session, *, url, filepath_partial, chunksize=100,
+    async def _get_http(self, session, *, url, filepath_partial, chunksize=None,
                         file_pb=None, token, overwrite, timeouts, max_splits=5, **kwargs):
         """
         Read the file from the given url into the filename given by ``filepath_partial``.
@@ -425,6 +462,9 @@ class Downloader:
         `str`
             The name of the file saved.
         """
+        if chunksize is None:
+            chunksize =  self.default_chunk_size
+
         timeout = aiohttp.ClientTimeout(**timeouts)
         try:
             scheme = urllib.parse.urlparse(url).scheme
@@ -510,7 +550,28 @@ class Downloader:
         filepath: `pathlib.Path`
             Path to the which the file should be downloaded.
         """
-        with open(filepath, 'wb') as f:
+        if self.use_aiofiles:
+            await self._async_write_worker(queue, file_pb, filepath)
+        else:
+            await self._blocking_write_worker(queue, file_pb, filepath)
+
+    async def _async_write_worker(self, queue, file_pb, filepath):
+        async with aiofiles.open(filepath, mode="wb") as f:
+            while True:
+                offset, chunk = await queue.get()
+
+                await f.seek(offset)
+                await f.write(chunk)
+                await f.flush()
+
+                # Update the progressbar for file
+                if file_pb is not None:
+                    file_pb.update(len(chunk))
+
+                queue.task_done()
+
+    async def _blocking_write_worker(self, queue, file_pb, filepath):
+        with open(filepath, "wb") as f:
             while True:
                 offset, chunk = await queue.get()
 
