@@ -377,7 +377,7 @@ class Downloader:
         return results
 
     @classmethod
-    def simple_download(cls, urls, *, path=None, overwrite=None):
+    def simple_download(cls, urls, *, path="./", overwrite=None):
         """
         Download a series of URLs to a single destination.
 
@@ -388,6 +388,7 @@ class Downloader:
 
         path : `pathlib.Path`, optional
             The destination directory for the downloaded files.
+            Defaults to the current directory.
 
         overwrite: `bool`, optional
             Overwrite the files at the destination directory. If `False` the
