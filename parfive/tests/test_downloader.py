@@ -48,6 +48,15 @@ def test_download(httpserver, tmpdir):
     validate_test_file(f)
 
 
+def test_qucik_download(httpserver, tmpdir):
+    tmpdir = str(tmpdir)
+    httpserver.serve_content('SIMPLE  = T',
+                             headers={'Content-Disposition': "attachment; filename=testfile.fits"})
+
+    f = Downloader.quick_download([httpserver.url], path=Path(tmpdir))
+    validate_test_file(f)
+
+
 def test_changed_max_conn(httpserver, tmpdir):
     # Check that changing max_conn works after creating Downloader
     tmpdir = str(tmpdir)
