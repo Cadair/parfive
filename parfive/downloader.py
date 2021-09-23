@@ -376,6 +376,34 @@ class Downloader:
 
         return results
 
+    @classmethod
+    def simple_download(cls, urls, *, path=None, overwrite=None):
+        """
+        Download a series of URLs to a single destination.
+
+        Parameters
+        ----------
+        urls : iterable
+            A sequence of URLs to download.
+
+        path : `pathlib.Path`, optional
+            The destination directory for the downloaded files.
+
+        overwrite: `bool`, optional
+            Overwrite the files at the destination directory. If `False` the
+            URL will not be downloaded if a file with the corresponding
+            filename already exists.
+
+        Returns
+        -------
+        `parfive.Results`
+            A list of files downloaded.
+        """
+        dl = cls()
+        for url in urls:
+            dl.enqueue_file(url, path=path, overwrite=overwrite)
+        return dl.download()
+
     def _get_main_pb(self, total):
         """
         Return the tqdm instance if we want it, else return a contextmanager
@@ -478,6 +506,9 @@ class Downloader:
                                   resp.request_info.method,
                                   resp.request_info.url,
                                   resp.request_info.headers)
+                parfive.log.debug("Response received from %s with headers=%s",
+                                  resp.request_info.url,
+                                  resp.headers)
                 if resp.status != 200:
                     raise FailedDownload(filepath_partial, url, resp)
                 else:
@@ -622,6 +653,9 @@ class Downloader:
                               resp.request_info.method,
                               resp.request_info.url,
                               resp.request_info.headers)
+            parfive.log.debug("Response received from %s with headers=%s",
+                              resp.request_info.url,
+                              resp.headers)
             while True:
                 chunk = await resp.content.read(chunksize)
                 if not chunk:
