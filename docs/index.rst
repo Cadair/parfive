@@ -40,10 +40,10 @@ A simple example is::
   dl.enqueue_file("http://data.sunpy.org/sample-data/predicted-sunspot-radio-flux.txt", path="./")
   files = dl.download()
 
-It's also possible to download a list of URLs to a single destination using the `parfive.Downloader.quick_download` method::
+It's also possible to download a list of URLs to a single destination using the `parfive.Downloader.simple_download` method::
 
   from parfive import Downloader
-  files = Downloader.quick_download(['http://212.183.159.230/5MB.zip' 'http://212.183.159.230/10MB.zip'], path="./")
+  files = Downloader.simple_download(['http://212.183.159.230/5MB.zip' 'http://212.183.159.230/10MB.zip'], path="./")
 
 Parfive also bundles a CLI. The following example will download the two files concurrently::
 

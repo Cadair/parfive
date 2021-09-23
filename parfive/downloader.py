@@ -377,7 +377,7 @@ class Downloader:
         return results
 
     @classmethod
-    def quick_download(cls, urls, *, path=None, overwrite=None):
+    def simple_download(cls, urls, *, path=None, overwrite=None):
         """
         Download a series of URLs to a single destination.
 
