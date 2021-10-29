@@ -52,6 +52,8 @@ class Downloader:
     ----------
     max_conn : `int`, optional
         The number of parallel download slots.
+    splits : `int`, optional
+        The number of splits to use to download a file.
     progress : `bool`, optional
         If `True` show a main progress bar showing how many of the total files
         have been downloaded. If `False`, no progress bars will be shown at all.
@@ -74,7 +76,7 @@ class Downloader:
        Adds `User-Agent` information about `parfive`, `aiohttp` and `python` if not passed explicitely.
     """
 
-    def __init__(self, max_conn=5, progress=True, file_progress=True,
+    def __init__(self, max_conn=5, splits=5, progress=True, file_progress=True,
                  loop=None, notebook=None, overwrite=False, headers=None,
                  use_aiofiles=False):
 
@@ -82,6 +84,7 @@ class Downloader:
             warnings.warn('The loop argument is no longer used, and will be '
                           'removed in a future release.')
         self.max_conn = max_conn if not SERIAL_MODE else 1
+        self.splits = splits if not SERIAL_MODE else 1
         self._init_queues()
 
         # Configure progress bars
@@ -462,7 +465,7 @@ class Downloader:
         return futures
 
     async def _get_http(self, session, *, url, filepath_partial, chunksize=None,
-                        file_pb=None, token, overwrite, timeouts, max_splits=5, **kwargs):
+                        file_pb=None, token, overwrite, timeouts, max_splits=None, **kwargs):
         """
         Read the file from the given url into the filename given by ``filepath_partial``.
 
@@ -481,7 +484,7 @@ class Downloader:
             Should progress bars be displayed for each file downloaded.
         token : `parfive.downloader.Token`
             A token for this download slot.
-        max_splits: `int`
+        max_splits: `int`, optional
             Number of maximum concurrent connections per file.
         kwargs : `dict`
             Extra keyword arguments are passed to `aiohttp.ClientSession.get`.
@@ -493,6 +496,8 @@ class Downloader:
         """
         if chunksize is None:
             chunksize =  self.default_chunk_size
+        if max_splits is None:
+            max_splits = self.splits
 
         timeout = aiohttp.ClientTimeout(**timeouts)
         try:
