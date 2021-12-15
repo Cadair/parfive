@@ -284,6 +284,9 @@ class Downloader:
         if "PARFIVE_DEBUG" in os.environ:
             self._configure_debug()
 
+        if timeouts is None:
+            parfive.log.debug('Setting default session timeout of 5 minutes '
+                              'and socket read timeout of 90 seconds.')
         timeouts = timeouts or {"total": os.environ.get("PARFIVE_TOTAL_TIMEOUT", 5 * 60),
                                 "sock_read": os.environ.get("PARFIVE_SOCK_READ_TIMEOUT", 90)}
 
