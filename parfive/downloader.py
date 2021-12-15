@@ -284,8 +284,8 @@ class Downloader:
         if "PARFIVE_DEBUG" in os.environ:
             self._configure_debug()
 
-        timeouts = timeouts or {"total": os.environ.get("PARFIVE_TOTAL_TIMEOUT", 5 * 60),
-                                "sock_read": os.environ.get("PARFIVE_SOCK_READ_TIMEOUT", 90)}
+        timeouts = timeouts or {"total": float(os.environ.get("PARFIVE_TOTAL_TIMEOUT", 5 * 60)),
+                                "sock_read": float(os.environ.get("PARFIVE_SOCK_READ_TIMEOUT", 90))}
 
         total_files = self.queued_downloads
 
