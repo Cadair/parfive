@@ -265,9 +265,9 @@ class Downloader:
         ----------
         timeouts : `dict`, optional
             Overrides for the default timeouts for http downloads. Supported
-            keys are any accepted by the `aiohttp.ClientTimeout` class. Defaults
-            to 5 minutes for total session timeout and 90 seconds for socket
-            read timeout.
+            keys are any accepted by the `aiohttp.ClientTimeout` class.
+            Defaults to no timeout for total session timeout (overriding the
+            aiohttp 5 minute default) and 90 seconds for socket read timeout.
 
         Returns
         -------
@@ -284,7 +284,7 @@ class Downloader:
         if "PARFIVE_DEBUG" in os.environ:
             self._configure_debug()
 
-        timeouts = timeouts or {"total": float(os.environ.get("PARFIVE_TOTAL_TIMEOUT", 5 * 60)),
+        timeouts = timeouts or {"total": float(os.environ.get("PARFIVE_TOTAL_TIMEOUT", 0)),
                                 "sock_read": float(os.environ.get("PARFIVE_SOCK_READ_TIMEOUT", 90))}
 
         total_files = self.queued_downloads
@@ -322,9 +322,9 @@ class Downloader:
         ----------
         timeouts : `dict`, optional
             Overrides for the default timeouts for http downloads. Supported
-            keys are any accepted by the `aiohttp.ClientTimeout` class. Defaults
-            to 5 minutes for total session timeout and 90 seconds for socket
-            read timeout.
+            keys are any accepted by the `aiohttp.ClientTimeout` class.
+            Defaults to no timeout for total session timeout (overriding the
+            aiohttp 5 minute default) and 90 seconds for socket read timeout.
 
         Returns
         -------
@@ -553,13 +553,14 @@ class Downloader:
                                 session, url, chunksize, None, timeout, downloaded_chunk_queue, **kwargs
                             ))
                         )
+            # Close the initial request here before we start transferring data.
 
-                    # run all the download workers
-                    await asyncio.gather(*download_workers)
-                    # join() waits till all the items in the queue have been processed
-                    await downloaded_chunk_queue.join()
-                    writer.cancel()
-                    return str(filepath)
+            # run all the download workers
+            await asyncio.gather(*download_workers)
+            # join() waits till all the items in the queue have been processed
+            await downloaded_chunk_queue.join()
+            writer.cancel()
+            return str(filepath)
 
         except Exception as e:
             raise FailedDownload(filepath_partial, url, e)
@@ -650,7 +651,7 @@ class Downloader:
             offset = 0
 
         async with session.get(url, timeout=timeout, headers=headers, **kwargs) as resp:
-            parfive.log.debug("%s request made to %s with headers=%s",
+            parfive.log.debug("%s request made for download to %s with headers=%s",
                               resp.request_info.method,
                               resp.request_info.url,
                               resp.request_info.headers)
