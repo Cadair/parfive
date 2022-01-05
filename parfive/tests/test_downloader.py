@@ -98,6 +98,18 @@ def test_download_ranged_http(httpserver, tmpdir):
     f = dl.download()
     validate_test_file(f)
 
+def test_regression_download_ranged_http(httpserver, tmpdir):
+    tmpdir = str(tmpdir)
+    httpserver.serve_content('S',
+                             headers={'Content-Disposition': "attachment; filename=testfile.fits", 'Accept-Ranges': "bytes"})
+    dl = Downloader()
+
+    dl.enqueue_file(httpserver.url, path=Path(tmpdir))
+
+    assert dl.queued_downloads == 1
+
+    f = dl.download()
+    assert len(f.errors) == 0, f.errors
 
 def test_download_partial(httpserver, tmpdir):
     tmpdir = str(tmpdir)
