@@ -475,7 +475,7 @@ def test_proxy_passed_as_kwargs_to_get(tmpdir, url, proxy):
     assert patched.called, "`ClientSession._request` not called"
     assert list(patched.call_args) == [('GET', url),
                                        {'allow_redirects': True,
-                                        'timeout': ClientTimeout(total=300, connect=None, sock_read=90, sock_connect=None),
+                                        'timeout': ClientTimeout(total=0, connect=None, sock_read=90, sock_connect=None),
                                         'proxy': proxy
                                         }]
 
