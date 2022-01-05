@@ -35,13 +35,12 @@ stages:
             - graphviz
         coverage: codecov
         envs:
-          - linux: codestyle
-            pytest: false
-
           - linux: build_docs
             pytest: false
 
           - linux: py38-conda
+
+          - linux: py310
 
           - linux: py39
 
