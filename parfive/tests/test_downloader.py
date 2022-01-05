@@ -102,7 +102,7 @@ def test_download_ranged_http(httpserver, tmpdir):
 def test_regression_download_ranged_http(httpserver, tmpdir):
     tmpdir = str(tmpdir)
     httpserver.serve_content('S',
-                             headers={'Content-Disposition': "attachment; filename=testfile.fits", 
+                             headers={'Content-Disposition': "attachment; filename=testfile.fits",
                                       'Accept-Ranges': "bytes"})
     dl = Downloader()
 
