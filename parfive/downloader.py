@@ -534,7 +534,7 @@ class Downloader:
 
                     if not DISABLE_RANGE and max_splits and resp.headers.get('Accept-Ranges', None) == "bytes":
                         content_length = int(resp.headers['Content-length'])
-                        split_length = content_length // max_splits
+                        split_length = max(1, content_length // max_splits)
                         ranges = [
                             [start, start + split_length]
                             for start in range(0, content_length, split_length)
