@@ -7,6 +7,9 @@ from .utils import FailedDownload
 
 __all__ = ['Results']
 
+class Error(namedtuple("error", ("filepath_partial", "url", "exception"))):
+    def __repr__(self):
+        return f"{self.url},\n{self.exception}"
 
 class Results(UserList):
     """
@@ -20,7 +23,6 @@ class Results(UserList):
     def __init__(self, *args, errors=None):
         super().__init__(*args)
         self._errors = errors or list()
-        self._error = namedtuple("error", ("filepath_partial", "url", "exception"))
 
     def _get_nice_resp_repr(self, response):
         # This is a modified version of aiohttp.ClientResponse.__repr__
@@ -60,7 +62,7 @@ class Results(UserList):
         """
         if isinstance(exception, aiohttp.ClientResponse):
             exception._headers = None
-        self._errors.append(self._error(filename, url, exception))
+        self._errors.append(Error(filename, url, exception))
 
     @property
     def errors(self):
