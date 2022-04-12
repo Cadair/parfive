@@ -1,3 +1,4 @@
+import os
 from collections import UserList, namedtuple
 
 import aiohttp
@@ -72,3 +73,11 @@ class Results(UserList):
         ``exception`` is the error raised during download.
         """
         return self._errors
+
+    def remove_errored_downloads(self):
+        """
+        Delete any local files that encountered an error whilst downloading.
+        """
+        fpaths = [e[0] for e in self.errors]
+        for f in fpaths:
+            os.remove(f)
