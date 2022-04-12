@@ -1,6 +1,8 @@
 import os
 from collections import UserList, namedtuple
 
+from numpy import isin
+
 import aiohttp
 
 from .utils import FailedDownload
@@ -8,8 +10,14 @@ from .utils import FailedDownload
 __all__ = ['Results']
 
 class Error(namedtuple("error", ("filepath_partial", "url", "exception"))):
+    def __str__(self):
+        filepath_partial = ""
+        if isinstance(self.filepath_partial, str):
+            filepath_partial = f"{self.filepath_partial},\n"
+        return filepath_partial + f"{self.url},\n{self.exception}"
+
     def __repr__(self):
-        return f"{self.url},\n{self.exception}"
+        return f"{object.__repr__(self)}\n{self}"
 
 class Results(UserList):
     """
