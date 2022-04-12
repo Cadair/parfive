@@ -1,9 +1,9 @@
 import os
 from collections import UserList, namedtuple
-
-from numpy import isin
+import pathlib
 
 import aiohttp
+import contextlib
 
 from .utils import FailedDownload
 
@@ -87,7 +87,11 @@ class Results(UserList):
     def remove_errored_downloads(self):
         """
         Delete any local files that encountered an error whilst downloading.
+
+        If it is a partial function, it will skip over it.
         """
         fpaths = [e[0] for e in self.errors]
         for f in fpaths:
-            os.remove(f)
+            if isinstance(f, (str, pathlib.Path)):
+                with contextlib.suppress(FileNotFoundError):
+                    os.remove(f)

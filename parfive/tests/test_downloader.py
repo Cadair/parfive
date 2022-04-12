@@ -344,7 +344,7 @@ def test_notaurl(tmpdir):
 
     assert len(f.errors) == 1
     assert isinstance(f.errors[0].exception, aiohttp.ClientConnectionError)
-
+    f.remove_errored_downloads()
 
 def test_retry(tmpdir, testserver):
     tmpdir = str(tmpdir)
