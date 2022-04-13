@@ -1,3 +1,4 @@
+import os
 import cgi
 import asyncio
 import hashlib
@@ -7,7 +8,7 @@ from itertools import count
 import parfive
 
 __all__ = ['run_in_thread', 'Token', 'FailedDownload', 'default_name',
-           'in_notebook']
+           'in_notebook', 'remove_file']
 
 
 def in_notebook():
@@ -175,3 +176,11 @@ class _QueueList(list):
             queue.put_nowait(item)
         self.clear()
         return queue
+
+
+def remove_file(filepath):
+    """
+    Remove the file from the disk, if it exists
+    """
+    if os.path.exists(filepath):
+        os.remove(filepath)

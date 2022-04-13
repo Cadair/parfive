@@ -23,6 +23,7 @@ from .utils import (
     get_ftp_size,
     get_http_size,
     in_notebook,
+    remove_file,
     run_in_thread,
 )
 
@@ -522,6 +523,7 @@ class Downloader:
                                   resp.request_info.url,
                                   resp.headers)
                 if resp.status != 200:
+                    remove_file(get_filepath(filepath_partial(resp, url), False)[0])
                     raise FailedDownload(filepath_partial, url, resp)
                 else:
                     filepath, skip = get_filepath(filepath_partial(resp, url), overwrite)
@@ -574,6 +576,7 @@ class Downloader:
             return str(filepath)
 
         except Exception as e:
+            remove_file(get_filepath(filepath_partial(None, url), False)[0])
             raise FailedDownload(filepath_partial, url, e)
 
     async def _write_worker(self, queue, file_pb, filepath):
@@ -672,7 +675,11 @@ class Downloader:
             while True:
                 chunk = await resp.content.read(chunksize)
                 if not chunk:
-                    break
+                    if resp.content_length is not None:
+                        if resp.content_length - offset != 0:
+                            raise Exception("Content length mismatch")
+                    else:
+                        break
                 await queue.put((offset, chunk))
                 offset += len(chunk)
 
@@ -742,6 +749,7 @@ class Downloader:
                     return str(filepath)
 
         except Exception as e:
+            remove_file(get_filepath(filepath_partial(None, url), False)[0])
             raise FailedDownload(filepath_partial, url, e)
 
     async def _ftp_download_worker(self, stream, queue):
