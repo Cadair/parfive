@@ -73,8 +73,11 @@ class Downloader:
         and the existing file will be overwritten, if `'unique'` the filename
         will be modified to be unique.
     headers : `dict`
-       Request headers to be passed to the server.
-       Adds `User-Agent` information about `parfive`, `aiohttp` and `python` if not passed explicitely.
+        Request headers to be passed to the server.
+        Adds `User-Agent` information about `parfive`, `aiohttp` and `python` if not passed explicitely.
+    use_aiofiles : `bool`, optional
+        If `True` use `aiofiles` to write files, else will use a blocking worker.
+        Defaults to `False`.
     """
 
     def __init__(self, max_conn=5, splits=5, progress=True, file_progress=True,
@@ -395,11 +398,9 @@ class Downloader:
         ----------
         urls : iterable
             A sequence of URLs to download.
-
         path : `pathlib.Path`, optional
             The destination directory for the downloaded files.
             Defaults to the current directory.
-
         overwrite: `bool`, optional
             Overwrite the files at the destination directory. If `False` the
             URL will not be downloaded if a file with the corresponding
@@ -491,6 +492,10 @@ class Downloader:
             Should progress bars be displayed for each file downloaded.
         token : `parfive.downloader.Token`
             A token for this download slot.
+        overwrite : `bool`
+            Overwrite the file if it already exists.
+        timeouts : `dict`
+            Overrides for the default timeouts for http downloads.
         max_splits: `int`, optional
             Number of maximum concurrent connections per file.
         kwargs : `dict`
@@ -590,8 +595,7 @@ class Downloader:
         Parameters
         ----------
         queue: `asyncio.Queue`
-             Queue for chunks
-
+            Queue for chunks
         file_pb : `tqdm.tqdm` or `False`
             Should progress bars be displayed for each file downloaded.
         filepath: `pathlib.Path`
@@ -651,8 +655,10 @@ class Downloader:
         http_range: (`int`, `int`) or `None`
             Start and end bytes of the file. In None, then no `Range` header is specified
             in request and the whole file will be downloaded.
+        timeout : `int`
+            Sets the timeout for `aiohttp.ClientSession.get`.
         queue: `asyncio.Queue`
-             Queue to put the download chunks.
+            Queue to put the download chunks.
         kwargs : `dict`
             Extra keyword arguments are passed to `aiohttp.ClientSession.get`.
         """
@@ -701,8 +707,12 @@ class Downloader:
             Should progress bars be displayed for each file downloaded.
         token : `parfive.downloader.Token`
             A token for this download slot.
+        overwrite : `bool`
+            Whether to overwrite the file if it already exists.
+        timeouts : `dict`
+            Unused.
         kwargs : `dict`
-            Extra keyword arguments are passed to `~aioftp.Client.context`.
+            Extra keyword arguments are passed to `aioftp.Client.context`.
 
         Returns
         -------
@@ -762,7 +772,7 @@ class Downloader:
         stream: `aioftp.StreamIO`
             Stream of the file to be downloaded.
         queue: `asyncio.Queue`
-             Queue to put the download chunks.
+            Queue to put the download chunks.
         """
         offset = 0
         async for chunk in stream.iter_by_block():
