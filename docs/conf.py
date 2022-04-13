@@ -6,6 +6,7 @@ isort:skip_file
 # flake8: NOQA: E402
 
 # -- stdlib imports ------------------------------------------------------------
+from parfive import __version__
 import datetime
 from packaging.version import Version
 
@@ -16,7 +17,6 @@ author = 'Stuart Mumford and Contributors'
 copyright = '{}, {}'.format(datetime.datetime.now().year, author)
 
 # The full version, including alpha/beta/rc tags
-from parfive import __version__
 release = __version__
 parfive_version = Version(__version__)
 is_release = not(parfive_version.is_prerelease or parfive_version.is_devrelease)

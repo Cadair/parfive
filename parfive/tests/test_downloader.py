@@ -344,7 +344,7 @@ def test_notaurl(tmpdir):
 
     assert len(f.errors) == 1
     assert isinstance(f.errors[0].exception, aiohttp.ClientConnectionError)
-    f.remove_errored_downloads()
+
 
 def test_retry(tmpdir, testserver):
     tmpdir = str(tmpdir)
@@ -506,3 +506,15 @@ def test_enable_no_aiofiles(remove_aiofiles, use_aiofiles):
 
     dl = Downloader(use_aiofiles=use_aiofiles)
     assert dl.use_aiofiles is False
+
+
+def test_test(testserver_error, tmpdir):
+    """
+    Test the test is testing the test
+    """
+    tmpdir = str(tmpdir)
+    dl = Downloader()
+    dl.enqueue_file(testserver_error.url, path=tmpdir)
+    f = dl.download()
+
+    assert len(f) == 1

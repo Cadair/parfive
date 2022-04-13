@@ -1,13 +1,11 @@
-import os
 from collections import UserList, namedtuple
-import pathlib
 
 import aiohttp
-import contextlib
 
 from .utils import FailedDownload
 
 __all__ = ['Results']
+
 
 class Error(namedtuple("error", ("filepath_partial", "url", "exception"))):
     def __str__(self):
@@ -18,6 +16,7 @@ class Error(namedtuple("error", ("filepath_partial", "url", "exception"))):
 
     def __repr__(self):
         return f"{object.__repr__(self)}\n{self}"
+
 
 class Results(UserList):
     """
@@ -83,15 +82,3 @@ class Results(UserList):
         ``exception`` is the error raised during download.
         """
         return self._errors
-
-    def remove_errored_downloads(self):
-        """
-        Delete any local files that encountered an error whilst downloading.
-
-        If it is a partial function, it will skip over it.
-        """
-        fpaths = [e[0] for e in self.errors]
-        for f in fpaths:
-            if isinstance(f, (str, pathlib.Path)):
-                with contextlib.suppress(FileNotFoundError):
-                    os.remove(f)

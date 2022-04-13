@@ -300,6 +300,12 @@ class Downloader:
                 done.update(await self._run_ftp_download(main_pb, timeouts))
 
         dl_results = await asyncio.gather(*done, return_exceptions=True)
+        errors = sum([isinstance(i, FailedDownload) for i in dl_results])
+        if errors:
+            main_pb.write(
+                f"{errors}/{len(done)} files failed to download."
+                " Please check `.errors` for details"
+            )
 
         results = Results()
 
@@ -495,7 +501,7 @@ class Downloader:
             The name of the file saved.
         """
         if chunksize is None:
-            chunksize =  self.default_chunk_size
+            chunksize = self.default_chunk_size
         if max_splits is None:
             max_splits = self.splits
 
