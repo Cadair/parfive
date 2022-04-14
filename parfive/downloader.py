@@ -527,7 +527,6 @@ class Downloader:
                                   resp.request_info.url,
                                   resp.headers)
                 if resp.status != 200:
-                    remove_file(get_filepath(filepath_partial(resp, url), False)[0])
                     raise FailedDownload(filepath_partial, url, resp)
                 else:
                     filepath, skip = get_filepath(filepath_partial(resp, url), overwrite)
@@ -580,7 +579,11 @@ class Downloader:
             return str(filepath)
 
         except Exception as e:
-            remove_file(get_filepath(filepath_partial(None, url), False)[0])
+            # Incase we hit this and filepath is not defined.
+            try:
+                remove_file(get_filepath(filepath))
+            except Exception:
+                pass
             raise FailedDownload(filepath_partial, url, e)
 
     async def _write_worker(self, queue, file_pb, filepath):
@@ -668,6 +671,7 @@ class Downloader:
             offset, _ = http_range
         else:
             offset = 0
+
         async with session.get(url, timeout=timeout, headers=headers, **kwargs) as resp:
             parfive.log.debug("%s request made for download to %s with headers=%s",
                               resp.request_info.method,
@@ -679,13 +683,7 @@ class Downloader:
             while True:
                 chunk = await resp.content.read(chunksize)
                 if not chunk:
-                    if resp.content_length is not None:
-                        if resp.content_length - offset != 0:
-                            raise Exception("Content length mismatch")
-                        else:
-                            break
-                    else:
-                        break
+                    break
                 await queue.put((offset, chunk))
                 offset += len(chunk)
 
@@ -759,7 +757,11 @@ class Downloader:
                     return str(filepath)
 
         except Exception as e:
-            remove_file(get_filepath(filepath_partial(None, url), False)[0])
+            # Incase we hit this and filepath is not defined.
+            try:
+                remove_file(get_filepath(filepath))
+            except Exception:
+                pass
             raise FailedDownload(filepath_partial, url, e)
 
     async def _ftp_download_worker(self, stream, queue):
