@@ -1,21 +1,17 @@
 import os
 import sys
-import platform
 from pathlib import Path
 from unittest import mock
-from importlib import reload
 from unittest.mock import patch
 
 import aiohttp
 import pytest
 from aiohttp import ClientTimeout
-from pytest_localserver.http import WSGIServer
 
 import parfive
+from parfive.conftest import skip_windows
 from parfive.downloader import Downloader, FailedDownload, Results, Token
 from parfive.utils import sha256sum
-
-skip_windows = pytest.mark.skipif(platform.system() == 'Windows', reason="Windows.")
 
 
 def validate_test_file(f):
@@ -224,38 +220,6 @@ def test_download_unique(httpserver, tmpdir):
     for fn in f:
         assert fn not in filenames
         assert f"{fname}.1" in fn
-
-
-@pytest.fixture
-def testserver(request):
-    """
-    A server that throws a 404 for the second request.
-    """
-    counter = 0
-
-    def simple_app(environ, start_response):
-        """
-        Simplest possible WSGI application.
-        """
-        nonlocal counter
-
-        counter += 1
-        if counter != 2:
-            status = '200 OK'
-            response_headers = [('Content-type', 'text/plain'),
-                                ('Content-Disposition', (f'testfile_{counter}'))]
-            start_response(status, response_headers)
-            return [b'Hello world!\n']
-        else:
-            status = '404'
-            response_headers = [('Content-type', 'text/plain')]
-            start_response(status, response_headers)
-            return ""
-
-    server = WSGIServer(application=simple_app)
-    server.start()
-    request.addfinalizer(server.stop)
-    return server
 
 
 def test_retrieve_some_content(testserver, tmpdir):
@@ -493,16 +457,25 @@ def test_enable_aiofiles_env_overwrite_always_enabled(use_aiofiles):
     assert dl.use_aiofiles is True
 
 
-@pytest.fixture
-def remove_aiofiles():
-    parfive.downloader.aiofiles = None
-    yield
-    reload(parfive.downloader)
-
-
 @pytest.mark.parametrize("use_aiofiles", [True, False])
 def test_enable_no_aiofiles(remove_aiofiles, use_aiofiles):
     Downloader.use_aiofiles.fget.cache_clear()
 
     dl = Downloader(use_aiofiles=use_aiofiles)
     assert dl.use_aiofiles is False
+
+
+def test_test(httpserver, tmpdir):
+    chunk_size = 100
+    body = b'0123456789abcdef'
+    # Split body into fixed-size chunks, from https://stackoverflow.com/a/18854817/56541
+    chunks = [body[0 + i:chunk_size + i] for i in range(0, len(body), chunk_size)]
+    httpserver.serve_content(
+        chunks,
+        chunked=True
+    )
+    tmpdir = str(tmpdir)
+    dl = Downloader()
+    dl.enqueue_file(httpserver.url, path=Path(tmpdir), max_splits=None)
+    assert dl.queued_downloads == 1
+    dl.download()

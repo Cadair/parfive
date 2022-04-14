@@ -669,7 +669,6 @@ class Downloader:
             offset, _ = http_range
         else:
             offset = 0
-
         async with session.get(url, timeout=timeout, headers=headers, **kwargs) as resp:
             parfive.log.debug("%s request made for download to %s with headers=%s",
                               resp.request_info.method,
@@ -684,6 +683,8 @@ class Downloader:
                     if resp.content_length is not None:
                         if resp.content_length - offset != 0:
                             raise Exception("Content length mismatch")
+                        else:
+                            break
                     else:
                         break
                 await queue.put((offset, chunk))
