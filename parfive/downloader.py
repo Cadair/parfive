@@ -520,16 +520,20 @@ class Downloader:
                 kwargs['proxy'] = os.environ['HTTPS_PROXY']
 
             async with session.get(url, timeout=timeout, **kwargs) as resp:
-                parfive.log.debug(f"{resp.request_info.method} request made for download to "
-                                f"{resp.request_info.url} with headers={resp.request_info.headers}")
-                parfive.log.debug(f"Response received from {resp.request_info.url} with headers={resp.headers}")
+                parfive.log.debug("%s request made to %s with headers=%s",
+                                  resp.request_info.method,
+                                  resp.request_info.url,
+                                  resp.request_info.headers)
+                parfive.log.debug("Response received from %s with headers=%s",
+                                  resp.request_info.url,
+                                  resp.headers)
                 if resp.status != 200:
                     remove_file(get_filepath(filepath_partial(resp, url), False)[0])
                     raise FailedDownload(filepath_partial, url, resp)
                 else:
                     filepath, skip = get_filepath(filepath_partial(resp, url), overwrite)
                     if skip:
-                        parfive.log.debug(f"File {filepath} already exists and overwrite is False; skipping download.")
+                        parfive.log.debug("File %s already exists and overwrite is False; skipping download.", filepath)
                         return str(filepath)
                     if callable(file_pb):
                         file_pb = file_pb(position=token.n, unit='B', unit_scale=True,
@@ -666,9 +670,13 @@ class Downloader:
         else:
             offset = 0
         async with session.get(url, timeout=timeout, headers=headers, **kwargs) as resp:
-            parfive.log.debug(f"{resp.request_info.method} request made for download to "
-                              f"{resp.request_info.url} with headers={resp.request_info.headers}")
-            parfive.log.debug(f"Response received from {resp.request_info.url} with headers={resp.headers}")
+            parfive.log.debug("%s request made for download to %s with headers=%s",
+                              resp.request_info.method,
+                              resp.request_info.url,
+                              resp.request_info.headers)
+            parfive.log.debug("Response received from %s with headers=%s",
+                              resp.request_info.url,
+                              resp.headers)
             while True:
                 chunk = await resp.content.read(chunksize)
                 if not chunk:
@@ -715,15 +723,15 @@ class Downloader:
         parse = urllib.parse.urlparse(url)
         try:
             async with aioftp.Client.context(parse.hostname, **kwargs) as client:
-                parfive.log.debug(f"Connected to ftp server {parse.hostname}")
+                parfive.log.debug("Connected to ftp server %s", parse.hostname)
                 if parse.username and parse.password:
-                    parfive.log.debug(f"Explicitly Logging in with {parse.username}:{parse.password}")
+                    parfive.log.debug("Explicitly Logging in with %s:%s", parse.username, parse.password)
                     await client.login(parse.username, parse.password)
 
                 # This has to be done before we start streaming the file:
                 filepath, skip = get_filepath(filepath_partial(None, url), overwrite)
                 if skip:
-                    parfive.log.debug(f"File {filepath} already exists and overwrite is False; skipping download.")
+                    parfive.log.debug("File %s already exists and overwrite is False; skipping download.", filepath)
                     return str(filepath)
 
                 if callable(file_pb):
@@ -733,7 +741,7 @@ class Downloader:
                 else:
                     file_pb = None
 
-                parfive.log.debug(f"Downloading file {parse.path} from {parse.hostname}")
+                parfive.log.debug("Downloading file %s from %s", parse.path, parse.hostname)
                 async with client.download_stream(parse.path) as stream:
                     downloaded_chunks_queue = asyncio.Queue()
                     download_workers = []
