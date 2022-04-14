@@ -463,19 +463,3 @@ def test_enable_no_aiofiles(remove_aiofiles, use_aiofiles):
 
     dl = Downloader(use_aiofiles=use_aiofiles)
     assert dl.use_aiofiles is False
-
-
-def test_test(httpserver, tmpdir):
-    chunk_size = 100
-    body = b'0123456789abcdef'
-    # Split body into fixed-size chunks, from https://stackoverflow.com/a/18854817/56541
-    chunks = [body[0 + i:chunk_size + i] for i in range(0, len(body), chunk_size)]
-    httpserver.serve_content(
-        chunks,
-        chunked=True
-    )
-    tmpdir = str(tmpdir)
-    dl = Downloader()
-    dl.enqueue_file(httpserver.url, path=Path(tmpdir), max_splits=None)
-    assert dl.queued_downloads == 1
-    dl.download()
