@@ -306,10 +306,13 @@ class Downloader:
         dl_results = await asyncio.gather(*done, return_exceptions=True)
         errors = sum([isinstance(i, FailedDownload) for i in dl_results])
         if errors:
-            main_pb.write(
-                "%s/%s files failed to download. Please check `.errors` for details" % (errors, total_files)
-            )
-
+            if main_pb:
+                main_pb.write(
+                    "%s/%s files failed to download. Please check `.errors` for details" % (errors, total_files)
+                )
+            else:
+                parfive.log.info("%s/%s files failed to download. Please check `.errors` for details" % (errors, total_files)
+                                 )
         results = Results()
 
         # Iterate through the results and store any failed download errors in
