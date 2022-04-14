@@ -307,8 +307,7 @@ class Downloader:
         errors = sum([isinstance(i, FailedDownload) for i in dl_results])
         if errors:
             main_pb.write(
-                f"{errors}/{len(done)} files failed to download."
-                " Please check `.errors` for details"
+                "%s/%s files failed to download. Please check `.errors` for details" % (errors, total_files)
             )
 
         results = Results()
