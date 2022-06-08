@@ -601,6 +601,8 @@ class Downloader:
         finally:
             if writer is not None:
                 writer.cancel()
+            if isinstance(file_pb, tqdm):
+                file_pb.close()
 
     async def _write_worker(self, queue, file_pb, filepath):
         """
@@ -794,6 +796,8 @@ class Downloader:
             # Just make sure we close the file.
             if writer is not None:
                 writer.cancel()
+            if isinstance(file_pb, tqdm):
+                file_pb.close()
 
     async def _ftp_download_worker(self, stream, queue):
         """
