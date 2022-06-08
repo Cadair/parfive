@@ -587,7 +587,7 @@ class Downloader:
 
         except Exception as e:
             if writer is not None:
-                writer.cancel()
+                await self._cancel_task(writer)
             # If filepath is None then the exception occurred before the request
             # computed the filepath, so we have no file to cleanup
             if filepath is not None:
@@ -705,6 +705,20 @@ class Downloader:
                 await queue.put((offset, chunk))
                 offset += len(chunk)
 
+    @staticmethod
+    async def _cancel_task(task):
+        """
+        Call cancel on a task and then wait for it to exit.
+
+        Return True if the task was cancelled, False otherwise.
+        """
+        task.cancel()
+        try:
+            await task
+        except asyncio.CancelledError:
+            return True
+        return task.cancelled()
+
     async def _get_ftp(self, session=None, *, url, filepath_partial,
                        file_pb=None, token, overwrite, timeouts, **kwargs):
         """
@@ -777,7 +791,7 @@ class Downloader:
 
         except Exception as e:
             if writer is not None:
-                writer.cancel()
+                await self._cancel_task(writer)
             # If filepath is None then the exception occurred before the request
             # computed the filepath, so we have no file to cleanup
             if filepath is not None:
