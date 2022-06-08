@@ -697,7 +697,6 @@ class Downloader:
                 chunk = await resp.content.read(chunksize)
                 if not chunk:
                     break
-                parfive.log.debug(f"{chunk=}")
                 await queue.put((offset, chunk))
                 offset += len(chunk)
 

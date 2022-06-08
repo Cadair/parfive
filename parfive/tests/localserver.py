@@ -93,4 +93,4 @@ def error_on_nth_request(n, i, environ, start_response):
         status = '404'
         response_headers = [('Content-type', 'text/plain')]
         start_response(status, response_headers)
-        return [""]
+        return [b""]

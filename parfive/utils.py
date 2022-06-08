@@ -1,8 +1,8 @@
-import os
 import cgi
 import asyncio
 import hashlib
 import pathlib
+from pathlib import Path
 from itertools import count
 
 import parfive
@@ -187,5 +187,6 @@ def remove_file(filepath):
     """
     Remove the file from the disk, if it exists
     """
-    if os.path.exists(filepath):
-        os.remove(filepath)
+    filepath = Path(filepath)
+    if filepath.exists():
+        filepath.unlink()
