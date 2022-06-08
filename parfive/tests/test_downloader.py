@@ -1,5 +1,6 @@
 import os
 import sys
+import platform
 from pathlib import Path
 from unittest import mock
 from unittest.mock import patch
@@ -9,9 +10,10 @@ import pytest
 from aiohttp import ClientTimeout
 
 import parfive
-from parfive.conftest import skip_windows
 from parfive.downloader import Downloader, FailedDownload, Results, Token
 from parfive.utils import sha256sum
+
+skip_windows = pytest.mark.skipif(platform.system() == 'Windows', reason="Windows.")
 
 
 def validate_test_file(f):
@@ -442,24 +444,3 @@ def test_proxy_passed_as_kwargs_to_get(tmpdir, url, proxy):
                                         'timeout': ClientTimeout(total=0, connect=None, sock_read=90, sock_connect=None),
                                         'proxy': proxy
                                         }]
-
-
-@pytest.mark.parametrize("use_aiofiles", [True, False])
-def test_enable_aiofiles_constructor(use_aiofiles):
-    dl = Downloader(use_aiofiles=use_aiofiles)
-    assert dl.use_aiofiles == use_aiofiles, f"expected={dl.use_aiofiles}, got={use_aiofiles}"
-
-
-@patch.dict(os.environ, {'PARFIVE_OVERWRITE_ENABLE_AIOFILES': "some_value_to_enable_it"})
-@pytest.mark.parametrize("use_aiofiles", [True, False])
-def test_enable_aiofiles_env_overwrite_always_enabled(use_aiofiles):
-    dl = Downloader(use_aiofiles=use_aiofiles)
-    assert dl.use_aiofiles is True
-
-
-@pytest.mark.parametrize("use_aiofiles", [True, False])
-def test_enable_no_aiofiles(remove_aiofiles, use_aiofiles):
-    Downloader.use_aiofiles.fget.cache_clear()
-
-    dl = Downloader(use_aiofiles=use_aiofiles)
-    assert dl.use_aiofiles is False

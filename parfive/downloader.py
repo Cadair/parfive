@@ -16,6 +16,7 @@ import parfive
 from .results import Results
 from .utils import (
     FailedDownload,
+    MultiPartDownloadError,
     Token,
     _QueueList,
     default_name,
@@ -288,8 +289,8 @@ class Downloader:
         ``PARFIVE_SOCK_READ_TIMEOUT``.
         """
         # Setup debug logging before starting a download
-        if "PARFIVE_DEBUG" in os.environ:
-            self._configure_debug()
+        if "PARFIVE_DEBUG" in os.environ:  # pragma: no cover
+            self._configure_debug()  # pragma: no cover
 
         timeouts = timeouts or {"total": float(os.environ.get("PARFIVE_TOTAL_TIMEOUT", 0)),
                                 "sock_read": float(os.environ.get("PARFIVE_SOCK_READ_TIMEOUT", 90))}
@@ -306,13 +307,12 @@ class Downloader:
         dl_results = await asyncio.gather(*done, return_exceptions=True)
         errors = sum([isinstance(i, FailedDownload) for i in dl_results])
         if errors:
+            message = f"{errors}/{total_files} files failed to download. Please check `.errors` for details"
             if main_pb:
-                main_pb.write(
-                    "%s/%s files failed to download. Please check `.errors` for details" % (errors, total_files)
-                )
+                main_pb.write(message)
             else:
-                parfive.log.info("%s/%s files failed to download. Please check `.errors` for details" % (errors, total_files)
-                                 )
+                parfive.log.info(message)
+
         results = Results()
 
         # Iterate through the results and store any failed download errors in
@@ -320,8 +320,8 @@ class Downloader:
         for res in dl_results:
             if isinstance(res, FailedDownload):
                 results.add_error(res.filepath_partial, res.url, res.exception)
-                parfive.log.info(f'{res.url} failed to download with exception\n'
-                                 f'{res.exception}')
+                parfive.log.info('%s failed to download with exception\n'
+                                 '%s', res.url, res.exception)
             elif isinstance(res, Exception):
                 raise res
             else:
@@ -513,6 +513,8 @@ class Downloader:
         if max_splits is None:
             max_splits = self.splits
 
+        # Define filepath here as we use it in the except block
+        filepath = None
         timeout = aiohttp.ClientTimeout(**timeouts)
         try:
             scheme = urllib.parse.urlparse(url).scheme
@@ -526,7 +528,8 @@ class Downloader:
                                   resp.request_info.method,
                                   resp.request_info.url,
                                   resp.request_info.headers)
-                parfive.log.debug("Response received from %s with headers=%s",
+                parfive.log.debug("%s Response received from %s with headers=%s",
+                                  resp.status,
                                   resp.request_info.url,
                                   resp.headers)
                 if resp.status != 200:
@@ -582,11 +585,13 @@ class Downloader:
             return str(filepath)
 
         except Exception as e:
-            # Incase we hit this and filepath is not defined.
-            try:
-                remove_file(get_filepath(filepath))
-            except Exception:
-                pass
+            # If filepath is None then the exception occurred before the request
+            # computed the filepath, so we have no file to cleanup
+            if filepath is not None:
+                try:
+                    remove_file(filepath)
+                except Exception:
+                    parfive.log.info("Failed to delete possibly incomplete file: %s", filepath)
             raise FailedDownload(filepath_partial, url, e)
 
     async def _write_worker(self, queue, file_pb, filepath):
@@ -680,13 +685,19 @@ class Downloader:
                               resp.request_info.method,
                               resp.request_info.url,
                               resp.request_info.headers)
-            parfive.log.debug("Response received from %s with headers=%s",
+            parfive.log.debug("%s Response received from %s with headers=%s",
+                              resp.status,
                               resp.request_info.url,
                               resp.headers)
+
+            if resp.status != 200:
+                raise MultiPartDownloadError(resp)
+
             while True:
                 chunk = await resp.content.read(chunksize)
                 if not chunk:
                     break
+                parfive.log.debug(f"{chunk=}")
                 await queue.put((offset, chunk))
                 offset += len(chunk)
 
@@ -720,6 +731,7 @@ class Downloader:
         `str`
             The name of the file saved.
         """
+        filepath = None
         parse = urllib.parse.urlparse(url)
         try:
             async with aioftp.Client.context(parse.hostname, **kwargs) as client:
@@ -760,11 +772,13 @@ class Downloader:
                     return str(filepath)
 
         except Exception as e:
-            # Incase we hit this and filepath is not defined.
-            try:
-                remove_file(get_filepath(filepath))
-            except Exception:
-                pass
+            # If filepath is None then the exception occurred before the request
+            # computed the filepath, so we have no file to cleanup
+            if filepath is not None:
+                try:
+                    remove_file(filepath)
+                except Exception:
+                    parfive.log.info("Failed to delete possibly incomplete file: %s", filepath)
             raise FailedDownload(filepath_partial, url, e)
 
     async def _ftp_download_worker(self, stream, queue):

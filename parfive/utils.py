@@ -135,6 +135,11 @@ def sha256sum(filename):
     return h.hexdigest()
 
 
+class MultiPartDownloadError(Exception):
+    def __init__(self, response):
+        self.response = response
+
+
 class FailedDownload(Exception):
     def __init__(self, filepath_partial, url, exception):
         self.filepath_partial = filepath_partial
