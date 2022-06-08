@@ -591,9 +591,10 @@ class Downloader:
             if filepath is not None:
                 try:
                     remove_file(filepath)
-                except Exception:
-                    warnings.warn(f"Failed to delete possibly incomplete file: {filepath}",
-                                  ParfiveUserWarning)
+                except Exception as remove_exception:
+                    warnings.warn(
+                        f"Failed to delete possibly incomplete file {filepath} {remove_exception}",
+                        ParfiveUserWarning)
             raise FailedDownload(filepath_partial, url, e)
 
     async def _write_worker(self, queue, file_pb, filepath):
@@ -778,9 +779,10 @@ class Downloader:
             if filepath is not None:
                 try:
                     remove_file(filepath)
-                except Exception:
-                    warnings.warn(f"Failed to delete possibly incomplete file: {filepath}",
-                                  ParfiveUserWarning)
+                except Exception as remove_exception:
+                    warnings.warn(
+                        f"Failed to delete possibly incomplete file {filepath} {remove_exception}",
+                        ParfiveUserWarning)
             raise FailedDownload(filepath_partial, url, e)
 
     async def _ftp_download_worker(self, stream, queue):
