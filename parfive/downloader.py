@@ -514,8 +514,8 @@ class Downloader:
         if max_splits is None:
             max_splits = self.splits
 
-        # Define filepath here as we use it in the except block
-        filepath = None
+        # Define filepath and writer here as we use them in the except block
+        filepath = writer = None
         timeout = aiohttp.ClientTimeout(**timeouts)
         try:
             scheme = urllib.parse.urlparse(url).scheme
@@ -586,6 +586,8 @@ class Downloader:
             return str(filepath)
 
         except Exception as e:
+            if writer is not None:
+                writer.cancel()
             # If filepath is None then the exception occurred before the request
             # computed the filepath, so we have no file to cleanup
             if filepath is not None:
@@ -733,7 +735,7 @@ class Downloader:
         `str`
             The name of the file saved.
         """
-        filepath = None
+        filepath = writer = None
         parse = urllib.parse.urlparse(url)
         try:
             async with aioftp.Client.context(parse.hostname, **kwargs) as client:
@@ -774,6 +776,8 @@ class Downloader:
                     return str(filepath)
 
         except Exception as e:
+            if writer is not None:
+                writer.cancel()
             # If filepath is None then the exception occurred before the request
             # computed the filepath, so we have no file to cleanup
             if filepath is not None:
