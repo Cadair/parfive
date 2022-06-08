@@ -56,8 +56,8 @@ class Downloader:
     ----------
     max_conn : `int`, optional
         The number of parallel download slots.
-    splits : `int`, optional
-        The number of splits to use to download a file.
+    max_splits : `int`, optional
+        The maximum number of splits to use to download a file (server dependant).
     progress : `bool`, optional
         If `True` show a main progress bar showing how many of the total files
         have been downloaded. If `False`, no progress bars will be shown at all.
@@ -77,13 +77,13 @@ class Downloader:
         will be modified to be unique.
     headers : `dict`
         Request headers to be passed to the server.
-        Adds `User-Agent` information about `parfive`, `aiohttp` and `python` if not passed explicitely.
+        Adds `User-Agent` information about `parfive`, `aiohttp` and `python` if not passed explicitly.
     use_aiofiles : `bool`, optional
         If `True` use `aiofiles` to write files, else will use a blocking worker.
         Defaults to `False`.
     """
 
-    def __init__(self, max_conn=5, splits=5, progress=True, file_progress=True,
+    def __init__(self, max_conn=5, max_splits=5, progress=True, file_progress=True,
                  loop=None, notebook=None, overwrite=False, headers=None,
                  use_aiofiles=False):
 
@@ -91,7 +91,7 @@ class Downloader:
             warnings.warn('The loop argument is no longer used, and will be '
                           'removed in a future release.')
         self.max_conn = max_conn if not SERIAL_MODE else 1
-        self.splits = splits if not SERIAL_MODE else 1
+        self.max_splits = max_splits if not SERIAL_MODE else 1
         self._init_queues()
 
         # Configure progress bars
@@ -513,7 +513,7 @@ class Downloader:
         if chunksize is None:
             chunksize = self.default_chunk_size
         if max_splits is None:
-            max_splits = self.splits
+            max_splits = self.max_splits
 
         # Define filepath and writer here as we use them in the except block
         filepath = writer = None
