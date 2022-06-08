@@ -49,3 +49,4 @@ parfive/tests/.ipynb_checkpoints/
 parfive/tests/predicted-sunspot-radio-flux.txt
 parfive/_version.py
 coverage.xml
+*undo-tree*
