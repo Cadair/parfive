@@ -582,7 +582,6 @@ class Downloader:
             await asyncio.gather(*download_workers)
             # join() waits till all the items in the queue have been processed
             await downloaded_chunk_queue.join()
-            writer.cancel()
             return str(filepath)
 
         except Exception as e:
@@ -598,6 +597,9 @@ class Downloader:
                         f"Failed to delete possibly incomplete file {filepath} {remove_exception}",
                         ParfiveUserWarning)
             raise FailedDownload(filepath_partial, url, e)
+        finally:
+            if writer is not None:
+                writer.cancel()
 
     async def _write_worker(self, queue, file_pb, filepath):
         """
@@ -785,8 +787,6 @@ class Downloader:
 
                     await asyncio.gather(*download_workers)
                     await downloaded_chunks_queue.join()
-                    writer.cancel()
-
                     return str(filepath)
 
         except Exception as e:
@@ -802,6 +802,11 @@ class Downloader:
                         f"Failed to delete possibly incomplete file {filepath} {remove_exception}",
                         ParfiveUserWarning)
             raise FailedDownload(filepath_partial, url, e)
+
+        finally:
+            # Just make sure we close the file.
+            if writer is not None:
+                writer.cancel()
 
     async def _ftp_download_worker(self, stream, queue):
         """
