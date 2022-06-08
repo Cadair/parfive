@@ -551,7 +551,7 @@ class Downloader:
                     writer = asyncio.create_task(
                         self._write_worker(downloaded_chunk_queue, file_pb, filepath))
 
-                    if not DISABLE_RANGE and max_splits and resp.headers.get('Accept-Ranges', None) == "bytes":
+                    if not DISABLE_RANGE and max_splits and resp.headers.get('Accept-Ranges', None) == "bytes" and 'Content-length' in resp.headers:
                         content_length = int(resp.headers['Content-length'])
                         split_length = max(1, content_length // max_splits)
                         ranges = [
