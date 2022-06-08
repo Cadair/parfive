@@ -17,6 +17,7 @@ from .results import Results
 from .utils import (
     FailedDownload,
     MultiPartDownloadError,
+    ParfiveUserWarning,
     Token,
     _QueueList,
     default_name,
@@ -591,7 +592,8 @@ class Downloader:
                 try:
                     remove_file(filepath)
                 except Exception:
-                    parfive.log.info("Failed to delete possibly incomplete file: %s", filepath)
+                    warnings.warn(f"Failed to delete possibly incomplete file: {filepath}",
+                                  ParfiveUserWarning)
             raise FailedDownload(filepath_partial, url, e)
 
     async def _write_worker(self, queue, file_pb, filepath):
@@ -777,7 +779,8 @@ class Downloader:
                 try:
                     remove_file(filepath)
                 except Exception:
-                    parfive.log.info("Failed to delete possibly incomplete file: %s", filepath)
+                    warnings.warn(f"Failed to delete possibly incomplete file: {filepath}",
+                                  ParfiveUserWarning)
             raise FailedDownload(filepath_partial, url, e)
 
     async def _ftp_download_worker(self, stream, queue):

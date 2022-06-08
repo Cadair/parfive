@@ -187,10 +187,12 @@ def remove_file(filepath):
     """
     Remove the file from the disk, if it exists
     """
-    print(f"filepath={filepath} of type {type(filepath)}")
     filepath = Path(filepath)
     if filepath.exists():
-        print(f"Unlinking {filepath}")
         filepath.unlink()
-        print(f"Unlinked {filepath}")
-    print(f"\n\nexists? {filepath.exists()}")
+
+
+class ParfiveUserWarning(UserWarning):
+    """
+    Raised for not-quite errors.
+    """
