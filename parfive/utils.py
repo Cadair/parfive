@@ -7,7 +7,7 @@ from itertools import count
 
 import parfive
 
-__all__ = ['run_in_thread', 'Token', 'FailedDownload', 'default_name',
+__all__ = ['cancel_task', 'run_in_thread', 'Token', 'FailedDownload', 'default_name',
            'in_notebook', 'remove_file']
 
 
@@ -196,3 +196,17 @@ class ParfiveUserWarning(UserWarning):
     """
     Raised for not-quite errors.
     """
+
+
+async def cancel_task(task):
+    """
+    Call cancel on a task and then wait for it to exit.
+
+    Return True if the task was cancelled, False otherwise.
+    """
+    task.cancel()
+    try:
+        await task
+    except asyncio.CancelledError:
+        return True
+    return task.cancelled()
