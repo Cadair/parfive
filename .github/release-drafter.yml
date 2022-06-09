@@ -16,6 +16,8 @@ categories:
   - title: 'Misc/Internal Changes'
     labels:
       - 'misc'
+exclude-labels:
+  - "no changelog entry"
 change-template: '- $TITLE @$AUTHOR (#$NUMBER)'
 template: |
   ## Changes
