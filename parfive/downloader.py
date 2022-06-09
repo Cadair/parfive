@@ -4,7 +4,13 @@ import logging
 import pathlib
 import contextlib
 import urllib.parse
-from typing import Union, Literal, Callable, Optional
+from typing import Union, Callable, Optional
+
+try:
+    from typing import Literal  # Added in Python 3.8
+except ImportError:
+    from typing_extensions import Literal
+
 from functools import partial
 from concurrent.futures import ThreadPoolExecutor
 

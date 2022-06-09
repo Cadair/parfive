@@ -1,7 +1,13 @@
 import os
 import sys
 import warnings
-from typing import Dict, Union, Literal, Optional
+from typing import Dict, Union, Optional
+
+try:
+    from typing import Literal  # Added in Python 3.8
+except ImportError:
+    from typing_extensions import Literal
+
 from dataclasses import InitVar, field, asdict, dataclass
 
 import aiohttp
