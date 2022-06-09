@@ -2,12 +2,14 @@ import cgi
 import asyncio
 import hashlib
 import pathlib
+import warnings
+from pathlib import Path
 from itertools import count
 
 import parfive
 
-__all__ = ['run_in_thread', 'Token', 'FailedDownload', 'default_name',
-           'in_notebook']
+__all__ = ['cancel_task', 'run_in_thread', 'Token', 'FailedDownload', 'default_name',
+           'in_notebook', 'remove_file']
 
 
 def in_notebook():
@@ -134,6 +136,11 @@ def sha256sum(filename):
     return h.hexdigest()
 
 
+class MultiPartDownloadError(Exception):
+    def __init__(self, response):
+        self.response = response
+
+
 class FailedDownload(Exception):
     def __init__(self, filepath_partial, url, exception):
         self.filepath_partial = filepath_partial
@@ -175,3 +182,38 @@ class _QueueList(list):
             queue.put_nowait(item)
         self.clear()
         return queue
+
+
+class ParfiveUserWarning(UserWarning):
+    """
+    Raised for not-quite errors.
+    """
+
+
+def remove_file(filepath):
+    """
+    Remove the file from the disk, if it exists
+    """
+    filepath = Path(filepath)
+    try:
+        # When we drop 3.7 support we can use unlink(missing_ok=True)
+        if filepath.exists():
+            filepath.unlink()
+    except Exception as remove_exception:
+        warnings.warn(
+            f"Failed to delete possibly incomplete file {filepath} {remove_exception}",
+            ParfiveUserWarning)
+
+
+async def cancel_task(task):
+    """
+    Call cancel on a task and then wait for it to exit.
+
+    Return True if the task was cancelled, False otherwise.
+    """
+    task.cancel()
+    try:
+        await task
+    except asyncio.CancelledError:
+        return True
+    return task.cancelled()

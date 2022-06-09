@@ -16,13 +16,16 @@ import parfive
 from .results import Results
 from .utils import (
     FailedDownload,
+    MultiPartDownloadError,
     Token,
     _QueueList,
+    cancel_task,
     default_name,
     get_filepath,
     get_ftp_size,
     get_http_size,
     in_notebook,
+    remove_file,
     run_in_thread,
 )
 
@@ -52,6 +55,8 @@ class Downloader:
     ----------
     max_conn : `int`, optional
         The number of parallel download slots.
+    max_splits : `int`, optional
+        The maximum number of splits to use to download a file (server dependant).
     progress : `bool`, optional
         If `True` show a main progress bar showing how many of the total files
         have been downloaded. If `False`, no progress bars will be shown at all.
@@ -70,11 +75,14 @@ class Downloader:
         and the existing file will be overwritten, if `'unique'` the filename
         will be modified to be unique.
     headers : `dict`
-       Request headers to be passed to the server.
-       Adds `User-Agent` information about `parfive`, `aiohttp` and `python` if not passed explicitely.
+        Request headers to be passed to the server.
+        Adds `User-Agent` information about `parfive`, `aiohttp` and `python` if not passed explicitly.
+    use_aiofiles : `bool`, optional
+        If `True` use `aiofiles` to write files, else will use a blocking worker.
+        Defaults to `False`.
     """
 
-    def __init__(self, max_conn=5, progress=True, file_progress=True,
+    def __init__(self, max_conn=5, max_splits=5, progress=True, file_progress=True,
                  loop=None, notebook=None, overwrite=False, headers=None,
                  use_aiofiles=False):
 
@@ -82,6 +90,7 @@ class Downloader:
             warnings.warn('The loop argument is no longer used, and will be '
                           'removed in a future release.')
         self.max_conn = max_conn if not SERIAL_MODE else 1
+        self.max_splits = max_splits if not SERIAL_MODE else 1
         self._init_queues()
 
         # Configure progress bars
@@ -281,8 +290,8 @@ class Downloader:
         ``PARFIVE_SOCK_READ_TIMEOUT``.
         """
         # Setup debug logging before starting a download
-        if "PARFIVE_DEBUG" in os.environ:
-            self._configure_debug()
+        if "PARFIVE_DEBUG" in os.environ:  # pragma: no cover
+            self._configure_debug()  # pragma: no cover
 
         timeouts = timeouts or {"total": float(os.environ.get("PARFIVE_TOTAL_TIMEOUT", 0)),
                                 "sock_read": float(os.environ.get("PARFIVE_SOCK_READ_TIMEOUT", 90))}
@@ -297,6 +306,13 @@ class Downloader:
                 done.update(await self._run_ftp_download(main_pb, timeouts))
 
         dl_results = await asyncio.gather(*done, return_exceptions=True)
+        errors = sum([isinstance(i, FailedDownload) for i in dl_results])
+        if errors:
+            message = f"{errors}/{total_files} files failed to download. Please check `.errors` for details"
+            if main_pb:
+                main_pb.write(message)
+            else:
+                parfive.log.info(message)
 
         results = Results()
 
@@ -305,8 +321,8 @@ class Downloader:
         for res in dl_results:
             if isinstance(res, FailedDownload):
                 results.add_error(res.filepath_partial, res.url, res.exception)
-                parfive.log.info(f'{res.url} failed to download with exception\n'
-                                 f'{res.exception}')
+                parfive.log.info('%s failed to download with exception\n'
+                                 '%s', res.url, res.exception)
             elif isinstance(res, Exception):
                 raise res
             else:
@@ -385,11 +401,9 @@ class Downloader:
         ----------
         urls : iterable
             A sequence of URLs to download.
-
         path : `pathlib.Path`, optional
             The destination directory for the downloaded files.
             Defaults to the current directory.
-
         overwrite: `bool`, optional
             Overwrite the files at the destination directory. If `False` the
             URL will not be downloaded if a file with the corresponding
@@ -462,7 +476,7 @@ class Downloader:
         return futures
 
     async def _get_http(self, session, *, url, filepath_partial, chunksize=None,
-                        file_pb=None, token, overwrite, timeouts, max_splits=5, **kwargs):
+                        file_pb=None, token, overwrite, timeouts, max_splits=None, **kwargs):
         """
         Read the file from the given url into the filename given by ``filepath_partial``.
 
@@ -481,7 +495,11 @@ class Downloader:
             Should progress bars be displayed for each file downloaded.
         token : `parfive.downloader.Token`
             A token for this download slot.
-        max_splits: `int`
+        overwrite : `bool`
+            Overwrite the file if it already exists.
+        timeouts : `dict`
+            Overrides for the default timeouts for http downloads.
+        max_splits: `int`, optional
             Number of maximum concurrent connections per file.
         kwargs : `dict`
             Extra keyword arguments are passed to `aiohttp.ClientSession.get`.
@@ -492,8 +510,12 @@ class Downloader:
             The name of the file saved.
         """
         if chunksize is None:
-            chunksize =  self.default_chunk_size
+            chunksize = self.default_chunk_size
+        if max_splits is None:
+            max_splits = self.max_splits
 
+        # Define filepath and writer here as we use them in the except block
+        filepath = writer = None
         timeout = aiohttp.ClientTimeout(**timeouts)
         try:
             scheme = urllib.parse.urlparse(url).scheme
@@ -507,7 +529,8 @@ class Downloader:
                                   resp.request_info.method,
                                   resp.request_info.url,
                                   resp.request_info.headers)
-                parfive.log.debug("Response received from %s with headers=%s",
+                parfive.log.debug("%s Response received from %s with headers=%s",
+                                  resp.status,
                                   resp.request_info.url,
                                   resp.headers)
                 if resp.status != 200:
@@ -559,11 +582,21 @@ class Downloader:
             await asyncio.gather(*download_workers)
             # join() waits till all the items in the queue have been processed
             await downloaded_chunk_queue.join()
-            writer.cancel()
             return str(filepath)
 
         except Exception as e:
+            if writer is not None:
+                await cancel_task(writer)
+            # If filepath is None then the exception occurred before the request
+            # computed the filepath, so we have no file to cleanup
+            if filepath is not None:
+                remove_file(filepath)
             raise FailedDownload(filepath_partial, url, e)
+        finally:
+            if writer is not None:
+                writer.cancel()
+            if isinstance(file_pb, tqdm):
+                file_pb.close()
 
     async def _write_worker(self, queue, file_pb, filepath):
         """
@@ -576,8 +609,7 @@ class Downloader:
         Parameters
         ----------
         queue: `asyncio.Queue`
-             Queue for chunks
-
+            Queue for chunks
         file_pb : `tqdm.tqdm` or `False`
             Should progress bars be displayed for each file downloaded.
         filepath: `pathlib.Path`
@@ -637,8 +669,10 @@ class Downloader:
         http_range: (`int`, `int`) or `None`
             Start and end bytes of the file. In None, then no `Range` header is specified
             in request and the whole file will be downloaded.
+        timeout : `int`
+            Sets the timeout for `aiohttp.ClientSession.get`.
         queue: `asyncio.Queue`
-             Queue to put the download chunks.
+            Queue to put the download chunks.
         kwargs : `dict`
             Extra keyword arguments are passed to `aiohttp.ClientSession.get`.
         """
@@ -655,9 +689,14 @@ class Downloader:
                               resp.request_info.method,
                               resp.request_info.url,
                               resp.request_info.headers)
-            parfive.log.debug("Response received from %s with headers=%s",
+            parfive.log.debug("%s Response received from %s with headers=%s",
+                              resp.status,
                               resp.request_info.url,
                               resp.headers)
+
+            if resp.status != 200:
+                raise MultiPartDownloadError(resp)
+
             while True:
                 chunk = await resp.content.read(chunksize)
                 if not chunk:
@@ -683,14 +722,19 @@ class Downloader:
             Should progress bars be displayed for each file downloaded.
         token : `parfive.downloader.Token`
             A token for this download slot.
+        overwrite : `bool`
+            Whether to overwrite the file if it already exists.
+        timeouts : `dict`
+            Unused.
         kwargs : `dict`
-            Extra keyword arguments are passed to `~aioftp.Client.context`.
+            Extra keyword arguments are passed to `aioftp.Client.context`.
 
         Returns
         -------
         `str`
             The name of the file saved.
         """
+        filepath = writer = None
         parse = urllib.parse.urlparse(url)
         try:
             async with aioftp.Client.context(parse.hostname, **kwargs) as client:
@@ -726,12 +770,23 @@ class Downloader:
 
                     await asyncio.gather(*download_workers)
                     await downloaded_chunks_queue.join()
-                    writer.cancel()
-
                     return str(filepath)
 
         except Exception as e:
+            if writer is not None:
+                await cancel_task(writer)
+            # If filepath is None then the exception occurred before the request
+            # computed the filepath, so we have no file to cleanup
+            if filepath is not None:
+                remove_file(filepath)
             raise FailedDownload(filepath_partial, url, e)
+
+        finally:
+            # Just make sure we close the file.
+            if writer is not None:
+                writer.cancel()
+            if isinstance(file_pb, tqdm):
+                file_pb.close()
 
     async def _ftp_download_worker(self, stream, queue):
         """
@@ -743,7 +798,7 @@ class Downloader:
         stream: `aioftp.StreamIO`
             Stream of the file to be downloaded.
         queue: `asyncio.Queue`
-             Queue to put the download chunks.
+            Queue to put the download chunks.
         """
         offset = 0
         async for chunk in stream.iter_by_block():
