@@ -53,12 +53,13 @@ class BaseTestServer(abc.ABC):
 
 class SimpleTestServer(BaseTestServer):
     def default_request_handler(self, environ, start_response):
-        status = '200 OK'
-        response_headers = [('Content-type', 'text/plain'),
-                            ('Content-Disposition',
-                             "attachment; filename=testfile_{self.request_number}.txt")]
+        status = "200 OK"
+        response_headers = [
+            ("Content-type", "text/plain"),
+            ("Content-Disposition", "attachment; filename=testfile_{self.request_number}.txt"),
+        ]
         start_response(status, response_headers)
-        return [b'Hello world!\n']
+        return [b"Hello world!\n"]
 
 
 class MultiPartTestServer(BaseTestServer):
@@ -78,11 +79,13 @@ class MultiPartTestServer(BaseTestServer):
 
             content_length = bytes_end - bytes_start
 
-        status = '200 OK'
-        response_headers = [('Content-type', 'text/plain'),
-                            ('Content-Length', content_length),
-                            ('Accept-Ranges', 'bytes'),
-                            ('Content-Disposition', "attachment; filename=testfile.txt")]
+        status = "200 OK"
+        response_headers = [
+            ("Content-type", "text/plain"),
+            ("Content-Length", content_length),
+            ("Accept-Ranges", "bytes"),
+            ("Content-Disposition", "attachment; filename=testfile.txt"),
+        ]
         start_response(status, response_headers)
         part = content[bytes_start:bytes_end]
         return [part]
@@ -90,7 +93,7 @@ class MultiPartTestServer(BaseTestServer):
 
 def error_on_nth_request(n, i, environ, start_response):
     if i == n:
-        status = '404'
-        response_headers = [('Content-type', 'text/plain')]
+        status = "404"
+        response_headers = [("Content-type", "text/plain")]
         start_response(status, response_headers)
         return [b""]
