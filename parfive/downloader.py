@@ -105,10 +105,9 @@ class Downloader:
 
         self.overwrite = overwrite
 
-        self.headers = headers
-        if headers is None or 'User-Agent' not in headers:
-            self.headers = {
-                'User-Agent': f"parfive/{parfive.__version__} aiohttp/{aiohttp.__version__} python/{sys.version[:5]}"}
+        self.headers = headers or {}
+        if 'User-Agent' not in self.headers:
+            self.headers['User-Agent'] = f"parfive/{parfive.__version__} aiohttp/{aiohttp.__version__} python/{sys.version[:5]}"
 
         self._use_aiofiles = use_aiofiles
 
