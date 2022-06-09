@@ -1,18 +1,16 @@
-import os
-import sys
 import asyncio
 import logging
 import pathlib
 import contextlib
 import urllib.parse
-from functools import partial, lru_cache
+from functools import partial
 from concurrent.futures import ThreadPoolExecutor
 
-import aiohttp
 from tqdm import tqdm as tqdm_std
 from tqdm.auto import tqdm as tqdm_auto
 
 import parfive
+from .config import _DownloaderConfig
 from .results import Results
 from .utils import (
     FailedDownload,
@@ -34,15 +32,6 @@ except ImportError:  # pragma: nocover
     aioftp = None
 
 
-try:
-    import aiofiles  # pragma: nocover
-except ImportError:
-    aiofiles = None
-
-
-SERIAL_MODE = "PARFIVE_SINGLE_DOWNLOAD" in os.environ
-DISABLE_RANGE = "PARFIVE_DISABLE_RANGE" in os.environ or SERIAL_MODE
-
 __all__ = ["Downloader"]
 
 
@@ -59,26 +48,14 @@ class Downloader:
     progress : `bool`, optional
         If `True` show a main progress bar showing how many of the total files
         have been downloaded. If `False`, no progress bars will be shown at all.
-    file_progress : `bool`, optional
-        If `True` and ``progress`` is true, show ``max_conn`` progress bars
-        detailing the progress of each individual file being downloaded.
-    loop : `asyncio.AbstractEventLoop`, optional
-        No longer used, and will be removed in a future release.
-    notebook : `bool`, optional
-        If `True` tqdm will be used in notebook mode. If `None` an attempt will
-        be made to detect the notebook and guess which progress bar to use.
     overwrite : `bool` or `str`, optional
         Determine how to handle downloading if a file already exists with the
         same name. If `False` the file download will be skipped and the path
         returned to the existing file, if `True` the file will be downloaded
         and the existing file will be overwritten, if `'unique'` the filename
         will be modified to be unique.
-    headers : `dict`
-        Request headers to be passed to the server.
-        Adds `User-Agent` information about `parfive`, `aiohttp` and `python` if not passed explicitly.
-    use_aiofiles : `bool`, optional
-        If `True` use `aiofiles` to write files, else will use a blocking worker.
-        Defaults to `False`.
+    aiohttp_session : `aiohttp.ClientSession`, optional
+        The aiohttp session to be used for all HTTP requests made by this downloader.
     """
 
     def __init__(
@@ -86,43 +63,33 @@ class Downloader:
         max_conn=5,
         max_splits=5,
         progress=True,
-        file_progress=True,
-        notebook=None,
         overwrite=False,
-        headers=None,
-        use_aiofiles=False,
+        config=None,
     ):
 
-        self.max_conn = max_conn if not SERIAL_MODE else 1
-        self.max_splits = max_splits if not SERIAL_MODE else 1
+        self.config = _DownloaderConfig(
+            max_conn=max_conn,
+            max_splits=max_splits,
+            progress=progress,
+            overwrite=overwrite,
+            config=config,
+        )
+
         self._init_queues()
 
         # Configure progress bars
         self.tqdm = tqdm_auto
-        if notebook is not None:
-            if notebook is True:
+        if self.config.notebook is not None:
+            if self.config.notebook is True:
                 from tqdm.notebook import tqdm as tqdm_notebook
 
                 self.tqdm = tqdm_notebook
-            elif notebook is False:
+            elif self.config.notebook is False:
                 self.tqdm = tqdm_std
             else:
                 raise ValueError(
                     "The notebook keyword argument should be one of None, True or False."
                 )
-
-        self.progress = progress
-        self.file_progress = file_progress if self.progress else False
-
-        self.overwrite = overwrite
-
-        self.headers = headers or {}
-        if "User-Agent" not in self.headers:
-            self.headers[
-                "User-Agent"
-            ] = f"parfive/{parfive.__version__} aiohttp/{aiohttp.__version__} python/{sys.version[:5]}"
-
-        self._use_aiofiles = use_aiofiles
 
     def _init_queues(self):
         # Setup queues
@@ -131,37 +98,10 @@ class Downloader:
 
     def _generate_tokens(self):
         # Create a Queue with max_conn tokens
-        queue = asyncio.Queue(maxsize=self.max_conn)
-        for i in range(self.max_conn):
+        queue = asyncio.Queue(maxsize=self.config.max_conn)
+        for i in range(self.config.max_conn):
             queue.put_nowait(Token(i + 1))
         return queue
-
-    @property
-    @lru_cache()
-    def use_aiofiles(self):
-        """
-        aiofiles will be used if installed and must be explicitly enabled
-
-        PARFIVE_OVERWRITE_ENABLE_AIOFILES takes precedence if present,
-        aiofiles will not be used
-
-        finally the Downloader's constructor argument is considered.
-        """
-        if aiofiles is None:
-            return False
-
-        if "PARFIVE_OVERWRITE_ENABLE_AIOFILES" in os.environ:
-            return True
-
-        return self._use_aiofiles
-
-    @property
-    @lru_cache()
-    def default_chunk_size(self):
-        """
-        aiofiles requires a different default chunk size
-        """
-        return 1024 if self.use_aiofiles else 100
 
     @property
     def queued_downloads(self):
@@ -196,18 +136,10 @@ class Downloader:
             will be modified to be unique. If `None` the value set when
             constructing the `~parfive.Downloader` object will be used.
         kwargs : `dict`
-            Extra keyword arguments are passed to `aiohttp.ClientSession.get`
+            Extra keyword arguments are passed to `aiohttp.ClientSession.request`
             or `aioftp.Client.context` depending on the protocol.
-
-        Notes
-        -----
-        Proxy URL is read from the environment variables `HTTP_PROXY` or
-        `HTTPS_PROXY`, depending on the protocol of the `url` passed. Proxy
-        Authentication `proxy_auth` should be passed as a `aiohttp.BasicAuth`
-        object. Proxy Headers `proxy_headers` should be passed as `dict`
-        object.
         """
-        overwrite = overwrite or self.overwrite
+        overwrite = overwrite or self.config.overwrite
 
         if path is None and filename is None:
             raise ValueError("Either path or filename must be specified.")
@@ -228,14 +160,22 @@ class Downloader:
 
         if scheme in ("http", "https"):
             get_file = partial(
-                self._get_http, url=url, filepath_partial=filepath, overwrite=overwrite, **kwargs
+                self._get_http,
+                url=url,
+                filepath_partial=filepath,
+                overwrite=overwrite,
+                **kwargs,
             )
             self.http_queue.append(get_file)
         elif scheme == "ftp":
             if aioftp is None:
                 raise ValueError("The aioftp package must be installed to download over FTP.")
             get_file = partial(
-                self._get_ftp, url=url, filepath_partial=filepath, overwrite=overwrite, **kwargs
+                self._get_ftp,
+                url=url,
+                filepath_partial=filepath,
+                overwrite=overwrite,
+                **kwargs,
             )
             self.ftp_queue.append(get_file)
         else:
@@ -283,46 +223,28 @@ class Downloader:
 
         parfive.log.debug("Configured parfive to run with debug logging...")
 
-    async def run_download(self, timeouts=None):
+    async def run_download(self):
         """
         Download all files in the queue.
-
-        Parameters
-        ----------
-        timeouts : `dict`, optional
-            Overrides for the default timeouts for http downloads. Supported
-            keys are any accepted by the `aiohttp.ClientTimeout` class.
-            Defaults to no timeout for total session timeout (overriding the
-            aiohttp 5 minute default) and 90 seconds for socket read timeout.
 
         Returns
         -------
         `parfive.Results`
             A list of files downloaded.
 
-        Notes
-        -----
-        The defaults for the `'total'` and `'sock_read'` timeouts can be
-        overridden by two environment variables ``PARFIVE_TOTAL_TIMEOUT`` and
-        ``PARFIVE_SOCK_READ_TIMEOUT``.
         """
         # Setup debug logging before starting a download
-        if "PARFIVE_DEBUG" in os.environ:  # pragma: no cover
+        if self.config.debug:  # pragma: no cover
             self._configure_debug()  # pragma: no cover
-
-        timeouts = timeouts or {
-            "total": float(os.environ.get("PARFIVE_TOTAL_TIMEOUT", 0)),
-            "sock_read": float(os.environ.get("PARFIVE_SOCK_READ_TIMEOUT", 90)),
-        }
 
         total_files = self.queued_downloads
 
         done = set()
         with self._get_main_pb(total_files) as main_pb:
             if len(self.http_queue):
-                done.update(await self._run_http_download(main_pb, timeouts))
+                done.update(await self._run_http_download(main_pb))
             if len(self.ftp_queue):
-                done.update(await self._run_ftp_download(main_pb, timeouts))
+                done.update(await self._run_ftp_download(main_pb))
 
         dl_results = await asyncio.gather(*done, return_exceptions=True)
         errors = sum([isinstance(i, FailedDownload) for i in dl_results])
@@ -341,7 +263,9 @@ class Downloader:
             if isinstance(res, FailedDownload):
                 results.add_error(res.filepath_partial, res.url, res.exception)
                 parfive.log.info(
-                    "%s failed to download with exception\n" "%s", res.url, res.exception
+                    "%s failed to download with exception\n" "%s",
+                    res.url,
+                    res.exception,
                 )
             elif isinstance(res, Exception):
                 raise res
@@ -350,17 +274,9 @@ class Downloader:
 
         return results
 
-    def download(self, timeouts=None):
+    def download(self):
         """
         Download all files in the queue.
-
-        Parameters
-        ----------
-        timeouts : `dict`, optional
-            Overrides for the default timeouts for http downloads. Supported
-            keys are any accepted by the `aiohttp.ClientTimeout` class.
-            Defaults to no timeout for total session timeout (overriding the
-            aiohttp 5 minute default) and 90 seconds for socket read timeout.
 
         Returns
         -------
@@ -372,12 +288,8 @@ class Downloader:
         This is a synchronous version of `~parfive.Downloader.run_download`, an
         `asyncio` event loop will be created to run the download (in it's own
         thread if a loop is already running).
-
-        The defaults for the `'total'` and `'sock_read'` timeouts can be
-        overridden by two environment variables ``PARFIVE_TOTAL_TIMEOUT`` and
-        ``PARFIVE_SOCK_READ_TIMEOUT``.
         """
-        return self._run_in_loop(self.run_download(timeouts))
+        return self._run_in_loop(self.run_download())
 
     def retry(self, results):
         """
@@ -444,20 +356,19 @@ class Downloader:
         Return the tqdm instance if we want it, else return a contextmanager
         that just returns None.
         """
-        if self.progress:
+        if self.config.progress:
             return self.tqdm(total=total, unit="file", desc="Files Downloaded", position=0)
         else:
             return contextlib.contextmanager(lambda: iter([None]))()
 
-    async def _run_http_download(self, main_pb, timeouts):
-        async with aiohttp.ClientSession(headers=self.headers) as session:
+    async def _run_http_download(self, main_pb):
+        async with self.config.aiohttp_session as session:
             self._generate_tokens()
             futures = await self._run_from_queue(
                 self.http_queue.generate_queue(),
                 self._generate_tokens(),
                 main_pb,
                 session=session,
-                timeouts=timeouts,
             )
 
             # Wait for all the coroutines to finish
@@ -465,24 +376,24 @@ class Downloader:
 
             return done
 
-    async def _run_ftp_download(self, main_pb, timeouts):
+    async def _run_ftp_download(self, main_pb):
         futures = await self._run_from_queue(
-            self.ftp_queue.generate_queue(), self._generate_tokens(), main_pb, timeouts=timeouts
+            self.ftp_queue.generate_queue(),
+            self._generate_tokens(),
+            main_pb,
         )
         # Wait for all the coroutines to finish
         done, _ = await asyncio.wait(futures)
 
         return done
 
-    async def _run_from_queue(self, queue, tokens, main_pb, *, session=None, timeouts):
+    async def _run_from_queue(self, queue, tokens, main_pb, *, session=None):
         futures = []
         while not queue.empty():
             get_file = await queue.get()
             token = await tokens.get()
-            file_pb = self.tqdm if self.file_progress else False
-            future = asyncio.create_task(
-                get_file(session, token=token, file_pb=file_pb, timeouts=timeouts)
-            )
+            file_pb = self.tqdm if self.config.file_progress else False
+            future = asyncio.create_task(get_file(session, token=token, file_pb=file_pb))
 
             def callback(token, future, main_pb):
                 tokens.put_nowait(token)
@@ -505,7 +416,6 @@ class Downloader:
         file_pb=None,
         token,
         overwrite,
-        timeouts,
         max_splits=None,
         **kwargs,
     ):
@@ -529,8 +439,6 @@ class Downloader:
             A token for this download slot.
         overwrite : `bool`
             Overwrite the file if it already exists.
-        timeouts : `dict`
-            Overrides for the default timeouts for http downloads.
         max_splits: `int`, optional
             Number of maximum concurrent connections per file.
         kwargs : `dict`
@@ -542,21 +450,20 @@ class Downloader:
             The name of the file saved.
         """
         if chunksize is None:
-            chunksize = self.default_chunk_size
+            chunksize = 1024
         if max_splits is None:
-            max_splits = self.max_splits
+            max_splits = self.config.max_splits
 
         # Define filepath and writer here as we use them in the except block
         filepath = writer = None
-        timeout = aiohttp.ClientTimeout(**timeouts)
         try:
             scheme = urllib.parse.urlparse(url).scheme
-            if "HTTP_PROXY" in os.environ and scheme == "http":
-                kwargs["proxy"] = os.environ["HTTP_PROXY"]
-            elif "HTTPS_PROXY" in os.environ and scheme == "https":
-                kwargs["proxy"] = os.environ["HTTPS_PROXY"]
+            if scheme == "http":
+                kwargs["proxy"] = self.config.http_proxy
+            elif scheme == "https":
+                kwargs["proxy"] = self.config.https_proxy
 
-            async with session.get(url, timeout=timeout, **kwargs) as resp:
+            async with session.get(url, timeout=self.config.timeouts, **kwargs) as resp:
                 parfive.log.debug(
                     "%s request made to %s with headers=%s",
                     resp.request_info.method,
@@ -601,7 +508,7 @@ class Downloader:
                     )
 
                     if (
-                        not DISABLE_RANGE
+                        not self.config.disable_range
                         and max_splits
                         and resp.headers.get("Accept-Ranges", None) == "bytes"
                         and "Content-length" in resp.headers
@@ -622,7 +529,6 @@ class Downloader:
                                         url,
                                         chunksize,
                                         _range,
-                                        timeout,
                                         downloaded_chunk_queue,
                                         **kwargs,
                                     )
@@ -636,7 +542,6 @@ class Downloader:
                                     url,
                                     chunksize,
                                     None,
-                                    timeout,
                                     downloaded_chunk_queue,
                                     **kwargs,
                                 )
@@ -681,12 +586,14 @@ class Downloader:
         filepath: `pathlib.Path`
             Path to the which the file should be downloaded.
         """
-        if self.use_aiofiles:
+        if self.config.use_aiofiles:
             await self._async_write_worker(queue, file_pb, filepath)
         else:
             await self._blocking_write_worker(queue, file_pb, filepath)
 
     async def _async_write_worker(self, queue, file_pb, filepath):
+        import aiofiles
+
         async with aiofiles.open(filepath, mode="wb") as f:
             while True:
                 offset, chunk = await queue.get()
@@ -716,9 +623,7 @@ class Downloader:
 
                 queue.task_done()
 
-    async def _http_download_worker(
-        self, session, url, chunksize, http_range, timeout, queue, **kwargs
-    ):
+    async def _http_download_worker(self, session, url, chunksize, http_range, queue, **kwargs):
         """
         Worker for downloading chunks from http urls.
 
@@ -737,8 +642,6 @@ class Downloader:
         http_range: (`int`, `int`) or `None`
             Start and end bytes of the file. In None, then no `Range` header is specified
             in request and the whole file will be downloaded.
-        timeout : `int`
-            Sets the timeout for `aiohttp.ClientSession.get`.
         queue: `asyncio.Queue`
             Queue to put the download chunks.
         kwargs : `dict`
@@ -752,7 +655,9 @@ class Downloader:
         else:
             offset = 0
 
-        async with session.get(url, timeout=timeout, headers=headers, **kwargs) as resp:
+        async with session.get(
+            url, timeout=self.config.timeouts, headers=headers, **kwargs
+        ) as resp:
             parfive.log.debug(
                 "%s request made for download to %s with headers=%s",
                 resp.request_info.method,
@@ -785,7 +690,6 @@ class Downloader:
         file_pb=None,
         token,
         overwrite,
-        timeouts,
         **kwargs,
     ):
         """
@@ -806,8 +710,6 @@ class Downloader:
             A token for this download slot.
         overwrite : `bool`
             Whether to overwrite the file if it already exists.
-        timeouts : `dict`
-            Unused.
         kwargs : `dict`
             Extra keyword arguments are passed to `aioftp.Client.context`.
 
@@ -823,7 +725,9 @@ class Downloader:
                 parfive.log.debug("Connected to ftp server %s", parse.hostname)
                 if parse.username and parse.password:
                     parfive.log.debug(
-                        "Explicitly Logging in with %s:%s", parse.username, parse.password
+                        "Explicitly Logging in with %s:%s",
+                        parse.username,
+                        parse.password,
                     )
                     await client.login(parse.username, parse.password)
 

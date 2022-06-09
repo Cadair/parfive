@@ -10,6 +10,7 @@ import pytest
 from aiohttp import ClientTimeout
 
 import parfive
+from parfive.config import SessionConfig
 from parfive.downloader import Downloader, FailedDownload, Results, Token
 from parfive.utils import sha256sum
 
@@ -77,7 +78,7 @@ async def test_async_download(httpserver, tmpdir, use_aiofiles):
     httpserver.serve_content(
         "SIMPLE  = T", headers={"Content-Disposition": "attachment; filename=testfile.fits"}
     )
-    dl = Downloader(use_aiofiles=use_aiofiles)
+    dl = Downloader(config=SessionConfig(use_aiofiles=use_aiofiles))
 
     dl.enqueue_file(httpserver.url, path=Path(tmpdir), max_splits=None)
 
@@ -426,7 +427,7 @@ def test_custom_user_agent(httpserver, tmpdir):
         "SIMPLE  = T", headers={"Content-Disposition": "attachment; filename=testfile.fits"}
     )
 
-    dl = Downloader(headers={"User-Agent": "test value 299792458"})
+    dl = Downloader(config=SessionConfig(headers={"User-Agent": "test value 299792458"}))
     dl.enqueue_file(httpserver.url, path=Path(tmpdir), max_splits=None)
 
     assert dl.queued_downloads == 1
