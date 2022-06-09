@@ -17,7 +17,6 @@ from .results import Results
 from .utils import (
     FailedDownload,
     MultiPartDownloadError,
-    ParfiveUserWarning,
     Token,
     _QueueList,
     cancel_task,
@@ -591,12 +590,7 @@ class Downloader:
             # If filepath is None then the exception occurred before the request
             # computed the filepath, so we have no file to cleanup
             if filepath is not None:
-                try:
-                    remove_file(filepath)
-                except Exception as remove_exception:
-                    warnings.warn(
-                        f"Failed to delete possibly incomplete file {filepath} {remove_exception}",
-                        ParfiveUserWarning)
+                remove_file(filepath)
             raise FailedDownload(filepath_partial, url, e)
         finally:
             if writer is not None:
@@ -784,12 +778,7 @@ class Downloader:
             # If filepath is None then the exception occurred before the request
             # computed the filepath, so we have no file to cleanup
             if filepath is not None:
-                try:
-                    remove_file(filepath)
-                except Exception as remove_exception:
-                    warnings.warn(
-                        f"Failed to delete possibly incomplete file {filepath} {remove_exception}",
-                        ParfiveUserWarning)
+                remove_file(filepath)
             raise FailedDownload(filepath_partial, url, e)
 
         finally:

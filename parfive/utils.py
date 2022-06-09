@@ -2,6 +2,7 @@ import cgi
 import asyncio
 import hashlib
 import pathlib
+import warnings
 from pathlib import Path
 from itertools import count
 
@@ -183,19 +184,25 @@ class _QueueList(list):
         return queue
 
 
+class ParfiveUserWarning(UserWarning):
+    """
+    Raised for not-quite errors.
+    """
+
+
 def remove_file(filepath):
     """
     Remove the file from the disk, if it exists
     """
     filepath = Path(filepath)
-    if filepath.exists():
-        filepath.unlink()
-
-
-class ParfiveUserWarning(UserWarning):
-    """
-    Raised for not-quite errors.
-    """
+    try:
+        # When we drop 3.7 support we can use unlink(missing_ok=True)
+        if filepath.exists():
+            filepath.unlink()
+    except Exception as remove_exception:
+        warnings.warn(
+            f"Failed to delete possibly incomplete file {filepath} {remove_exception}",
+            ParfiveUserWarning)
 
 
 async def cancel_task(task):
