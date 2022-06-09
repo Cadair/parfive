@@ -12,14 +12,14 @@ from packaging.version import Version
 
 # -- Project information -------------------------------------------------------
 
-project = 'Parfive'
-author = 'Stuart Mumford and Contributors'
-copyright = '{}, {}'.format(datetime.datetime.now().year, author)
+project = "Parfive"
+author = "Stuart Mumford and Contributors"
+copyright = "{}, {}".format(datetime.datetime.now().year, author)
 
 # The full version, including alpha/beta/rc tags
 release = __version__
 parfive_version = Version(__version__)
-is_release = not(parfive_version.is_prerelease or parfive_version.is_devrelease)
+is_release = not (parfive_version.is_prerelease or parfive_version.is_devrelease)
 
 # -- General configuration -----------------------------------------------------
 
@@ -27,17 +27,17 @@ is_release = not(parfive_version.is_prerelease or parfive_version.is_devrelease)
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    'sphinx.ext.autodoc',
-    'sphinx.ext.coverage',
-    'sphinx.ext.doctest',
-    'sphinx.ext.inheritance_diagram',
-    'sphinx.ext.intersphinx',
-    'sphinx.ext.mathjax',
-    'sphinx.ext.napoleon',
-    'sphinx.ext.todo',
-    'sphinx.ext.viewcode',
-    'sphinx_automodapi.automodapi',
-    'sphinx_automodapi.smart_resolver',
+    "sphinx.ext.autodoc",
+    "sphinx.ext.coverage",
+    "sphinx.ext.doctest",
+    "sphinx.ext.inheritance_diagram",
+    "sphinx.ext.intersphinx",
+    "sphinx.ext.mathjax",
+    "sphinx.ext.napoleon",
+    "sphinx.ext.todo",
+    "sphinx.ext.viewcode",
+    "sphinx_automodapi.automodapi",
+    "sphinx_automodapi.smart_resolver",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -50,20 +50,20 @@ extensions = [
 # Add any extra paths that contain custom files (such as robots.txt or
 # .htaccess) here, relative to this directory. These files are copied
 # directly to the root of the documentation.
-html_extra_path = ['robots.txt']
+html_extra_path = ["robots.txt"]
 
-exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
+exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
-source_suffix = '.rst'
+source_suffix = ".rst"
 
 # The master toctree document.
-master_doc = 'index'
+master_doc = "index"
 
 # The reST default role (used for this markup: `text`) to use for all
 # documents. Set to the "smart" one.
-default_role = 'obj'
+default_role = "obj"
 
 # Disable having a separate return type row
 napoleon_use_rtype = False
@@ -74,9 +74,11 @@ napoleon_google_docstring = False
 # -- Options for intersphinx extension -----------------------------------------
 
 # Example configuration for intersphinx: refer to the Python standard library.
-intersphinx_mapping = {'https://docs.python.org/': None,
-                       'http://aiohttp.readthedocs.io/en/stable': None,
-                       'https://aioftp.readthedocs.io/': None}
+intersphinx_mapping = {
+    "https://docs.python.org/": None,
+    "http://aiohttp.readthedocs.io/en/stable": None,
+    "https://aioftp.readthedocs.io/": None,
+}
 
 # -- Options for HTML output ---------------------------------------------------
 
@@ -87,8 +89,8 @@ try:
     from sunpy_sphinx_theme.conf import *  # NOQA
 
     html_theme_options = {
-        'logo_url': 'https://parfive.readthedocs.io/en/latest/',
-        "page_toctree_depths": {}
+        "logo_url": "https://parfive.readthedocs.io/en/latest/",
+        "page_toctree_depths": {},
     }
 
 except ImportError:
@@ -103,10 +105,10 @@ except ImportError:
 graphviz_output_format = "svg"
 
 graphviz_dot_args = [
-    '-Nfontsize=10',
-    '-Nfontname=Helvetica Neue, Helvetica, Arial, sans-serif',
-    '-Efontsize=10',
-    '-Efontname=Helvetica Neue, Helvetica, Arial, sans-serif',
-    '-Gfontsize=10',
-    '-Gfontname=Helvetica Neue, Helvetica, Arial, sans-serif'
+    "-Nfontsize=10",
+    "-Nfontname=Helvetica Neue, Helvetica, Arial, sans-serif",
+    "-Efontsize=10",
+    "-Efontname=Helvetica Neue, Helvetica, Arial, sans-serif",
+    "-Gfontsize=10",
+    "-Gfontname=Helvetica Neue, Helvetica, Arial, sans-serif",
 ]

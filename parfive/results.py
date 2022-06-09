@@ -4,7 +4,7 @@ import aiohttp
 
 from .utils import FailedDownload
 
-__all__ = ['Results']
+__all__ = ["Results"]
 
 
 class Error(namedtuple("error", ("filepath_partial", "url", "exception"))):
@@ -36,19 +36,21 @@ class Results(UserList):
         if isinstance(response, aiohttp.ClientResponse):
             ascii_encodable_url = str(response.url)
             if response.reason:
-                ascii_encodable_reason = response.reason.encode('ascii',
-                                                                'backslashreplace').decode('ascii')
+                ascii_encodable_reason = response.reason.encode("ascii", "backslashreplace").decode(
+                    "ascii"
+                )
             else:
                 ascii_encodable_reason = response.reason
-            return '<ClientResponse({}) [{} {}]>'.format(
-                ascii_encodable_url, response.status, ascii_encodable_reason)
+            return "<ClientResponse({}) [{} {}]>".format(
+                ascii_encodable_url, response.status, ascii_encodable_reason
+            )
         else:
             return repr(response)
 
     def __str__(self):
         out = super().__repr__()
         if self.errors:
-            out += '\nErrors:\n'
+            out += "\nErrors:\n"
             for error in self.errors:
                 if isinstance(error, FailedDownload):
                     resp = self._get_nice_resp_repr(error.exception)
@@ -59,7 +61,7 @@ class Results(UserList):
 
     def __repr__(self):
         out = object.__repr__(self)
-        out += '\n'
+        out += "\n"
         out += str(self)
         return out
 

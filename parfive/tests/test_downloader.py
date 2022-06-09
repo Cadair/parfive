@@ -13,7 +13,7 @@ import parfive
 from parfive.downloader import Downloader, FailedDownload, Results, Token
 from parfive.utils import sha256sum
 
-skip_windows = pytest.mark.skipif(platform.system() == 'Windows', reason="Windows.")
+skip_windows = pytest.mark.skipif(platform.system() == "Windows", reason="Windows.")
 
 
 def validate_test_file(f):
@@ -34,8 +34,9 @@ def test_setup():
 
 def test_download(httpserver, tmpdir):
     tmpdir = str(tmpdir)
-    httpserver.serve_content('SIMPLE  = T',
-                             headers={'Content-Disposition': "attachment; filename=testfile.fits"})
+    httpserver.serve_content(
+        "SIMPLE  = T", headers={"Content-Disposition": "attachment; filename=testfile.fits"}
+    )
     dl = Downloader()
 
     dl.enqueue_file(httpserver.url, path=Path(tmpdir), max_splits=None)
@@ -48,8 +49,9 @@ def test_download(httpserver, tmpdir):
 
 def test_simple_download(httpserver, tmpdir):
     tmpdir = str(tmpdir)
-    httpserver.serve_content('SIMPLE  = T',
-                             headers={'Content-Disposition': "attachment; filename=testfile.fits"})
+    httpserver.serve_content(
+        "SIMPLE  = T", headers={"Content-Disposition": "attachment; filename=testfile.fits"}
+    )
 
     f = Downloader.simple_download([httpserver.url], path=Path(tmpdir))
     validate_test_file(f)
@@ -58,8 +60,9 @@ def test_simple_download(httpserver, tmpdir):
 def test_changed_max_conn(httpserver, tmpdir):
     # Check that changing max_conn works after creating Downloader
     tmpdir = str(tmpdir)
-    httpserver.serve_content('SIMPLE  = T',
-                             headers={'Content-Disposition': "attachment; filename=testfile.fits"})
+    httpserver.serve_content(
+        "SIMPLE  = T", headers={"Content-Disposition": "attachment; filename=testfile.fits"}
+    )
     dl = Downloader(max_conn=4)
     dl.enqueue_file(httpserver.url, path=Path(tmpdir), max_splits=None)
     dl.max_conn = 3
@@ -71,8 +74,9 @@ def test_changed_max_conn(httpserver, tmpdir):
 @pytest.mark.asyncio
 @pytest.mark.parametrize("use_aiofiles", [True, False])
 async def test_async_download(httpserver, tmpdir, use_aiofiles):
-    httpserver.serve_content('SIMPLE  = T',
-                             headers={'Content-Disposition': "attachment; filename=testfile.fits"})
+    httpserver.serve_content(
+        "SIMPLE  = T", headers={"Content-Disposition": "attachment; filename=testfile.fits"}
+    )
     dl = Downloader(use_aiofiles=use_aiofiles)
 
     dl.enqueue_file(httpserver.url, path=Path(tmpdir), max_splits=None)
@@ -85,8 +89,9 @@ async def test_async_download(httpserver, tmpdir, use_aiofiles):
 
 def test_download_ranged_http(httpserver, tmpdir):
     tmpdir = str(tmpdir)
-    httpserver.serve_content('SIMPLE  = T',
-                             headers={'Content-Disposition': "attachment; filename=testfile.fits"})
+    httpserver.serve_content(
+        "SIMPLE  = T", headers={"Content-Disposition": "attachment; filename=testfile.fits"}
+    )
     dl = Downloader()
 
     dl.enqueue_file(httpserver.url, path=Path(tmpdir))
@@ -99,9 +104,13 @@ def test_download_ranged_http(httpserver, tmpdir):
 
 def test_regression_download_ranged_http(httpserver, tmpdir):
     tmpdir = str(tmpdir)
-    httpserver.serve_content('S',
-                             headers={'Content-Disposition': "attachment; filename=testfile.fits",
-                                      'Accept-Ranges': "bytes"})
+    httpserver.serve_content(
+        "S",
+        headers={
+            "Content-Disposition": "attachment; filename=testfile.fits",
+            "Accept-Ranges": "bytes",
+        },
+    )
     dl = Downloader()
 
     dl.enqueue_file(httpserver.url, path=Path(tmpdir))
@@ -114,7 +123,7 @@ def test_regression_download_ranged_http(httpserver, tmpdir):
 
 def test_download_partial(httpserver, tmpdir):
     tmpdir = str(tmpdir)
-    httpserver.serve_content('SIMPLE  = T')
+    httpserver.serve_content("SIMPLE  = T")
     dl = Downloader()
 
     dl.enqueue_file(httpserver.url, filename=lambda resp, url: Path(tmpdir) / "filename")
@@ -133,7 +142,7 @@ def test_empty_download(tmpdir):
 
 
 def test_download_filename(httpserver, tmpdir):
-    httpserver.serve_content('SIMPLE  = T')
+    httpserver.serve_content("SIMPLE  = T")
 
     fname = "testing123"
     filename = str(tmpdir.join(fname))
@@ -152,7 +161,7 @@ def test_download_filename(httpserver, tmpdir):
 
 
 def test_download_no_overwrite(httpserver, tmpdir):
-    httpserver.serve_content('SIMPLE  = T')
+    httpserver.serve_content("SIMPLE  = T")
 
     fname = "testing123"
     filename = str(tmpdir.join(fname))
@@ -176,7 +185,7 @@ def test_download_no_overwrite(httpserver, tmpdir):
 
 
 def test_download_overwrite(httpserver, tmpdir):
-    httpserver.serve_content('SIMPLE  = T')
+    httpserver.serve_content("SIMPLE  = T")
 
     fname = "testing123"
     filename = str(tmpdir.join(fname))
@@ -198,14 +207,14 @@ def test_download_overwrite(httpserver, tmpdir):
 
 
 def test_download_unique(httpserver, tmpdir):
-    httpserver.serve_content('SIMPLE  = T')
+    httpserver.serve_content("SIMPLE  = T")
 
     fname = "testing123"
     filename = str(tmpdir.join(fname))
 
-    filenames = [filename, filename + '.fits', filename + '.fits.gz']
+    filenames = [filename, filename + ".fits", filename + ".fits.gz"]
 
-    dl = Downloader(overwrite='unique')
+    dl = Downloader(overwrite="unique")
 
     # Write files to both the target filenames.
     for fn in filenames:
@@ -243,7 +252,7 @@ def test_retrieve_some_content(testserver, tmpdir):
 
 def test_no_progress(httpserver, tmpdir, capsys):
     tmpdir = str(tmpdir)
-    httpserver.serve_content('SIMPLE  = T')
+    httpserver.serve_content("SIMPLE  = T")
     dl = Downloader(progress=False)
 
     dl.enqueue_file(httpserver.url, path=tmpdir)
@@ -262,7 +271,7 @@ def throwerror(*args, **kwargs):
 @patch("parfive.downloader.default_name", throwerror)
 def test_raises_other_exception(httpserver, tmpdir):
     tmpdir = str(tmpdir)
-    httpserver.serve_content('SIMPLE  = T')
+    httpserver.serve_content("SIMPLE  = T")
     dl = Downloader()
 
     dl.enqueue_file(httpserver.url, path=tmpdir)
@@ -360,7 +369,10 @@ def test_ftp_pasv_command(tmpdir):
     tmpdir = str(tmpdir)
     dl = Downloader()
     dl.enqueue_file(
-        "ftp://ftp.ngdc.noaa.gov/STP/swpc_products/daily_reports/solar_region_summaries/2002/04/20020414SRS.txt", path=tmpdir, passive_commands=["pasv"])
+        "ftp://ftp.ngdc.noaa.gov/STP/swpc_products/daily_reports/solar_region_summaries/2002/04/20020414SRS.txt",
+        path=tmpdir,
+        passive_commands=["pasv"],
+    )
     assert dl.queued_downloads == 1
     f = dl.download()
     assert len(f) == 1
@@ -371,7 +383,7 @@ def test_ftp_pasv_command(tmpdir):
 @pytest.mark.allow_hosts(True)
 def test_ftp_http(tmpdir, httpserver):
     tmpdir = str(tmpdir)
-    httpserver.serve_content('SIMPLE  = T')
+    httpserver.serve_content("SIMPLE  = T")
     dl = Downloader()
 
     dl.enqueue_file("ftp://ftp.swpc.noaa.gov/pub/warehouse/2011/2011_SRS.tar.gz", path=tmpdir)
@@ -390,8 +402,9 @@ def test_ftp_http(tmpdir, httpserver):
 
 def test_default_user_agent(httpserver, tmpdir):
     tmpdir = str(tmpdir)
-    httpserver.serve_content('SIMPLE  = T',
-                             headers={'Content-Disposition': "attachment; filename=testfile.fits"})
+    httpserver.serve_content(
+        "SIMPLE  = T", headers={"Content-Disposition": "attachment; filename=testfile.fits"}
+    )
 
     dl = Downloader()
     dl.enqueue_file(httpserver.url, path=Path(tmpdir), max_splits=None)
@@ -400,35 +413,42 @@ def test_default_user_agent(httpserver, tmpdir):
 
     dl.download()
 
-    assert 'User-Agent' in httpserver.requests[0].headers
-    assert httpserver.requests[0].headers[
-        'User-Agent'] == f"parfive/{parfive.__version__} aiohttp/{aiohttp.__version__} python/{sys.version[:5]}"
+    assert "User-Agent" in httpserver.requests[0].headers
+    assert (
+        httpserver.requests[0].headers["User-Agent"]
+        == f"parfive/{parfive.__version__} aiohttp/{aiohttp.__version__} python/{sys.version[:5]}"
+    )
 
 
 def test_custom_user_agent(httpserver, tmpdir):
     tmpdir = str(tmpdir)
-    httpserver.serve_content('SIMPLE  = T',
-                             headers={'Content-Disposition': "attachment; filename=testfile.fits"})
+    httpserver.serve_content(
+        "SIMPLE  = T", headers={"Content-Disposition": "attachment; filename=testfile.fits"}
+    )
 
-    dl = Downloader(headers={'User-Agent': 'test value 299792458'})
+    dl = Downloader(headers={"User-Agent": "test value 299792458"})
     dl.enqueue_file(httpserver.url, path=Path(tmpdir), max_splits=None)
 
     assert dl.queued_downloads == 1
 
     dl.download()
 
-    assert 'User-Agent' in httpserver.requests[0].headers
-    assert httpserver.requests[0].headers['User-Agent'] == "test value 299792458"
+    assert "User-Agent" in httpserver.requests[0].headers
+    assert httpserver.requests[0].headers["User-Agent"] == "test value 299792458"
 
 
-@patch.dict(os.environ, {'HTTP_PROXY': "http_proxy_url", 'HTTPS_PROXY': "https_proxy_url"})
-@pytest.mark.parametrize("url,proxy", [('http://test.example.com',
-                                        'http_proxy_url'), ('https://test.example.com', 'https_proxy_url')])
+@patch.dict(os.environ, {"HTTP_PROXY": "http_proxy_url", "HTTPS_PROXY": "https_proxy_url"})
+@pytest.mark.parametrize(
+    "url,proxy",
+    [
+        ("http://test.example.com", "http_proxy_url"),
+        ("https://test.example.com", "https_proxy_url"),
+    ],
+)
 def test_proxy_passed_as_kwargs_to_get(tmpdir, url, proxy):
 
     with mock.patch(
-        "aiohttp.client.ClientSession._request",
-        new_callable=mock.MagicMock
+        "aiohttp.client.ClientSession._request", new_callable=mock.MagicMock
     ) as patched:
 
         dl = Downloader()
@@ -439,8 +459,11 @@ def test_proxy_passed_as_kwargs_to_get(tmpdir, url, proxy):
         dl.download()
 
     assert patched.called, "`ClientSession._request` not called"
-    assert list(patched.call_args) == [('GET', url),
-                                       {'allow_redirects': True,
-                                        'timeout': ClientTimeout(total=0, connect=None, sock_read=90, sock_connect=None),
-                                        'proxy': proxy
-                                        }]
+    assert list(patched.call_args) == [
+        ("GET", url),
+        {
+            "allow_redirects": True,
+            "timeout": ClientTimeout(total=0, connect=None, sock_read=90, sock_connect=None),
+            "proxy": proxy,
+        },
+    ]

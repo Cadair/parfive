@@ -8,16 +8,16 @@ from itertools import count
 
 import parfive
 
-__all__ = ['cancel_task', 'run_in_thread', 'Token', 'FailedDownload', 'default_name', 'remove_file']
+__all__ = ["cancel_task", "run_in_thread", "Token", "FailedDownload", "default_name", "remove_file"]
 
 
 def default_name(path, resp, url):
-    url_filename = url.split('/')[-1]
+    url_filename = url.split("/")[-1]
     if resp:
         cdheader = resp.headers.get("Content-Disposition", None)
         if cdheader:
             value, params = cgi.parse_header(cdheader)
-            name = params.get('filename', url_filename)
+            name = params.get("filename", url_filename)
         else:
             name = url_filename
     else:
@@ -65,7 +65,7 @@ def replacement_filename(path):
     if not path.exists:
         return path
 
-    suffix = ''.join(path.suffixes)
+    suffix = "".join(path.suffixes)
     for c in count(1):
         if suffix:
             name, _ = path.name.split(suffix)
@@ -89,7 +89,7 @@ def get_filepath(filepath, overwrite):
     if filepath.exists():
         if not overwrite:
             return str(filepath), True
-        if overwrite == 'unique':
+        if overwrite == "unique":
             filepath = replacement_filename(filepath)
     if not filepath.parent.exists():
         filepath.parent.mkdir(parents=True)
@@ -104,7 +104,7 @@ def sha256sum(filename):
     h = hashlib.sha256()
     b = bytearray(128 * 1024)
     mv = memoryview(b)
-    with open(filename, 'rb', buffering=0) as f:
+    with open(filename, "rb", buffering=0) as f:
         for n in iter(lambda: f.readinto(mv), 0):
             h.update(mv[:n])
     return h.hexdigest()
@@ -124,7 +124,7 @@ class FailedDownload(Exception):
 
     def __repr__(self):
         out = super().__repr__()
-        out += f'\n {self.url} {self.exception}'
+        out += f"\n {self.url} {self.exception}"
         return out
 
     def __str__(self):
@@ -176,7 +176,8 @@ def remove_file(filepath):
     except Exception as remove_exception:
         warnings.warn(
             f"Failed to delete possibly incomplete file {filepath} {remove_exception}",
-            ParfiveUserWarning)
+            ParfiveUserWarning,
+        )
 
 
 async def cancel_task(task):
