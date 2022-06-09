@@ -3,7 +3,6 @@ import sys
 import asyncio
 import logging
 import pathlib
-import warnings
 import contextlib
 import urllib.parse
 from functools import partial, lru_cache
@@ -83,12 +82,9 @@ class Downloader:
     """
 
     def __init__(self, max_conn=5, max_splits=5, progress=True, file_progress=True,
-                 loop=None, notebook=None, overwrite=False, headers=None,
+                 notebook=None, overwrite=False, headers=None,
                  use_aiofiles=False):
 
-        if loop:
-            warnings.warn('The loop argument is no longer used, and will be '
-                          'removed in a future release.')
         self.max_conn = max_conn if not SERIAL_MODE else 1
         self.max_splits = max_splits if not SERIAL_MODE else 1
         self._init_queues()
