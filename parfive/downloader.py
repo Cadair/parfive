@@ -1,16 +1,19 @@
+import os
 import asyncio
 import logging
 import pathlib
 import contextlib
 import urllib.parse
+from typing import Union, Literal, Callable, Optional
 from functools import partial
 from concurrent.futures import ThreadPoolExecutor
 
+import aiohttp
 from tqdm import tqdm as tqdm_std
 from tqdm.auto import tqdm as tqdm_auto
 
 import parfive
-from .config import _DownloaderConfig
+from .config import SessionConfig, _DownloaderConfig
 from .results import Results
 from .utils import (
     FailedDownload,
@@ -54,17 +57,15 @@ class Downloader:
         returned to the existing file, if `True` the file will be downloaded
         and the existing file will be overwritten, if `'unique'` the filename
         will be modified to be unique.
-    aiohttp_session : `aiohttp.ClientSession`, optional
-        The aiohttp session to be used for all HTTP requests made by this downloader.
     """
 
     def __init__(
         self,
-        max_conn=5,
-        max_splits=5,
-        progress=True,
-        overwrite=False,
-        config=None,
+        max_conn: int = 5,
+        max_splits: int = 5,
+        progress: bool = True,
+        overwrite: Union[bool, Literal["unique"]] = False,
+        config: SessionConfig = None,
     ):
 
         self.config = _DownloaderConfig(
@@ -111,24 +112,31 @@ class Downloader:
 
         return len(self.http_queue) + len(self.ftp_queue)
 
-    def enqueue_file(self, url, path=None, filename=None, overwrite=None, **kwargs):
+    def enqueue_file(
+        self,
+        url: str,
+        path: Union[str, os.PathLike] = None,
+        filename: Union[str, Callable[[str, Optional[aiohttp.ClientResponse]], os.PathLike]] = None,
+        overwrite: Union[bool, Literal["unique"]] = None,
+        **kwargs,
+    ):
         """
         Add a file to the download queue.
 
         Parameters
         ----------
-        url : `str`
+        url
             The URL to retrieve.
-        path : `str`, optional
+        path
             The directory to retrieve the file into, if `None` defaults to the
             current directory.
-        filename : `str` or `callable`, optional
+        filename
             The filename to save the file as. Can also be a callable which
             takes two arguments the url and the response object from opening
             that URL, and returns the filename. (Note, for FTP downloads the
             response will be ``None``.) If `None` the HTTP headers will be read
             for the filename, or the last segment of the URL will be used.
-        overwrite : `bool` or `str`, optional
+        overwrite
             Determine how to handle downloading if a file already exists with the
             same name. If `False` the file download will be skipped and the path
             returned to the existing file, if `True` the file will be downloaded
@@ -147,13 +155,14 @@ class Downloader:
             path = "./"
 
         path = pathlib.Path(path)
+        filepath: Callable[[str, Optional[aiohttp.ClientResponse]], os.PathLike]
         if not filename:
             filepath = partial(default_name, path)
         elif callable(filename):
             filepath = filename
         else:
             # Define a function because get_file expects a callback
-            def filepath(*args):
+            def filepath(url, resp):
                 return path / filename
 
         scheme = urllib.parse.urlparse(url).scheme
@@ -291,7 +300,7 @@ class Downloader:
         """
         return self._run_in_loop(self.run_download())
 
-    def retry(self, results):
+    def retry(self, results: Results):
         """
         Retry any failed downloads in a results object.
 
