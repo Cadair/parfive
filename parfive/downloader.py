@@ -13,7 +13,7 @@ from tqdm import tqdm as tqdm_std
 from tqdm.auto import tqdm as tqdm_auto
 
 import parfive
-from .config import SessionConfig, _DownloaderConfig
+from .config import DownloaderConfig, SessionConfig
 from .results import Results
 from .utils import (
     FailedDownload,
@@ -44,19 +44,22 @@ class Downloader:
 
     Parameters
     ----------
-    max_conn : `int`, optional
+    max_conn
         The number of parallel download slots.
-    max_splits : `int`, optional
+    max_splits
         The maximum number of splits to use to download a file (server dependant).
-    progress : `bool`, optional
+    progress
         If `True` show a main progress bar showing how many of the total files
         have been downloaded. If `False`, no progress bars will be shown at all.
-    overwrite : `bool` or `str`, optional
+    overwrite
         Determine how to handle downloading if a file already exists with the
         same name. If `False` the file download will be skipped and the path
         returned to the existing file, if `True` the file will be downloaded
         and the existing file will be overwritten, if `'unique'` the filename
         will be modified to be unique.
+    config
+        A config object containing more complex settings for this
+        ``Downloader`` instance.
     """
 
     def __init__(
@@ -68,7 +71,7 @@ class Downloader:
         config: SessionConfig = None,
     ):
 
-        self.config = _DownloaderConfig(
+        self.config = DownloaderConfig(
             max_conn=max_conn,
             max_splits=max_splits,
             progress=progress,

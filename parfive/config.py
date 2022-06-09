@@ -9,7 +9,7 @@ import aiohttp
 import parfive
 from parfive.utils import ParfiveUserWarning
 
-__all__ = ["SessionConfig"]
+__all__ = ["DownloaderConfig", "SessionConfig"]
 
 
 def _default_headers():
@@ -21,31 +21,28 @@ def _default_headers():
 @dataclass
 class SessionConfig:
     """
-    Extra session config for advanced users.
-
-    The defaults for the `'total'` and `'sock_read'` timeouts can be
-    overridden by two environment variables ``PARFIVE_TOTAL_TIMEOUT`` and
-    ``PARFIVE_SOCK_READ_TIMEOUT``.
+    Configuration options for `parfive.Downloader`.
     """
 
     http_proxy: Optional[str] = None
     """
-    The URL of a proxy to use for http requests. Will default to the value of
+    The URL of a proxy to use for HTTP requests. Will default to the value of
     the ``HTTP_PROXY`` env var.
     """
     https_proxy: Optional[str] = None
     """
-    The URL of a proxy to use for https requests. Will default to the value of
-    the ``HTTPSPROXY`` env var.
+    The URL of a proxy to use for HTTPS requests. Will default to the value of
+    the ``HTTPS_PROXY`` env var.
     """
     headers: Dict = field(default_factory=_default_headers)
     """
-    Headers to be passed to all requests made by this session.
-    These headers are passed to the `aiohttp.ClientSession` along with ``aiohttp_session_kwargs``.
+    Headers to be passed to all requests made by this session. These headers
+    are passed to the `aiohttp.ClientSession` along with
+    ``aiohttp_session_kwargs``.
     """
     chunksize: float = 1024
     """
-    The default chunksize to be used for transfers over http.
+    The default chunksize to be used for transfers over HTTP.
     """
     file_progress: bool = True
     """
@@ -54,26 +51,40 @@ class SessionConfig:
     """
     notebook: Union[bool, None] = None
     """
-    If `None` `tqdm` will automatically detect if it can draw rich IPython Notebook progress bars.
-    If `False` or `True` notebook mode will be forced off or on.
+    If `None` `tqdm` will automatically detect if it can draw rich IPython
+    Notebook progress bars. If `False` or `True` notebook mode will be forced
+    off or on.
     """
     use_aiofiles: bool = False
     """
-    Enable the use of `aiofiles` to write files to disk in their own thread pool.
+    Enables using `aiofiles` to write files to disk in their own thread pool.
+
+    This argument will be overridden by the
+    ``PARFIVE_OVERWRITE_ENABLE_AIOFILES`` environment variable. If `aiofiles`
+    can not be imported then this will be set to `False`.
     """
     timeouts: Optional[aiohttp.ClientTimeout] = None
     """
-    The `aiohttp.ClientTimeout` object to control the timeouts used for all HTTP requests.
+    The `aiohttp.ClientTimeout` object to control the timeouts used for all
+    HTTP requests.
+
+    By default the ``total`` timeout is set to `0` (never timeout) and the
+    ``sock_read`` timeout is set to `90` seconds. These defaults can also be
+    overridden by the ``PARFIVE_TOTAL_TIMEOUT`` and
+    ``PARFIVE_SOCK_READ_TIMEOUT`` environment variables.
     """
     aiohttp_session_kwargs: Dict = field(default_factory=dict)
     """
     Any extra keyword arguments to be passed to `aiohttp.ClientSession`.
+
+    Note that the `headers` keyword argument is handled separately, so should
+    not be included in this dict.
     """
 
     @staticmethod
     def _aiofiles_importable():
         try:
-            pass
+            import aiofiles
         except ImportError:
             return False
         return True
@@ -100,7 +111,7 @@ class SessionConfig:
 
 
 @dataclass
-class _DownloaderConfig(SessionConfig):
+class DownloaderConfig(SessionConfig):
     """
     Hold all downloader session state.
     """
