@@ -9,7 +9,8 @@ from functools import partial, lru_cache
 from concurrent.futures import ThreadPoolExecutor
 
 import aiohttp
-from tqdm import tqdm, tqdm_notebook
+from tqdm import tqdm as tqdm_std
+from tqdm.auto import tqdm as tqdm_auto
 
 import parfive
 from .results import Results
@@ -23,7 +24,6 @@ from .utils import (
     get_filepath,
     get_ftp_size,
     get_http_size,
-    in_notebook,
     remove_file,
     run_in_thread,
 )
@@ -90,11 +90,18 @@ class Downloader:
         self._init_queues()
 
         # Configure progress bars
-        if notebook is None:
-            notebook = in_notebook()
+        self.tqdm = tqdm_auto
+        if notebook is not None:
+            if notebook is True:
+                from tqdm.notebook import tqdm as tqdm_notebook
+                self.tqdm = tqdm_notebook
+            elif notebook is False:
+                self.tqdm = tqdm_std
+            else:
+                raise ValueError("The notebook keyword argument should be one of None, True or False.")
+
         self.progress = progress
         self.file_progress = file_progress if self.progress else False
-        self.tqdm = tqdm if not notebook else tqdm_notebook
 
         self.overwrite = overwrite
 
@@ -591,7 +598,7 @@ class Downloader:
         finally:
             if writer is not None:
                 writer.cancel()
-            if isinstance(file_pb, tqdm):
+            if isinstance(file_pb, self.tqdm):
                 file_pb.close()
 
     async def _write_worker(self, queue, file_pb, filepath):
@@ -781,7 +788,7 @@ class Downloader:
             # Just make sure we close the file.
             if writer is not None:
                 writer.cancel()
-            if isinstance(file_pb, tqdm):
+            if isinstance(file_pb, self.tqdm):
                 file_pb.close()
 
     async def _ftp_download_worker(self, stream, queue):

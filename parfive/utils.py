@@ -8,33 +8,7 @@ from itertools import count
 
 import parfive
 
-__all__ = ['cancel_task', 'run_in_thread', 'Token', 'FailedDownload', 'default_name',
-           'in_notebook', 'remove_file']
-
-
-def in_notebook():
-    try:
-        import ipykernel.zmqshell
-        shell = get_ipython()  # noqa
-        if isinstance(shell, ipykernel.zmqshell.ZMQInteractiveShell):
-            try:
-                # Newer tqdm
-                import tqdm.notebook
-                return tqdm.notebook.IPY > 0
-            except ImportError:
-                # Older tqdm
-                try:
-                    # Check that we can import the right widget
-                    from tqdm import _tqdm_notebook
-                    _tqdm_notebook.IntProgress
-                except Exception:
-                    return False
-            except Exception:
-                return False
-            return True
-        return False
-    except Exception:
-        return False
+__all__ = ['cancel_task', 'run_in_thread', 'Token', 'FailedDownload', 'default_name', 'remove_file']
 
 
 def default_name(path, resp, url):
