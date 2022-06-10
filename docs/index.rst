@@ -72,13 +72,15 @@ Parfive also bundles a CLI. The following example will download the two files co
 Environment Variables
 ---------------------
 
-To facilitate debugging parfive reads the following environment variables, note that as of version 2.0 all environment variables are read at the point where the ``Downloader()`` class is instantiated.
+Parfive reads the following environment variables, note that as of version 2.0 all environment variables are read at the point where the ``Downloader()`` class is instantiated.
 
-* ``PARFIVE_SINGLE_DOWNLOAD`` - If set (to any value) this variable sets ``max_conn`` and ``max_splits`` to one; meaning that no parallelisation of the downloads will occur.
-* ``PARFIVE_DISABLE_RANGE`` - If set (to any value) this variable will set ``max_splits`` to one; meaning that each file downloaded will only have one concurrent connection, although multiple files may be downloaded simultaneously.
-* ``PARFIVE_OVERWRITE_ENABLE_AIOFILES`` - If set (to any value) and aiofiles is installed in the system, aiofiles will be used to write files to disk.
-* ``PARFIVE_DEBUG`` - If set (to any value) will configure the built-in Python logger to log to stderr and set parfive, aiohttp and aioftp to debug levels.
-* ``PARFIVE_HIDE_PROGESS`` - If set (to any value) no progress bars will be shown.
+* ``PARFIVE_SINGLE_DOWNLOAD`` - If set to ``"True"`` this variable sets ``max_conn`` and ``max_splits`` to one; meaning that no parallelisation of the downloads will occur.
+* ``PARFIVE_DISABLE_RANGE`` - If set to ``"True"`` this variable will set ``max_splits`` to one; meaning that each file downloaded will only have one concurrent connection, although multiple files may be downloaded simultaneously.
+* ``PARFIVE_OVERWRITE_ENABLE_AIOFILES`` - If set to ``"True"`` and aiofiles is installed in the system, aiofiles will be used to write files to disk.
+* ``PARFIVE_DEBUG`` - If set to ``"True"`` will configure the built-in Python logger to log to stderr and set parfive, aiohttp and aioftp to debug levels.
+* ``PARFIVE_HIDE_PROGESS`` - If set to ``"True"`` no progress bars will be shown.
+* ``PARFIVE_TOTAL_TIMEOUT`` - Overrides the default aiohttp ``total`` timeout value (unless set in Python).
+* ``PARFIVE_SOCK_READ_TIMEOUT`` - Overrides the default aiohttp ``sock_read`` timeout value (unless set in Python).
 
 Changelog
 ---------
