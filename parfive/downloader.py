@@ -219,22 +219,14 @@ class Downloader:
 
         if scheme in ("http", "https"):
             get_file = partial(
-                self._get_http,
-                url=url,
-                filepath_partial=filepath,
-                overwrite=overwrite,
-                **kwargs,
+                self._get_http, url=url, filepath_partial=filepath, overwrite=overwrite, **kwargs
             )
             self.http_queue.append(get_file)
         elif scheme == "ftp":
             if aioftp is None:
                 raise ValueError("The aioftp package must be installed to download over FTP.")
             get_file = partial(
-                self._get_ftp,
-                url=url,
-                filepath_partial=filepath,
-                overwrite=overwrite,
-                **kwargs,
+                self._get_ftp, url=url, filepath_partial=filepath, overwrite=overwrite, **kwargs
             )
             self.ftp_queue.append(get_file)
         else:
@@ -295,9 +287,7 @@ class Downloader:
             if isinstance(res, FailedDownload):
                 results.add_error(res.filepath_partial, res.url, res.exception)
                 parfive.log.info(
-                    "%s failed to download with exception\n" "%s",
-                    res.url,
-                    res.exception,
+                    "%s failed to download with exception\n" "%s", res.url, res.exception
                 )
             elif isinstance(res, Exception):
                 raise res
@@ -410,9 +400,7 @@ class Downloader:
 
     async def _run_ftp_download(self, main_pb):
         futures = await self._run_from_queue(
-            self.ftp_queue.generate_queue(),
-            self._generate_tokens(),
-            main_pb,
+            self.ftp_queue.generate_queue(), self._generate_tokens(), main_pb, timeouts=timeouts
         )
         # Wait for all the coroutines to finish
         done, _ = await asyncio.wait(futures)
@@ -687,9 +675,7 @@ class Downloader:
         else:
             offset = 0
 
-        async with session.get(
-            url, timeout=self.config.timeouts, headers=headers, **kwargs
-        ) as resp:
+        async with session.get(url, timeout=timeout, headers=headers, **kwargs) as resp:
             parfive.log.debug(
                 "%s request made for download to %s with headers=%s",
                 resp.request_info.method,
@@ -757,9 +743,7 @@ class Downloader:
                 parfive.log.debug("Connected to ftp server %s", parse.hostname)
                 if parse.username and parse.password:
                     parfive.log.debug(
-                        "Explicitly Logging in with %s:%s",
-                        parse.username,
-                        parse.password,
+                        "Explicitly Logging in with %s:%s", parse.username, parse.password
                     )
                     await client.login(parse.username, parse.password)
 
