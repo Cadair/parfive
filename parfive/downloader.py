@@ -2,9 +2,10 @@ import os
 import asyncio
 import logging
 import pathlib
+import warnings
 import contextlib
 import urllib.parse
-from typing import Union, Callable, Optional
+from typing import Dict, Union, Callable, Optional
 
 try:
     from typing import Literal  # Added in Python 3.8
@@ -24,6 +25,7 @@ from .results import Results
 from .utils import (
     FailedDownload,
     MultiPartDownloadError,
+    ParfiveFutureWarning,
     Token,
     _QueueList,
     cancel_task,
@@ -74,14 +76,27 @@ class Downloader:
         max_splits: int = 5,
         progress: bool = True,
         overwrite: Union[bool, Literal["unique"]] = False,
+        headers: Optional[Dict[str, str]] = None,
+        use_aiofiles: Optional[bool] = None,
         config: SessionConfig = None,
     ):
+
+        msg = (
+            "The {} keyword argument to Downloader is deprecated. "
+            "Please instead pass a SessionConfig object to the config keyword argument."
+        )
+        if headers is not None:
+            warnings.warn(msg.format("headers"), ParfiveFutureWarning)
+        if use_aiofiles is not None:
+            warnings.warn(msg.format("use_aiofiles"), ParfiveFutureWarning)
 
         self.config = DownloaderConfig(
             max_conn=max_conn,
             max_splits=max_splits,
             progress=progress,
             overwrite=overwrite,
+            headers=headers,
+            use_aiofiles=use_aiofiles,
             config=config,
         )
 
@@ -252,7 +267,7 @@ class Downloader:
 
         """
         # Setup debug logging before starting a download
-        if self.config.debug:  # pragma: no cover
+        if self.config.env.debug:  # pragma: no cover
             self._configure_debug()  # pragma: no cover
 
         total_files = self.queued_downloads
@@ -526,7 +541,7 @@ class Downloader:
                     )
 
                     if (
-                        not self.config.disable_range
+                        not self.config.env.disable_range
                         and max_splits
                         and resp.headers.get("Accept-Ranges", None) == "bytes"
                         and "Content-length" in resp.headers

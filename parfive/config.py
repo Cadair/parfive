@@ -40,11 +40,14 @@ class SessionConfig:
     The URL of a proxy to use for HTTPS requests. Will default to the value of
     the ``HTTPS_PROXY`` env var.
     """
-    headers: Dict = field(default_factory=_default_headers)
+    headers: Optional[Dict[str, str]] = None
     """
     Headers to be passed to all requests made by this session. These headers
     are passed to the `aiohttp.ClientSession` along with
     ``aiohttp_session_kwargs``.
+
+    The default value for headers is setting the user agent to a string with
+    the version of parfive, aiohttp and Python.
     """
     chunksize: float = 1024
     """
@@ -61,9 +64,11 @@ class SessionConfig:
     Notebook progress bars. If `False` or `True` notebook mode will be forced
     off or on.
     """
-    use_aiofiles: bool = False
+    use_aiofiles: bool = None
     """
     Enables using `aiofiles` to write files to disk in their own thread pool.
+
+    The default value is `False`.
 
     This argument will be overridden by the
     ``PARFIVE_OVERWRITE_ENABLE_AIOFILES`` environment variable. If `aiofiles`
@@ -95,6 +100,16 @@ class SessionConfig:
             return False
         return True
 
+    def _compute_aiofiles(self, use_aiofiles):
+        use_aiofiles = use_aiofiles or "PARFIVE_OVERWRITE_ENABLE_AIOFILES" in os.environ
+        if use_aiofiles and not self._aiofiles_importable():
+            warnings.warn(
+                "Can not use aiofiles even though use_aiofiles is set to True as aiofiles can not be imported.",
+                ParfiveUserWarning,
+            )
+            use_aiofiles = False
+        return use_aiofiles
+
     def __post_init__(self):
         if self.timeouts is None:
             timeouts = {
@@ -107,13 +122,27 @@ class SessionConfig:
         if self.https_proxy is None:
             self.https_proxy = os.environ.get("HTTPS_PROXY", None)
 
-        self.use_aiofiles = self.use_aiofiles or "PARFIVE_OVERWRITE_ENABLE_AIOFILES" in os.environ
-        if self.use_aiofiles and not self._aiofiles_importable():
-            warnings.warn(
-                "Can not use aiofiles even though use_aiofiles is set to True as aiofiles can not be imported.",
-                ParfiveUserWarning,
-            )
-            self.use_aiofiles = False
+        if self.use_aiofiles is not None:
+            self.use_aiofiles = self._compute_aiofiles(self.use_aiofiles)
+
+
+@dataclass
+class EnvConfig:
+    """
+    Configuration read from environment variables.
+    """
+
+    # Session scoped env vars
+    serial_mode: bool = field(default=False, init=False)
+    disable_range: bool = field(default=False, init=False)
+    debug: bool = field(default=False, init=False)
+    hide_progress: bool = field(default=False, init=False)
+
+    def __post_init__(self):
+        self.serial_mode = "PARFIVE_SINGLE_DOWNLOAD" in os.environ
+        self.disable_range = "PARFIVE_DISABLE_RANGE" in os.environ
+        self.debug = "PARFIVE_DEBUG" in os.environ
+        self.hide_progress = "PARFIVE_HIDE_PROGRESS" in os.environ
 
 
 @dataclass
@@ -126,11 +155,16 @@ class DownloaderConfig(SessionConfig):
     max_splits: int = 5
     progress: bool = True
     overwrite: Union[bool, Literal["unique"]] = False
+    # headers and use_aiofiles are deprecated here.
+    # The arguments passed to SessionConfig take precedence.
+    # To make this priority work, the defaults on SessionConfig
+    # are that these two arguments default to None.
+    # When these are removed after the deprecation period, the defaults here
+    # should be moved to SessionConifg
+    headers: Optional[Dict[str, str]] = field(default_factory=_default_headers)
+    use_aiofiles: bool = False
     config: InitVar[Optional[SessionConfig]] = None
-    # Session scoped env vars
-    serial_mode: bool = field(default=False, init=False)
-    disable_range: bool = field(default=False, init=False)
-    debug: bool = field(default=False, init=False)
+    env: EnvConfig = field(default_factory=EnvConfig)
 
     def __post_init__(self, config):
         if config is None:
@@ -138,15 +172,22 @@ class DownloaderConfig(SessionConfig):
         if not isinstance(config, SessionConfig):
             raise TypeError("config argument should be a parfive.config.SessionConfig instance")
 
-        self.serial_mode = "PARFIVE_SINGLE_DOWNLOAD" in os.environ
-        self.disable_range = "PARFIVE_DISABLE_RANGE" in os.environ
-        self.debug = "PARFIVE_DEBUG" in os.environ
+        self.max_conn = 1 if self.env.serial_mode else self.max_conn
+        self.max_splits = 1 if self.env.serial_mode or self.env.disable_range else self.max_splits
+        self.progress = False if self.env.hide_progress else self.progress
 
-        self.max_conn = 1 if self.serial_mode else self.max_conn
-        self.max_splits = 1 if self.serial_mode or self.disable_range else self.max_splits
-
+        # Squash the properties passed by the user in config onto this object.
         for name, value in asdict(config).items():
+            # Remove this check after deprecation period
+            if name in ("headers", "use_aiofiles"):
+                continue
             setattr(self, name, value)
+
+        # Remove this after deprecation period
+        if config.headers is not None:
+            self.headers = config.headers
+        if config.use_aiofiles is not None:
+            self.use_aiofiles = self._compute_aiofiles(config.use_aiofiles)
 
     @property
     def aiohttp_session(self) -> aiohttp.ClientSession:

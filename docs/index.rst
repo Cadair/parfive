@@ -78,6 +78,7 @@ To facilitate debugging parfive reads the following environment variables, note 
 * ``PARFIVE_DISABLE_RANGE`` - If set (to any value) this variable will set ``max_splits`` to one; meaning that each file downloaded will only have one concurrent connection, although multiple files may be downloaded simultaneously.
 * ``PARFIVE_OVERWRITE_ENABLE_AIOFILES`` - If set (to any value) and aiofiles is installed in the system, aiofiles will be used to write files to disk.
 * ``PARFIVE_DEBUG`` - If set (to any value) will configure the built-in Python logger to log to stderr and set parfive, aiohttp and aioftp to debug levels.
+* ``PARFIVE_HIDE_PROGESS`` - If set (to any value) all progress bars will be disabled.
 
 Changelog
 ---------

@@ -174,6 +174,12 @@ class ParfiveUserWarning(UserWarning):
     """
 
 
+class ParfiveFutureWarning(FutureWarning):
+    """
+    Raised for future changes to the parfive API.
+    """
+
+
 def remove_file(filepath):
     """
     Remove the file from the disk, if it exists

@@ -16,6 +16,7 @@ from .results import Results
 
 __all__ = ["SessionConfig", "Downloader", "Results", "log", "__version__"]
 
+__version__: str
 try:
     from ._version import version as __version__
 except ImportError:
