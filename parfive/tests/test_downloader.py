@@ -1,5 +1,4 @@
 import os
-import sys
 import platform
 from pathlib import Path
 from unittest import mock
@@ -10,6 +9,7 @@ import pytest
 from aiohttp import ClientTimeout
 
 import parfive
+from parfive.config import SessionConfig
 from parfive.downloader import Downloader, FailedDownload, Results, Token
 from parfive.utils import sha256sum
 
@@ -77,7 +77,7 @@ async def test_async_download(httpserver, tmpdir, use_aiofiles):
     httpserver.serve_content(
         "SIMPLE  = T", headers={"Content-Disposition": "attachment; filename=testfile.fits"}
     )
-    dl = Downloader(use_aiofiles=use_aiofiles)
+    dl = Downloader(config=SessionConfig(use_aiofiles=use_aiofiles))
 
     dl.enqueue_file(httpserver.url, path=Path(tmpdir), max_splits=None)
 
@@ -416,7 +416,7 @@ def test_default_user_agent(httpserver, tmpdir):
     assert "User-Agent" in httpserver.requests[0].headers
     assert (
         httpserver.requests[0].headers["User-Agent"]
-        == f"parfive/{parfive.__version__} aiohttp/{aiohttp.__version__} python/{sys.version[:5]}"
+        == f"parfive/{parfive.__version__} aiohttp/{aiohttp.__version__} python/{platform.python_version()}"
     )
 
 
@@ -426,7 +426,7 @@ def test_custom_user_agent(httpserver, tmpdir):
         "SIMPLE  = T", headers={"Content-Disposition": "attachment; filename=testfile.fits"}
     )
 
-    dl = Downloader(headers={"User-Agent": "test value 299792458"})
+    dl = Downloader(config=SessionConfig(headers={"User-Agent": "test value 299792458"}))
     dl.enqueue_file(httpserver.url, path=Path(tmpdir), max_splits=None)
 
     assert dl.queued_downloads == 1
@@ -447,9 +447,7 @@ def test_custom_user_agent(httpserver, tmpdir):
 )
 def test_proxy_passed_as_kwargs_to_get(tmpdir, url, proxy):
 
-    with mock.patch(
-        "aiohttp.client.ClientSession._request", new_callable=mock.MagicMock
-    ) as patched:
+    with mock.patch("aiohttp.client.ClientSession._request", new_callable=mock.MagicMock) as patched:
 
         dl = Downloader()
         dl.enqueue_file(url, path=Path(tmpdir), max_splits=None)
@@ -463,7 +461,7 @@ def test_proxy_passed_as_kwargs_to_get(tmpdir, url, proxy):
         ("GET", url),
         {
             "allow_redirects": True,
-            "timeout": ClientTimeout(total=0, connect=None, sock_read=90, sock_connect=None),
+            "timeout": ClientTimeout(total=0.0, connect=None, sock_read=90.0, sock_connect=None),
             "proxy": proxy,
         },
     ]

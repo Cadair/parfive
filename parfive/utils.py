@@ -1,3 +1,4 @@
+import os
 import cgi
 import asyncio
 import hashlib
@@ -6,12 +7,21 @@ import warnings
 from pathlib import Path
 from itertools import count
 
+import aiohttp
+
 import parfive
 
-__all__ = ["cancel_task", "run_in_thread", "Token", "FailedDownload", "default_name", "remove_file"]
+__all__ = [
+    "cancel_task",
+    "run_in_thread",
+    "Token",
+    "FailedDownload",
+    "default_name",
+    "remove_file",
+]
 
 
-def default_name(path, resp, url):
+def default_name(path: os.PathLike, resp: aiohttp.ClientResponse, url: str) -> os.PathLike:
     url_filename = url.split("/")[-1]
     if resp:
         cdheader = resp.headers.get("Content-Disposition", None)
@@ -161,6 +171,12 @@ class _QueueList(list):
 class ParfiveUserWarning(UserWarning):
     """
     Raised for not-quite errors.
+    """
+
+
+class ParfiveFutureWarning(FutureWarning):
+    """
+    Raised for future changes to the parfive API.
     """
 
 

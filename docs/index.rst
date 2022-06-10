@@ -40,7 +40,7 @@ A simple example is::
   dl.enqueue_file("http://data.sunpy.org/sample-data/predicted-sunspot-radio-flux.txt", path="./")
   files = dl.download()
 
-It's also possible to download a list of URLs to a single destination using the `parfive.Downloader.simple_download` method::
+It's also possible to download a list of URLs to a single destination using the `Downloader.simple_download <parfive.Downloader.simple_download>` method::
 
   from parfive import Downloader
   files = Downloader.simple_download(['http://212.183.159.230/5MB.zip' 'http://212.183.159.230/10MB.zip'], path="./")
@@ -72,12 +72,15 @@ Parfive also bundles a CLI. The following example will download the two files co
 Environment Variables
 ---------------------
 
-To facilitate debugging parfive reads the following environment variables:
+Parfive reads the following environment variables, note that as of version 2.0 all environment variables are read at the point where the ``Downloader()`` class is instantiated.
 
-* ``PARFIVE_SINGLE_DOWNLOAD`` - If set (to any value) this variable sets ``max_conn`` and ``max_splits`` to one; meaning that no parallelisation of the downloads will occur.
-* ``PARFIVE_DISABLE_RANGE`` - If set (to any value) this variable will set ``max_splits`` to one; meaning that each file downloaded will only have one concurrent connection, although multiple files may be downloaded simultaneously.
-* ``PARFIVE_OVERWRITE_ENABLE_AIOFILES`` - If set (to any value) and aiofiles is installed in the system, aiofiles will be used to write files to disk.
-* ``PARFIVE_DEBUG`` - If set (to any value) will configure the built-in Python logger to log to stderr and set parfive, aiohttp and aioftp to debug levels.
+* ``PARFIVE_SINGLE_DOWNLOAD`` - If set to ``"True"`` this variable sets ``max_conn`` and ``max_splits`` to one; meaning that no parallelisation of the downloads will occur.
+* ``PARFIVE_DISABLE_RANGE`` - If set to ``"True"`` this variable will set ``max_splits`` to one; meaning that each file downloaded will only have one concurrent connection, although multiple files may be downloaded simultaneously.
+* ``PARFIVE_OVERWRITE_ENABLE_AIOFILES`` - If set to ``"True"`` and aiofiles is installed in the system, aiofiles will be used to write files to disk.
+* ``PARFIVE_DEBUG`` - If set to ``"True"`` will configure the built-in Python logger to log to stderr and set parfive, aiohttp and aioftp to debug levels.
+* ``PARFIVE_HIDE_PROGESS`` - If set to ``"True"`` no progress bars will be shown.
+* ``PARFIVE_TOTAL_TIMEOUT`` - Overrides the default aiohttp ``total`` timeout value (unless set in Python).
+* ``PARFIVE_SOCK_READ_TIMEOUT`` - Overrides the default aiohttp ``sock_read`` timeout value (unless set in Python).
 
 Changelog
 ---------

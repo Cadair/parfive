@@ -36,6 +36,7 @@ extensions = [
     "sphinx.ext.napoleon",
     "sphinx.ext.todo",
     "sphinx.ext.viewcode",
+    "sphinx_autodoc_typehints",  # must be loaded after napoleon
     "sphinx_automodapi.automodapi",
     "sphinx_automodapi.smart_resolver",
 ]
@@ -70,6 +71,11 @@ napoleon_use_rtype = False
 
 # Disable google style docstrings
 napoleon_google_docstring = False
+
+# Type Hint Config
+typehints_fully_qualified = False
+typehints_use_rtype = napoleon_use_rtype
+typehints_defaults = "comma"
 
 # -- Options for intersphinx extension -----------------------------------------
 

@@ -38,6 +38,9 @@ stages:
           - linux: build_docs
             pytest: false
 
+          - linux: mypy
+            pytest: false
+
           - linux: py38-conda
 
           - linux: py310

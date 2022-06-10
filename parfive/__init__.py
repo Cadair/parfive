@@ -10,10 +10,11 @@ A parallel file downloader using asyncio.
 """
 import logging as _logging
 
+from .config import SessionConfig
 from .downloader import Downloader
 from .results import Results
 
-__all__ = ["Downloader", "Results", "log", "__version__"]
+__all__ = ["SessionConfig", "Downloader", "Results", "log", "__version__"]
 
 try:
     from ._version import version as __version__
