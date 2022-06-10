@@ -66,6 +66,10 @@ class SessionConfig:
     Notebook progress bars. If `False` or `True` notebook mode will be forced
     off or on.
     """
+    log_level: Optional[str] = None
+    """
+    If not `None` configure the logger to log to stderr with this log level.
+    """
     use_aiofiles: Optional[bool] = None
     """
     Enables using `aiofiles` to write files to disk in their own thread pool.
@@ -127,6 +131,9 @@ class SessionConfig:
         if self.use_aiofiles is not None:
             self.use_aiofiles = self._compute_aiofiles(self.use_aiofiles)
 
+        if "PARFIVE_DEBUG" in os.environ:
+            self.log_level = "DEBUG"
+
 
 @dataclass
 class EnvConfig:
@@ -137,13 +144,11 @@ class EnvConfig:
     # Session scoped env vars
     serial_mode: bool = field(default=False, init=False)
     disable_range: bool = field(default=False, init=False)
-    debug: bool = field(default=False, init=False)
     hide_progress: bool = field(default=False, init=False)
 
     def __post_init__(self):
         self.serial_mode = "PARFIVE_SINGLE_DOWNLOAD" in os.environ
         self.disable_range = "PARFIVE_DISABLE_RANGE" in os.environ
-        self.debug = "PARFIVE_DEBUG" in os.environ
         self.hide_progress = "PARFIVE_HIDE_PROGRESS" in os.environ
 
 

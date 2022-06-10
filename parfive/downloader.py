@@ -116,6 +116,8 @@ class Downloader:
                     "The notebook keyword argument should be one of None, True or False."
                 )
 
+        self._configure_logging()
+
     def _init_queues(self):
         # Setup queues
         self.http_queue = _QueueList()
@@ -127,6 +129,30 @@ class Downloader:
         for i in range(self.config.max_conn):
             queue.put_nowait(Token(i + 1))
         return queue
+
+    def _configure_logging(self):  # pragma: no cover
+        if self.config.log_level is None:
+            return
+
+        sh = logging.StreamHandler()
+        sh.setLevel(self.config.log_level)
+
+        formatter = logging.Formatter("%(name)s - %(levelname)s - %(message)s")
+        sh.setFormatter(formatter)
+
+        parfive.log.addHandler(sh)
+        parfive.log.setLevel(self.config.log_level)
+
+        aiohttp_logger = logging.getLogger("aiohttp.client")
+        aioftp_logger = logging.getLogger("aioftp.client")
+
+        aioftp_logger.addHandler(sh)
+        aioftp_logger.setLevel(self.config.log_level)
+
+        aiohttp_logger.addHandler(sh)
+        aiohttp_logger.setLevel(self.config.log_level)
+
+        parfive.log.debug("Configured parfive to run with debug logging...")
 
     @property
     def queued_downloads(self):
@@ -233,29 +259,6 @@ class Downloader:
 
         return asyncio.run(coro)
 
-    @staticmethod
-    def _configure_debug():  # pragma: no cover
-
-        sh = logging.StreamHandler()
-        sh.setLevel(logging.DEBUG)
-
-        formatter = logging.Formatter("%(name)s - %(levelname)s - %(message)s")
-        sh.setFormatter(formatter)
-
-        parfive.log.addHandler(sh)
-        parfive.log.setLevel(logging.DEBUG)
-
-        aiohttp_logger = logging.getLogger("aiohttp.client")
-        aioftp_logger = logging.getLogger("aioftp.client")
-
-        aioftp_logger.addHandler(sh)
-        aioftp_logger.setLevel(logging.DEBUG)
-
-        aiohttp_logger.addHandler(sh)
-        aiohttp_logger.setLevel(logging.DEBUG)
-
-        parfive.log.debug("Configured parfive to run with debug logging...")
-
     async def run_download(self):
         """
         Download all files in the queue.
@@ -266,10 +269,6 @@ class Downloader:
             A list of files downloaded.
 
         """
-        # Setup debug logging before starting a download
-        if self.config.env.debug:  # pragma: no cover
-            self._configure_debug()  # pragma: no cover
-
         total_files = self.queued_downloads
 
         done = set()
