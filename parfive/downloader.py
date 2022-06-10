@@ -10,7 +10,7 @@ from typing import Dict, Union, Callable, Optional
 try:
     from typing import Literal  # Added in Python 3.8
 except ImportError:
-    from typing_extensions import Literal
+    from typing_extensions import Literal  # type: ignore
 
 from functools import partial
 from concurrent.futures import ThreadPoolExecutor

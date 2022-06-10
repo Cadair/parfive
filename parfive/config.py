@@ -6,7 +6,7 @@ from typing import Dict, Union, Optional
 try:
     from typing import Literal  # Added in Python 3.8
 except ImportError:
-    from typing_extensions import Literal
+    from typing_extensions import Literal  # type: ignore
 
 from dataclasses import InitVar, field, asdict, dataclass
 
@@ -48,6 +48,8 @@ class SessionConfig:
 
     The default value for headers is setting the user agent to a string with
     the version of parfive, aiohttp and Python.
+
+    To use aiohttp's default headers set this argument to an empty dictionary.
     """
     chunksize: float = 1024
     """
@@ -64,7 +66,7 @@ class SessionConfig:
     Notebook progress bars. If `False` or `True` notebook mode will be forced
     off or on.
     """
-    use_aiofiles: bool = None
+    use_aiofiles: Optional[bool] = None
     """
     Enables using `aiofiles` to write files to disk in their own thread pool.
 
@@ -162,7 +164,7 @@ class DownloaderConfig(SessionConfig):
     # When these are removed after the deprecation period, the defaults here
     # should be moved to SessionConifg
     headers: Optional[Dict[str, str]] = field(default_factory=_default_headers)
-    use_aiofiles: bool = False
+    use_aiofiles: Optional[bool] = False
     config: InitVar[Optional[SessionConfig]] = None
     env: EnvConfig = field(default_factory=EnvConfig)
 
@@ -175,6 +177,12 @@ class DownloaderConfig(SessionConfig):
         self.max_conn = 1 if self.env.serial_mode else self.max_conn
         self.max_splits = 1 if self.env.serial_mode or self.env.disable_range else self.max_splits
         self.progress = False if self.env.hide_progress else self.progress
+
+        # Default headers and use_aiofiles if None
+        if self.headers is None:
+            self.headers = self.__dataclass_fields__["headers"].default_factory()
+        if self.use_aiofiles is None:
+            self.use_aiofiles = self.__dataclass_fields__["use_aiofiles"].default
 
         # Squash the properties passed by the user in config onto this object.
         for name, value in asdict(config).items():
