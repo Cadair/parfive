@@ -1,5 +1,5 @@
 import os
-import sys
+import platform
 import warnings
 from typing import Any, Dict, Union, Optional
 
@@ -19,7 +19,9 @@ __all__ = ["DownloaderConfig", "SessionConfig"]
 
 def _default_headers():
     return {
-        "User-Agent": f"parfive/{parfive.__version__} aiohttp/{aiohttp.__version__} python/{sys.version[:5]}"
+        "User-Agent": f"parfive/{parfive.__version__}"
+        f" aiohttp/{aiohttp.__version__}"
+        f" python/{platform.python_version()}"
     }
 
 

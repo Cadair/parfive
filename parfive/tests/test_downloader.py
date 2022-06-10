@@ -1,5 +1,4 @@
 import os
-import sys
 import platform
 from pathlib import Path
 from unittest import mock
@@ -417,7 +416,7 @@ def test_default_user_agent(httpserver, tmpdir):
     assert "User-Agent" in httpserver.requests[0].headers
     assert (
         httpserver.requests[0].headers["User-Agent"]
-        == f"parfive/{parfive.__version__} aiohttp/{aiohttp.__version__} python/{sys.version[:5]}"
+        == f"parfive/{parfive.__version__} aiohttp/{aiohttp.__version__} python/{platform.python_version()}"
     )
 
 
