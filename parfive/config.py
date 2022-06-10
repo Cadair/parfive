@@ -196,6 +196,9 @@ class DownloaderConfig(SessionConfig):
                 continue
             setattr(self, name, value)
 
+        if self.progress is False:
+            self.file_progress = False
+
         # Remove this after deprecation period
         if config.headers is not None:
             self.headers = config.headers
