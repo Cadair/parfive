@@ -400,7 +400,9 @@ class Downloader:
 
     async def _run_ftp_download(self, main_pb):
         futures = await self._run_from_queue(
-            self.ftp_queue.generate_queue(), self._generate_tokens(), main_pb, timeouts=timeouts
+            self.ftp_queue.generate_queue(),
+            self._generate_tokens(),
+            main_pb,
         )
         # Wait for all the coroutines to finish
         done, _ = await asyncio.wait(futures)
@@ -675,7 +677,7 @@ class Downloader:
         else:
             offset = 0
 
-        async with session.get(url, timeout=timeout, headers=headers, **kwargs) as resp:
+        async with session.get(url, timeout=self.config.timeouts, headers=headers, **kwargs) as resp:
             parfive.log.debug(
                 "%s request made for download to %s with headers=%s",
                 resp.request_info.method,
