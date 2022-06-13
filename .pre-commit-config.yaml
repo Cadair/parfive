@@ -12,7 +12,7 @@ repos:
     - id: check-added-large-files
     - id: end-of-file-fixer
     - id: mixed-line-ending
-- repo: https://github.com/timothycrosley/isort
+- repo: https://github.com/PyCQA/isort
   rev: 5.10.1
   hooks:
     - id: isort
