@@ -687,7 +687,7 @@ class Downloader:
                 resp.headers,
             )
 
-            if resp.status != 200:
+            if resp.status < 200 or resp.status >= 300:
                 raise MultiPartDownloadError(resp)
 
             while True:
