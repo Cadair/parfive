@@ -494,7 +494,7 @@ class Downloader:
                     resp.request_info.url,
                     resp.headers,
                 )
-                if resp.status != 200:
+                if resp.status < 200 or resp.status >= 300:
                     raise FailedDownload(filepath_partial, url, resp)
                 else:
                     filepath, skip = get_filepath(filepath_partial(resp, url), overwrite)
@@ -687,7 +687,7 @@ class Downloader:
                 resp.headers,
             )
 
-            if resp.status < 200 or resp.status >= 300:
+            if resp.status < 200 or resp.status > 300:
                 raise MultiPartDownloadError(resp)
 
             while True:
