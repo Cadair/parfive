@@ -77,7 +77,8 @@ class Downloader:
         progress: bool = True,
         overwrite: Union[bool, Literal["unique"]] = False,
         headers: Optional[Dict[str, str]] = None,
-        config: Optional[SessionConfig] = None,
+        use_aiofiles: Optional[bool] = None,
+        config: SessionConfig = None,
     ):
 
         msg = (
@@ -86,6 +87,8 @@ class Downloader:
         )
         if headers is not None:
             warnings.warn(msg.format("headers"), ParfiveFutureWarning)
+        if use_aiofiles is not None:
+            warnings.warn(msg.format("use_aiofiles"), ParfiveFutureWarning)
 
         self.config = DownloaderConfig(
             max_conn=max_conn,
@@ -93,6 +96,7 @@ class Downloader:
             progress=progress,
             overwrite=overwrite,
             headers=headers,
+            use_aiofiles=use_aiofiles,
             config=config,
         )
 
