@@ -8,7 +8,7 @@ try:
 except ImportError:
     from typing_extensions import Literal  # type: ignore
 
-from dataclasses import InitVar, field, asdict, dataclass
+from dataclasses import field, dataclass
 
 import aiohttp
 
