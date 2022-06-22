@@ -72,6 +72,8 @@ def test_deprecated_downloader_arguments():
 
 
 def test_ssl_context():
+    # Assert that the unpickalable SSL context object doesn't anger the
+    # dataclass gods
     ssl_ctx = ssl.create_default_context()
     c = SessionConfig(aiohttp_session_kwargs={"context": ssl_ctx})
     d = Downloader(config=c)
