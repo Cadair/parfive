@@ -380,7 +380,7 @@ class Downloader:
             return contextlib.contextmanager(lambda: iter([None]))()
 
     async def _run_http_download(self, main_pb):
-        async with self.config.aiohttp_session as session:
+        async with self.config.aiohttp_client_session() as session:
             self._generate_tokens()
             futures = await self._run_from_queue(
                 self.http_queue.generate_queue(),

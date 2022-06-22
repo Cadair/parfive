@@ -10,8 +10,7 @@ from parfive.utils import ParfiveFutureWarning
 
 def test_session_config_defaults():
     c = SessionConfig()
-    assert isinstance(c.aiohttp_session_kwargs, dict)
-    assert not c.aiohttp_session_kwargs
+    assert callable(c.aiohttp_session_generator)
     assert isinstance(c.timeouts, aiohttp.ClientTimeout)
     assert c.timeouts.total == 0
     assert c.timeouts.sock_read == 90
@@ -74,6 +73,6 @@ def test_deprecated_downloader_arguments():
 def test_ssl_context():
     # Assert that the unpickalable SSL context object doesn't anger the
     # dataclass gods
-    ssl_ctx = ssl.create_default_context()
-    c = SessionConfig(aiohttp_session_kwargs={"context": ssl_ctx})
+    gen = lambda config: aiohttp.ClientSession(context=ssl.create_default_context())
+    c = SessionConfig(aiohttp_session_generator=gen)
     d = Downloader(config=c)
