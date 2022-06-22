@@ -1,3 +1,5 @@
+import ssl
+
 import aiohttp
 import pytest
 
@@ -16,30 +18,12 @@ def test_session_config_defaults():
     assert c.http_proxy is None
     assert c.https_proxy is None
     assert c.chunksize == 1024
+    assert c.use_aiofiles is False
 
     # Deprecated behaviour
     assert c.headers is None
-    assert c.use_aiofiles is None
-    # assert c.use_aiofiles is False
     # assert isinstance(c.headers, dict)
     # assert "User-Agent" in c.headers
-
-
-def test_use_aiofiles_deprecated():
-    c = DownloaderConfig()
-    assert c.use_aiofiles is False
-    c = DownloaderConfig(use_aiofiles=None)
-    assert c.use_aiofiles is False
-    c = DownloaderConfig(use_aiofiles=True)
-    assert c.use_aiofiles is True
-    c = DownloaderConfig(config=SessionConfig(use_aiofiles=True))
-    assert c.use_aiofiles is True
-    c = DownloaderConfig(config=SessionConfig(use_aiofiles=False))
-    assert c.use_aiofiles is False
-    c = DownloaderConfig(use_aiofiles=True, config=SessionConfig(use_aiofiles=False))
-    assert c.use_aiofiles is False
-    c = DownloaderConfig(use_aiofiles=False, config=SessionConfig(use_aiofiles=True))
-    assert c.use_aiofiles is True
 
 
 def test_headers_deprecated():
@@ -73,10 +57,12 @@ def test_headers_deprecated():
 
 
 def test_deprecated_downloader_arguments():
-    with pytest.warns(ParfiveFutureWarning, match="use_aiofiles keyword"):
-        d = Downloader(use_aiofiles=False)
-    assert d.config.use_aiofiles is False
-
     with pytest.warns(ParfiveFutureWarning, match="headers keyword"):
         d = Downloader(headers="ni")
     assert d.config.headers == "ni"
+
+
+def test_ssl_context():
+    ssl_ctx = ssl.create_default_context()
+    c = SessionConfig(aiohttp_session_kwargs={"context": ssl_ctx})
+    d = Downloader(config=c)

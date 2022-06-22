@@ -72,7 +72,7 @@ class SessionConfig:
     """
     If not `None` configure the logger to log to stderr with this log level.
     """
-    use_aiofiles: Optional[bool] = None
+    use_aiofiles: Optional[bool] = False
     """
     Enables using `aiofiles` to write files to disk in their own thread pool.
 
@@ -155,7 +155,7 @@ class EnvConfig:
 
 
 @dataclass
-class DownloaderConfig(SessionConfig):
+class DownloaderConfig:
     """
     Hold all downloader session state.
     """
@@ -164,48 +164,37 @@ class DownloaderConfig(SessionConfig):
     max_splits: int = 5
     progress: bool = True
     overwrite: Union[bool, Literal["unique"]] = False
-    # headers and use_aiofiles are deprecated here.
+    # headers is deprecated here.
     # The arguments passed to SessionConfig take precedence.
     # To make this priority work, the defaults on SessionConfig
     # are that these two arguments default to None.
-    # When these are removed after the deprecation period, the defaults here
+    # When it is removed after the deprecation period, the defaults here
     # should be moved to SessionConifg
     headers: Optional[Dict[str, str]] = field(default_factory=_default_headers)
-    use_aiofiles: Optional[bool] = False
-    config: InitVar[Optional[SessionConfig]] = None
+    config: Optional[SessionConfig] = field(default_factory=SessionConfig)
     env: EnvConfig = field(default_factory=EnvConfig)
 
-    def __post_init__(self, config):
-        if config is None:
-            config = SessionConfig()
-        if not isinstance(config, SessionConfig):
-            raise TypeError("config argument should be a parfive.config.SessionConfig instance")
-
+    def __post_init__(self):
         self.max_conn = 1 if self.env.serial_mode else self.max_conn
         self.max_splits = 1 if self.env.serial_mode or self.env.disable_range else self.max_splits
         self.progress = False if self.env.hide_progress else self.progress
 
-        # Default headers and use_aiofiles if None
+        # Default headers if None
         if self.headers is None:
             self.headers = self.__dataclass_fields__["headers"].default_factory()
-        if self.use_aiofiles is None:
-            self.use_aiofiles = self.__dataclass_fields__["use_aiofiles"].default
-
-        # Squash the properties passed by the user in config onto this object.
-        for name, value in asdict(config).items():
-            # Remove this check after deprecation period
-            if name in ("headers", "use_aiofiles"):
-                continue
-            setattr(self, name, value)
 
         if self.progress is False:
             self.file_progress = False
 
+        if self.config is None:
+            self.config = SessionConfig()
+
         # Remove this after deprecation period
-        if config.headers is not None:
-            self.headers = config.headers
-        if config.use_aiofiles is not None:
-            self.use_aiofiles = self._compute_aiofiles(config.use_aiofiles)
+        if self.config.headers is not None:
+            self.headers = self.config.headers
+
+    def __getattr__(self, __name: str):
+        return getattr(self.config, __name)
 
     @property
     def aiohttp_session(self) -> aiohttp.ClientSession:
