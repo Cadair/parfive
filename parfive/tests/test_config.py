@@ -26,6 +26,15 @@ def test_session_config_defaults():
     # assert "User-Agent" in c.headers
 
 
+def test_session_config_env_defaults():
+    c = SessionConfig()
+    assert c.env.serial_mode is False
+    assert c.env.disable_range is False
+    assert c.env.hide_progress is False
+    assert c.env.timeout_total == 0
+    assert c.env.timeout_sock_read == 90
+
+
 def test_headers_deprecated():
     c = DownloaderConfig()
     assert isinstance(c.headers, dict)
