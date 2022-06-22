@@ -27,6 +27,31 @@ def _default_headers():
 
 
 @dataclass
+class EnvConfig:
+    """
+    Configuration read from environment variables.
+    """
+
+    # Session scoped env vars
+    serial_mode: bool = field(default=False, init=False)
+    disable_range: bool = field(default=False, init=False)
+    hide_progress: bool = field(default=False, init=False)
+    debug_logging: bool = field(default=False, init=False)
+    timeout_total: float = field(default=0, init=False)
+    timeout_sock_read: float = field(default=90, init=False)
+    override_use_aiofiles: bool = field(default=False, init=False)
+
+    def __post_init__(self):
+        self.serial_mode = "PARFIVE_SINGLE_DOWNLOAD" in os.environ
+        self.disable_range = "PARFIVE_DISABLE_RANGE" in os.environ
+        self.hide_progress = "PARFIVE_HIDE_PROGRESS" in os.environ
+        self.debug_logging = "PARFIVE_DEBUG" in os.environ
+        self.timeout_total = float(os.environ.get("PARFIVE_TOTAL_TIMEOUT", 0))
+        self.timeout_sock_read = float(os.environ.get("PARFIVE_SOCK_READ_TIMEOUT", 90))
+        self.override_use_aiofiles = "PARFIVE_OVERWRITE_ENABLE_AIOFILES" in os.environ
+
+
+@dataclass
 class SessionConfig:
     """
     Configuration options for `parfive.Downloader`.
@@ -99,6 +124,7 @@ class SessionConfig:
     Note that the `headers` keyword argument is handled separately, so should
     not be included in this dict.
     """
+    env: EnvConfig = field(default_factory=EnvConfig)
 
     @staticmethod
     def _aiofiles_importable():
@@ -109,7 +135,7 @@ class SessionConfig:
         return True
 
     def _compute_aiofiles(self, use_aiofiles):
-        use_aiofiles = use_aiofiles or "PARFIVE_OVERWRITE_ENABLE_AIOFILES" in os.environ
+        use_aiofiles = use_aiofiles or self.env.override_use_aiofiles
         if use_aiofiles and not self._aiofiles_importable():
             warnings.warn(
                 "Can not use aiofiles even though use_aiofiles is set to True as aiofiles can not be imported.",
@@ -121,8 +147,8 @@ class SessionConfig:
     def __post_init__(self):
         if self.timeouts is None:
             timeouts = {
-                "total": float(os.environ.get("PARFIVE_TOTAL_TIMEOUT", 0)),
-                "sock_read": float(os.environ.get("PARFIVE_SOCK_READ_TIMEOUT", 90)),
+                "total": self.env.timeout_total,
+                "sock_read": self.env.timeout_sock_read,
             }
             self.timeouts = aiohttp.ClientTimeout(**timeouts)
         if self.http_proxy is None:
@@ -133,25 +159,8 @@ class SessionConfig:
         if self.use_aiofiles is not None:
             self.use_aiofiles = self._compute_aiofiles(self.use_aiofiles)
 
-        if "PARFIVE_DEBUG" in os.environ:
+        if self.env.debug_logging:
             self.log_level = "DEBUG"
-
-
-@dataclass
-class EnvConfig:
-    """
-    Configuration read from environment variables.
-    """
-
-    # Session scoped env vars
-    serial_mode: bool = field(default=False, init=False)
-    disable_range: bool = field(default=False, init=False)
-    hide_progress: bool = field(default=False, init=False)
-
-    def __post_init__(self):
-        self.serial_mode = "PARFIVE_SINGLE_DOWNLOAD" in os.environ
-        self.disable_range = "PARFIVE_DISABLE_RANGE" in os.environ
-        self.hide_progress = "PARFIVE_HIDE_PROGRESS" in os.environ
 
 
 @dataclass
