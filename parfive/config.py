@@ -79,7 +79,7 @@ class SessionConfig:
     The URL of a proxy to use for HTTPS requests. Will default to the value of
     the ``HTTPS_PROXY`` env var.
     """
-    headers: Optional[Dict[str, str]] = None
+    headers: Optional[Dict[str, str]] = field(default_factory=_default_headers)
     """
     Headers to be passed to all requests made by this session. These headers
     are passed to the `aiohttp.ClientSession` along with
@@ -187,17 +187,10 @@ class DownloaderConfig:
     max_splits: int = 5
     progress: bool = True
     overwrite: Union[bool, Literal["unique"]] = False
-    # headers is deprecated here.
-    # The arguments passed to SessionConfig take precedence.
-    # To make this priority work, the defaults on SessionConfig
-    # are that these two arguments default to None.
-    # When it is removed after the deprecation period, the defaults here
-    # should be moved to SessionConifg
-    headers: InitVar[Optional[Dict[str, str]]] = None
     config: Optional[SessionConfig] = field(default_factory=SessionConfig)
     env: EnvConfig = field(default_factory=EnvConfig)
 
-    def __post_init__(self, headers):
+    def __post_init__(self):
         if self.config is None:
             self.config = SessionConfig()
 
@@ -205,24 +198,11 @@ class DownloaderConfig:
         self.max_splits = 1 if self.env.serial_mode or self.env.disable_range else self.max_splits
         self.progress = False if self.env.hide_progress else self.progress
 
-        # Default headers if None
-        if self.config.headers is None:
-            if headers is None:
-                self.config.headers = _default_headers()
-            elif headers is not None:
-                self.config.headers = headers
-
         if self.progress is False:
             self.file_progress = False
 
     def __getattr__(self, __name: str):
         return getattr(self.config, __name)
-
-    # Always delegate headers to config even though we have that attribute
-    def __getattribute__(self, __name):
-        if __name == "headers":
-            return self.config.headers
-        return super().__getattribute__(__name)
 
     def aiohttp_client_session(self):
         return self.config.aiohttp_session_generator(self.config)

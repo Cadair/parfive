@@ -19,10 +19,9 @@ def test_session_config_defaults():
     assert c.chunksize == 1024
     assert c.use_aiofiles is False
 
-    # Deprecated behaviour
-    assert c.headers is None
-    # assert isinstance(c.headers, dict)
-    # assert "User-Agent" in c.headers
+    assert isinstance(c.headers, dict)
+    assert "User-Agent" in c.headers
+    assert "parfive" in c.headers["User-Agent"]
 
 
 def test_session_config_env_defaults():
@@ -32,42 +31,6 @@ def test_session_config_env_defaults():
     assert c.env.hide_progress is False
     assert c.env.timeout_total == 0
     assert c.env.timeout_sock_read == 90
-
-
-def test_headers_deprecated():
-    c = DownloaderConfig()
-    assert isinstance(c.headers, dict)
-    assert len(c.headers) == 1
-    assert "User-Agent" in c.headers
-    assert "parfive" in c.headers["User-Agent"]
-
-    c = DownloaderConfig(headers=None)
-    assert isinstance(c.headers, dict)
-    assert len(c.headers) == 1
-    assert "User-Agent" in c.headers
-    assert "parfive" in c.headers["User-Agent"]
-
-    test_headers = {"spam": "eggs"}
-
-    c = DownloaderConfig(headers=test_headers)
-    assert c.headers == test_headers
-
-    c = DownloaderConfig(headers={"ordinary": "rabbit"}, config=SessionConfig(headers=test_headers))
-    assert c.headers == test_headers
-
-    c = DownloaderConfig(config=SessionConfig(headers=test_headers))
-    assert c.headers == test_headers
-
-    # This test should really be on the SessionConfig object
-    # but because of the deprecation logic it has to be done here.
-    c = DownloaderConfig(headers={})
-    assert not c.headers
-
-
-def test_deprecated_downloader_arguments():
-    with pytest.warns(ParfiveFutureWarning, match="headers keyword"):
-        d = Downloader(headers="ni")
-    assert d.config.headers == "ni"
 
 
 def test_ssl_context():
