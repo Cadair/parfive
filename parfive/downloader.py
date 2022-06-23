@@ -77,7 +77,7 @@ class Downloader:
         progress: bool = True,
         overwrite: Union[bool, Literal["unique"]] = False,
         headers: Optional[Dict[str, str]] = None,
-        config: Optional[SessionConfig] = None,
+        config: SessionConfig = None,
     ):
 
         msg = (

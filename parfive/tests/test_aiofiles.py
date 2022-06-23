@@ -17,7 +17,7 @@ def test_enable_aiofiles_constructor(use_aiofiles):
     ), f"expected={use_aiofiles}, got={dl.config.use_aiofiles}"
 
 
-@patch.dict(os.environ, {"PARFIVE_OVERWRITE_ENABLE_AIOFILES": "True"})
+@patch.dict(os.environ, {"PARFIVE_OVERWRITE_ENABLE_AIOFILES": "some_value_to_enable_it"})
 @pytest.mark.parametrize("use_aiofiles", [True, False])
 def test_enable_aiofiles_env_overwrite_always_enabled(use_aiofiles):
     dl = Downloader(config=parfive.SessionConfig(use_aiofiles=use_aiofiles))

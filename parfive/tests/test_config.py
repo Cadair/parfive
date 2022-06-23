@@ -1,3 +1,5 @@
+import ssl
+
 import aiohttp
 import pytest
 
@@ -33,15 +35,6 @@ def test_session_config_env_defaults():
     assert c.env.timeout_sock_read == 90
 
 
-def test_use_aiofiles():
-    c = DownloaderConfig()
-    assert c.use_aiofiles is False
-    c = DownloaderConfig(config=SessionConfig(use_aiofiles=True))
-    assert c.use_aiofiles is True
-    c = DownloaderConfig(config=SessionConfig(use_aiofiles=False))
-    assert c.use_aiofiles is False
-
-
 def test_headers_deprecated():
     c = DownloaderConfig()
     assert isinstance(c.headers, dict)
@@ -74,5 +67,13 @@ def test_headers_deprecated():
 
 def test_deprecated_downloader_arguments():
     with pytest.warns(ParfiveFutureWarning, match="headers keyword"):
-        d = Downloader(headers={"ni": "shrubbery"})
-    assert d.config.headers == {"ni": "shrubbery"}
+        d = Downloader(headers="ni")
+    assert d.config.headers == "ni"
+
+
+def test_ssl_context():
+    # Assert that the unpickalable SSL context object doesn't anger the
+    # dataclass gods
+    ssl_ctx = ssl.create_default_context()
+    c = SessionConfig(aiohttp_session_kwargs={"context": ssl_ctx})
+    d = Downloader(config=c)
