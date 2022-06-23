@@ -76,23 +76,14 @@ class Downloader:
         max_splits: int = 5,
         progress: bool = True,
         overwrite: Union[bool, Literal["unique"]] = False,
-        headers: Optional[Dict[str, str]] = None,
         config: SessionConfig = None,
     ):
-
-        msg = (
-            "The {} keyword argument to Downloader is deprecated. "
-            "Please instead pass a SessionConfig object to the config keyword argument."
-        )
-        if headers is not None:
-            warnings.warn(msg.format("headers"), ParfiveFutureWarning)
 
         self.config = DownloaderConfig(
             max_conn=max_conn,
             max_splits=max_splits,
             progress=progress,
             overwrite=overwrite,
-            headers=headers,
             config=config,
         )
 
