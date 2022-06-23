@@ -8,7 +8,12 @@ Parfive is a small library for downloading files, its objective is to provide a 
 It also aims to provide a clear interface for inspecting any failed downloads.
 
 The parfive package was motivated by the needs of `SunPy's <https://sunpy.org>`__ ``net`` submodule, but should be generally applicable to anyone who wants a user friendly way of downloading multiple files in parallel.
-Parfive supports downloading files over either HTTP or FTP using `aiohttp <http://aiohttp.readthedocs.io/>`__ and `aioftp <https://aioftp.readthedocs.io/>`__ ``aioftp`` is an optional dependency, which does not need to be installed to download files over HTTP.
+Parfive uses asyncio to support downloading multiple files in parallel, and to support downloading a single file in multiple parallel chunks.
+Parfive supports downloading files over either HTTP or FTP using `aiohttp <http://aiohttp.readthedocs.io/>`__ and `aioftp <https://aioftp.readthedocs.io/>`__ (``aioftp`` is an optional dependency, which does not need to be installed to download files over HTTP).
+
+Parfive provides both a function and coroutine interface, so that it can be used from both synchronous and asyncronous code.
+It also has opt-in support for using `aiofiles <https://github.com/Tinche/aiofiles>`__ to write downloaded data to disk using a separate thread pool, which may be useful if you are using parfive from within an asyncio application.
+
 
 Installation
 ------------
@@ -30,8 +35,7 @@ or from `GitHub <https://github.com/Cadair/parfive>`__.
 Usage
 -----
 
-parfive works by creating a downloader object, queuing downloads with it and then running the download.
-parfive has a synchronous API, but uses `asyncio` to parallelise downloading the files.
+Parfive works by creating a downloader object, queuing downloads with it and then running the download.
 
 A simple example is::
 
@@ -64,6 +68,28 @@ Parfive also bundles a CLI. The following example will download the two files co
     --directory DIRECTORY
                           Directory to which downloaded files are saved.
     --print-filenames     Print successfully downloaded files's names to stdout.
+
+
+Options and Customisation
+-------------------------
+
+Parfive aims to support as many use cases as possible, and therefore has a number of options.
+
+There are two main points where you can customise the behaviour of the downloads, in the initialiser to `parfive.Downloader` or when adding a URL to the download queue with `~parfive.Downloader.enqueue_file`.
+The arguments to the ``Downloader()`` constructor affect all files transferred, and the arguments to ``enqueue_file()`` apply to only that file.
+
+By default parfive will transfer 5 files in parallel and, if supported by the remote server, chunk those files and download 5 chunks simultaneously.
+This behaviour is controlled by the ``max_conn=`` and ``max_splits=`` keyword arguments.
+
+Further configuration of the ``Downloader`` instance is done by passing in a `parfive.SessionConfig` object as the ``config=`` keyword argument to ``Downloader()``.
+See the documentation of that class for more details.
+
+Keyword arguments to `~parfive.Downloader.enqueue_file` are passed through to either `aiohttp.ClientSession.get` for HTTP downloads or `aioftp.Client` for FTP downloads.
+This gives you many per-file options such as headers, authentication, ssl options etc.
+
+
+Parfive API
+-----------
 
 .. automodapi:: parfive
    :no-heading:

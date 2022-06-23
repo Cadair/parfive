@@ -96,13 +96,15 @@ class SessionConfig:
     """
     file_progress: bool = True
     """
-    If `True` (the default) a progress bar will be shown for every file if any
-    progress bars are shown.
+    If `True` (the default) a progress bar will be shown (if any progress bars
+    are shown) for every file, in addition for one showing progress of
+    downloading all file.
     """
     notebook: Union[bool, None] = None
     """
-    If `None` `tqdm` will automatically detect if it can draw rich IPython
-    Notebook progress bars. If `False` or `True` notebook mode will be forced
+    Override automatic detection of Jupyter notebook for drawing progress bars.
+    If `None` `tqdm` will automatically detect if it can draw rich notebook
+    progress bars. If `False` or `True` notebook mode will be forced
     off or on.
     """
     log_level: Optional[str] = None
@@ -129,14 +131,15 @@ class SessionConfig:
     overridden by the ``PARFIVE_TOTAL_TIMEOUT`` and
     ``PARFIVE_SOCK_READ_TIMEOUT`` environment variables.
     """
-    aiohttp_session_generator: Callable[
-        ["SessionConfig"], aiohttp.ClientSession
-    ] = _default_aiohttp_session
+    aiohttp_session_generator: Optional[Callable[["SessionConfig"], aiohttp.ClientSession]] = None
     """
-    An optional function to generate the `aiohttp.ClientSession` class.
-    Due to the fact that this session needs to be executed inside the asyncio context it is a callable.
-    It takes one argument which is the instance of this ``SessionConfig`` class.
-    It is expected that you pass ``.headers`` through to this session or the headers will not be sent.
+    A function to override the generation of the `aiohttp.ClientSession` object.
+
+    Due to the fact that this session needs to be instantiated inside the
+    asyncio context this option is a function. This function takes one argument
+    which is the instance of this ``SessionConfig`` class. It is expected that
+    you pass the ``.headers`` attribute of the config instance through to the
+    ``headers=`` keyword argument of the session you instantiate.
     """
     env: EnvConfig = field(default_factory=EnvConfig)
 
@@ -205,4 +208,6 @@ class DownloaderConfig:
         return getattr(self.config, __name)
 
     def aiohttp_client_session(self):
+        if self.config.aiohttp_session_generator is None:
+            return _default_aiohttp_session(self.config)
         return self.config.aiohttp_session_generator(self.config)
