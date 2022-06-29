@@ -6,11 +6,6 @@
 Parfive
 =======
 
-.. toctree::
-   :hidden:
-
-   self
-
 Parfive is a small library for downloading files, its objective is to provide a simple API for queuing files for download and then providing excellent feedback to the user about the in progress downloads.
 It also aims to provide a clear interface for inspecting any failed downloads.
 

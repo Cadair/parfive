@@ -93,6 +93,14 @@ intersphinx_mapping = {
 # a list of builtin themes.
 html_theme = "sphinx_book_theme"
 
+html_theme_options = {
+    "home_page_in_toc": True,
+    "repository_url": "https://github.com/Cadair/parfive",
+    "use_repository_button": True,
+    "use_issues_button": True,
+    "use_download_button": False,
+}
+
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
