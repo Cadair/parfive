@@ -108,6 +108,14 @@ Parfive reads the following environment variables, note that as of version 2.0 a
 * ``PARFIVE_TOTAL_TIMEOUT`` - Overrides the default aiohttp ``total`` timeout value (unless set in Python).
 * ``PARFIVE_SOCK_READ_TIMEOUT`` - Overrides the default aiohttp ``sock_read`` timeout value (unless set in Python).
 
+Contributors
+------------
+
+.. contributors:: Cadair/parfive
+    :avatars:
+    :exclude: pre-commit-ci[bot]
+    :order: ASC
+
 Changelog
 ---------
 

@@ -39,6 +39,7 @@ extensions = [
     "sphinx_autodoc_typehints",  # must be loaded after napoleon
     "sphinx_automodapi.automodapi",
     "sphinx_automodapi.smart_resolver",
+    "sphinx_contributors",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
