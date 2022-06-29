@@ -10,7 +10,7 @@ from parfive.utils import ParfiveFutureWarning
 
 def test_session_config_defaults():
     c = SessionConfig()
-    assert callable(c.aiohttp_session_generator)
+    assert c.aiohttp_session_generator is None
     assert isinstance(c.timeouts, aiohttp.ClientTimeout)
     assert c.timeouts.total == 0
     assert c.timeouts.sock_read == 90

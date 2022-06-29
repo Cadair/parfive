@@ -1,0 +1,24 @@
+.sphinx-contributors img {
+    border-radius: 50%;
+}
+
+.sphinx-contributors_list {
+    padding-left: 0;
+}
+
+.sphinx-contributors_list__item {
+    padding-right: 0.75em;
+    padding-left: 0.75em;
+}
+
+.sphinx-contributors--avatars .sphinx-contributors_contributor__image {
+    max-width: 100px;
+}
+
+.sphinx-contributors_contributor {
+    width: initial;
+}
+
+.sphinx-contributors {
+    width: initial;
+}
