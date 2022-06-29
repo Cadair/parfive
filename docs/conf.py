@@ -91,22 +91,15 @@ intersphinx_mapping = {
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-
-try:
-    from sunpy_sphinx_theme.conf import *  # NOQA
-
-    html_theme_options = {
-        "logo_url": "https://parfive.readthedocs.io/en/latest/",
-        "page_toctree_depths": {},
-    }
-
-except ImportError:
-    pass
+html_theme = "sphinx_book_theme"
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-# html_static_path = ['_static']
+html_static_path = ["static"]
+html_css_files = [
+    "css/contributors.css",
+]
 
 # Render inheritance diagrams in SVG
 graphviz_output_format = "svg"
