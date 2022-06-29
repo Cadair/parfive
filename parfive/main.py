@@ -1,7 +1,7 @@
 import sys
 import argparse
 
-from parfive import Downloader
+from parfive import Downloader, __version__
 
 
 def main():
@@ -23,7 +23,9 @@ def main():
 
 
 def parse_args(args):
-    parser = argparse.ArgumentParser(description="Parfive, the python asyncio based downloader")
+    parser = argparse.ArgumentParser(
+        description="Parfive: A parallel file downloader written in Python."
+    )
     parser.add_argument(
         "urls", metavar="URLS", type=str, nargs="+", help="URLs of files to be downloaded."
     )
@@ -54,6 +56,7 @@ def parse_args(args):
         dest="print_filenames",
         help="Print successfully downloaded files's names to stdout.",
     )
+    parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
 
     args = parser.parse_args(args)
     return args
