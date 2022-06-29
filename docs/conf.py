@@ -39,6 +39,7 @@ extensions = [
     "sphinx_autodoc_typehints",  # must be loaded after napoleon
     "sphinx_automodapi.automodapi",
     "sphinx_automodapi.smart_resolver",
+    "sphinx_contributors",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -82,7 +83,7 @@ typehints_defaults = "comma"
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {
     "https://docs.python.org/": None,
-    "http://aiohttp.readthedocs.io/en/stable": None,
+    "https://docs.aiohttp.org/en/stable": None,
     "https://aioftp.readthedocs.io/": None,
 }
 
@@ -90,22 +91,23 @@ intersphinx_mapping = {
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
+html_theme = "sphinx_book_theme"
 
-try:
-    from sunpy_sphinx_theme.conf import *  # NOQA
-
-    html_theme_options = {
-        "logo_url": "https://parfive.readthedocs.io/en/latest/",
-        "page_toctree_depths": {},
-    }
-
-except ImportError:
-    pass
+html_theme_options = {
+    "home_page_in_toc": True,
+    "repository_url": "https://github.com/Cadair/parfive",
+    "use_repository_button": True,
+    "use_issues_button": True,
+    "use_download_button": False,
+}
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-# html_static_path = ['_static']
+html_static_path = ["static"]
+html_css_files = [
+    "css/contributors.css",
+]
 
 # Render inheritance diagrams in SVG
 graphviz_output_format = "svg"
