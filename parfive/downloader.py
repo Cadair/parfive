@@ -14,7 +14,6 @@ except ImportError:
     from typing_extensions import Literal  # type: ignore
 
 from functools import partial
-from concurrent.futures import ThreadPoolExecutor
 
 import aiohttp
 from tqdm import tqdm as tqdm_std
@@ -35,7 +34,7 @@ from .utils import (
     get_ftp_size,
     get_http_size,
     remove_file,
-    run_in_thread,
+    run_task_in_thread,
 )
 
 try:
@@ -236,22 +235,21 @@ class Downloader:
 
         # If we already have a loop and it's already running then we should
         # make a new loop (as we are probably in a Jupyter Notebook)
-        run_in_thread = loop and loop.is_running
+        should_run_in_thread = loop and loop.is_running()
 
         # If we don't already have a loop, make a new one
-        if loop is None:
+        if should_run_in_thread or loop is None:
             loop = asyncio.new_event_loop()
 
         # Wrap up the coroutine in a task so we can cancel it later
         task = loop.create_task(coro)
 
         # Add handlers for shutdown signals
-        # self._add_shutdown_signals(loop, task)
+        self._add_shutdown_signals(loop, task)
 
         # Execute the task
-        if run_in_thread:
-            aio_pool = ThreadPoolExecutor(1)
-            return run_in_thread(aio_pool, loop, task)
+        if should_run_in_thread:
+            return run_task_in_thread(loop, task)
 
         return loop.run_until_complete(task)
 
@@ -265,17 +263,28 @@ class Downloader:
             A list of files downloaded.
 
         """
+        tasks = []
         total_files = self.queued_downloads
+        try:
+            with self._get_main_pb(total_files) as main_pb:
+                if len(self.http_queue):
+                    tasks.append(asyncio.create_task(self._run_http_download(main_pb)))
+                if len(self.ftp_queue):
+                    tasks.append(asyncio.create_task(self._run_ftp_download(main_pb)))
 
-        done = set()
-        with self._get_main_pb(total_files) as main_pb:
-            if len(self.http_queue):
-                done.update(await self._run_http_download(main_pb))
-            if len(self.ftp_queue):
-                done.update(await self._run_ftp_download(main_pb))
+            dl_results = await asyncio.gather(*tasks, return_exceptions=True)
 
-        dl_results = await asyncio.gather(*done, return_exceptions=True)
-        errors = sum([isinstance(i, FailedDownload) for i in dl_results])
+        except asyncio.CancelledError:
+            for task in tasks:
+                task.cancel()
+            dl_results = await asyncio.gather(*tasks, return_exceptions=True)
+
+        finally:
+            results_obj = self._format_results(dl_results)
+            return results_obj
+
+    def _format_results(self, retvals):
+        errors = sum([isinstance(i, FailedDownload) for i in retvals])
         if errors:
             message = f"{errors}/{total_files} files failed to download. Please check `.errors` for details"
             if main_pb:
@@ -287,7 +296,7 @@ class Downloader:
 
         # Iterate through the results and store any failed download errors in
         # the errors list of the results object.
-        for res in dl_results:
+        for res in retvals:
             if isinstance(res, FailedDownload):
                 results.add_error(res.filepath_partial, res.url, res.exception)
                 parfive.log.info(
@@ -389,7 +398,6 @@ class Downloader:
 
     async def _run_http_download(self, main_pb):
         async with self.config.aiohttp_client_session() as session:
-            self._generate_tokens()
             futures = await self._run_from_queue(
                 self.http_queue.generate_queue(),
                 self._generate_tokens(),
@@ -397,8 +405,13 @@ class Downloader:
                 session=session,
             )
 
-            # Wait for all the coroutines to finish
-            done, _ = await asyncio.wait(futures)
+            try:
+                # Wait for all the coroutines to finish
+                done, _ = await asyncio.wait(futures)
+            except asyncio.CancelledError:
+                for task in futures:
+                    task.cancel()
+                return futures
 
             return done
 
@@ -408,8 +421,14 @@ class Downloader:
             self._generate_tokens(),
             main_pb,
         )
-        # Wait for all the coroutines to finish
-        done, _ = await asyncio.wait(futures)
+
+        try:
+            # Wait for all the coroutines to finish
+            done, _ = await asyncio.wait(futures)
+        except asyncio.CancelledError:
+            for task in futures:
+                task.cancel()
+            return futures
 
         return done
 
@@ -422,10 +441,13 @@ class Downloader:
             future = asyncio.create_task(get_file(session, token=token, file_pb=file_pb))
 
             def callback(token, future, main_pb):
-                tokens.put_nowait(token)
-                # Update the main progressbar
-                if main_pb and not future.exception():
-                    main_pb.update(1)
+                try:
+                    tokens.put_nowait(token)
+                    # Update the main progressbar
+                    if main_pb and not future.exception():
+                        main_pb.update(1)
+                except asyncio.CancelledError:
+                    return
 
             future.add_done_callback(partial(callback, token, main_pb=main_pb))
             futures.append(future)
@@ -581,7 +603,7 @@ class Downloader:
             await downloaded_chunk_queue.join()
             return str(filepath)
 
-        except Exception as e:
+        except (Exception, asyncio.CancelledError) as e:
             for task in tasks:
                 task.cancel()
             # If filepath is None then the exception occurred before the request
