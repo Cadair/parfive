@@ -1,4 +1,5 @@
 import os
+import signal
 import asyncio
 import logging
 import pathlib
@@ -220,23 +221,39 @@ class Downloader:
             raise ValueError("URL must start with either 'http' or 'ftp'.")
 
     @staticmethod
-    def _run_in_loop(coro):
-        """
-        Detect an existing, running loop and run in a separate loop if needed.
+    def _add_shutdown_signals(loop, task):
+        for sig in (signal.SIGINT, signal.SIGTERM):
+            loop.add_signal_handler(sig, task.cancel)
 
-        If no loop is running, use asyncio.run to run the coroutine instead.
+    def _run_in_loop(self, coro):
+        """
+        Take a coroutine and figure out where to run it and how to cancel it.
         """
         try:
             loop = asyncio.get_running_loop()
         except RuntimeError:
             loop = None
 
-        if loop and loop.is_running():
-            aio_pool = ThreadPoolExecutor(1)
-            new_loop = asyncio.new_event_loop()
-            return run_in_thread(aio_pool, new_loop, coro)
+        # If we already have a loop and it's already running then we should
+        # make a new loop (as we are probably in a Jupyter Notebook)
+        run_in_thread = loop and loop.is_running
 
-        return asyncio.run(coro)
+        # If we don't already have a loop, make a new one
+        if loop is None:
+            loop = asyncio.new_event_loop()
+
+        # Wrap up the coroutine in a task so we can cancel it later
+        task = loop.create_task(coro)
+
+        # Add handlers for shutdown signals
+        # self._add_shutdown_signals(loop, task)
+
+        # Execute the task
+        if run_in_thread:
+            aio_pool = ThreadPoolExecutor(1)
+            return run_in_thread(aio_pool, loop, task)
+
+        return loop.run_until_complete(task)
 
     async def run_download(self):
         """
@@ -465,6 +482,7 @@ class Downloader:
 
         # Define filepath and writer here as we use them in the except block
         filepath = writer = None
+        tasks = []
         try:
             scheme = urllib.parse.urlparse(url).scheme
             if scheme == "http":
@@ -511,7 +529,6 @@ class Downloader:
                     # as tuples: (offset, chunk)
                     downloaded_chunk_queue = asyncio.Queue()
 
-                    download_workers = []
                     writer = asyncio.create_task(
                         self._write_worker(downloaded_chunk_queue, file_pb, filepath)
                     )
@@ -531,7 +548,7 @@ class Downloader:
                         # let the last part download everything
                         ranges[-1][1] = ""
                         for _range in ranges:
-                            download_workers.append(
+                            tasks.append(
                                 asyncio.create_task(
                                     self._http_download_worker(
                                         session,
@@ -544,7 +561,7 @@ class Downloader:
                                 )
                             )
                     else:
-                        download_workers.append(
+                        tasks.append(
                             asyncio.create_task(
                                 self._http_download_worker(
                                     session,
@@ -559,19 +576,20 @@ class Downloader:
             # Close the initial request here before we start transferring data.
 
             # run all the download workers
-            await asyncio.gather(*download_workers)
+            await asyncio.gather(*tasks)
             # join() waits till all the items in the queue have been processed
             await downloaded_chunk_queue.join()
             return str(filepath)
 
         except Exception as e:
-            if writer is not None:
-                await cancel_task(writer)
+            for task in tasks:
+                task.cancel()
             # If filepath is None then the exception occurred before the request
             # computed the filepath, so we have no file to cleanup
             if filepath is not None:
                 remove_file(filepath)
             raise FailedDownload(filepath_partial, url, e)
+
         finally:
             if writer is not None:
                 writer.cancel()
