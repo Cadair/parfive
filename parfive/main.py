@@ -6,7 +6,10 @@ from parfive import Downloader, SessionConfig, __version__
 
 def main():
     args = parse_args(sys.argv[1:])
+    run_parfive(args)
 
+
+def run_parfive(args):
     log_level = "DEBUG" if args.verbose else None
     config = SessionConfig(file_progress=not args.no_file_progress, log_level=log_level)
 
@@ -30,6 +33,8 @@ def main():
         err_str += f"{err.url} \t {err.exception}\n"
     if err_str:
         sys.exit(err_str)
+
+    sys.exit(0)
 
 
 def parse_args(args):
