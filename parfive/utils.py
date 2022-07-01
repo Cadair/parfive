@@ -6,6 +6,7 @@ import pathlib
 import warnings
 from pathlib import Path
 from itertools import count
+from concurrent.futures import ThreadPoolExecutor
 
 import aiohttp
 
@@ -35,7 +36,7 @@ def default_name(path: os.PathLike, resp: aiohttp.ClientResponse, url: str) -> o
     return pathlib.Path(path) / name
 
 
-def run_in_thread(aio_pool, loop, coro):
+def run_task_in_thread(loop, coro):
     """
     This function returns the asyncio Future after running the loop in a
     thread.
@@ -43,7 +44,12 @@ def run_in_thread(aio_pool, loop, coro):
     This makes the return value of this function the same as the return
     of ``loop.run_until_complete``.
     """
-    return aio_pool.submit(loop.run_until_complete, coro).result()
+    with ThreadPoolExecutor(max_workers=1) as aio_pool:
+        try:
+            future = aio_pool.submit(loop.run_until_complete, coro)
+        except KeyboardInterrupt:
+            future.cancel()
+    return future.result()
 
 
 async def get_ftp_size(client, filepath):
