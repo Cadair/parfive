@@ -220,6 +220,8 @@ class Downloader:
 
     @staticmethod
     def _add_shutdown_signals(loop, task):
+        if os.name == "nt":
+            return
         for sig in (signal.SIGINT, signal.SIGTERM):
             loop.add_signal_handler(sig, task.cancel)
 
