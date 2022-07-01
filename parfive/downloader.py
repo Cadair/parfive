@@ -607,6 +607,12 @@ class Downloader:
         except (Exception, asyncio.CancelledError) as e:
             for task in tasks:
                 task.cancel()
+            # We have to cancel the writer here before we try and remove the
+            # file so it's closed (otherwise windows gets angry).
+            if writer is not None:
+                await cancel_task(writer)
+                # Set writer to None so we don't cancel it twice.
+                writer = None
             # If filepath is None then the exception occurred before the request
             # computed the filepath, so we have no file to cleanup
             if filepath is not None:
