@@ -3,10 +3,10 @@ import signal
 import asyncio
 import logging
 import pathlib
-import warnings
 import contextlib
 import urllib.parse
-from typing import Dict, Union, Callable, Optional
+from typing import Union, Callable, Optional
+from functools import reduce
 
 try:
     from typing import Literal  # Added in Python 3.8
@@ -25,7 +25,6 @@ from .results import Results
 from .utils import (
     FailedDownload,
     MultiPartDownloadError,
-    ParfiveFutureWarning,
     Token,
     _QueueList,
     cancel_task,
@@ -263,29 +262,30 @@ class Downloader:
             A list of files downloaded.
 
         """
-        tasks = []
-        total_files = self.queued_downloads
-        try:
-            with self._get_main_pb(total_files) as main_pb:
+        tasks = set()
+        with self._get_main_pb(self.queued_downloads) as main_pb:
+            try:
                 if len(self.http_queue):
-                    tasks.append(asyncio.create_task(self._run_http_download(main_pb)))
+                    tasks.add(asyncio.create_task(self._run_http_download(main_pb)))
                 if len(self.ftp_queue):
-                    tasks.append(asyncio.create_task(self._run_ftp_download(main_pb)))
+                    tasks.add(asyncio.create_task(self._run_ftp_download(main_pb)))
 
-            dl_results = await asyncio.gather(*tasks, return_exceptions=True)
+            except asyncio.CancelledError:
+                for task in tasks:
+                    task.cancel()
 
-        except asyncio.CancelledError:
-            for task in tasks:
-                task.cancel()
-            dl_results = await asyncio.gather(*tasks, return_exceptions=True)
+            finally:
+                dl_results = await asyncio.gather(*tasks, return_exceptions=True)
+                results_obj = self._format_results(dl_results, main_pb)
+                return results_obj
 
-        finally:
-            results_obj = self._format_results(dl_results)
-            return results_obj
-
-    def _format_results(self, retvals):
+    def _format_results(self, retvals, main_pb):
+        # Squash all nested lists into a single flat list
+        if retvals:
+            retvals = list(reduce(list.__add__, retvals))
         errors = sum([isinstance(i, FailedDownload) for i in retvals])
         if errors:
+            total_files = self.queued_downloads
             message = f"{errors}/{total_files} files failed to download. Please check `.errors` for details"
             if main_pb:
                 main_pb.write(message)
@@ -411,9 +411,8 @@ class Downloader:
             except asyncio.CancelledError:
                 for task in futures:
                     task.cancel()
-                return futures
 
-            return done
+            return await asyncio.gather(*futures, return_exceptions=True)
 
     async def _run_ftp_download(self, main_pb):
         futures = await self._run_from_queue(
@@ -428,9 +427,8 @@ class Downloader:
         except asyncio.CancelledError:
             for task in futures:
                 task.cancel()
-            return futures
 
-        return done
+        return await asyncio.gather(*futures, return_exceptions=True)
 
     async def _run_from_queue(self, queue, tokens, main_pb, *, session=None):
         futures = []
