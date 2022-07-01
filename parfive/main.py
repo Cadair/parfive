@@ -32,7 +32,8 @@ def run_parfive(args):
     for err in results.errors:
         err_str += f"{err.url} \t {err.exception}\n"
     if err_str:
-        sys.exit(err_str)
+        print(err_str, file=sys.stderr)
+        sys.exit(1)
 
     sys.exit(0)
 
