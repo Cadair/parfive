@@ -1,19 +1,32 @@
 import sys
 import argparse
 
-from parfive import Downloader
+from parfive import Downloader, SessionConfig, __version__
 
 
 def main():
     args = parse_args(sys.argv[1:])
+    run_parfive(args)
+
+
+def run_parfive(args):
+    log_level = "DEBUG" if args.verbose else None
+    config = SessionConfig(file_progress=not args.no_file_progress, log_level=log_level)
+
     downloader = Downloader(
-        max_conn=args.max_conn, file_progress=not args.no_file_progress, overwrite=args.overwrite
+        max_conn=args.max_conn,
+        max_splits=args.max_splits,
+        progress=not args.no_progress,
+        overwrite=args.overwrite,
+        config=config,
     )
     for url in args.urls:
         downloader.enqueue_file(url, path=args.directory)
     results = downloader.download()
-    for i in results:
-        print(i)
+
+    if args.print_filenames:
+        for i in results:
+            print(i)
 
     err_str = ""
     for err in results.errors:
@@ -21,19 +34,42 @@ def main():
     if err_str:
         sys.exit(err_str)
 
+    sys.exit(0)
+
 
 def parse_args(args):
-    parser = argparse.ArgumentParser(description="Parfive, the python asyncio based downloader")
+    parser = argparse.ArgumentParser(
+        description="Parfive: A parallel file downloader written in Python."
+    )
     parser.add_argument(
         "urls", metavar="URLS", type=str, nargs="+", help="URLs of files to be downloaded."
     )
-    parser.add_argument("--max-conn", type=int, default=5, help="Number of maximum connections.")
+    parser.add_argument(
+        "--max-conn", type=int, default=5, help="Maximum number of parallel file downloads."
+    )
+    parser.add_argument(
+        "--max-splits",
+        type=int,
+        default=5,
+        help="Maximum number of parallel connections per file (only used if supported by the server).",
+    )
+    parser.add_argument(
+        "--directory", type=str, default="./", help="Directory to which downloaded files are saved."
+    )
     parser.add_argument(
         "--overwrite",
         action="store_const",
         const=True,
         default=False,
         help="Overwrite if the file exists.",
+    )
+    parser.add_argument(
+        "--no-progress",
+        action="store_const",
+        const=True,
+        default=False,
+        dest="no_progress",
+        help="Show progress indicators during download.",
     )
     parser.add_argument(
         "--no-file-progress",
@@ -44,9 +80,6 @@ def parse_args(args):
         help="Show progress bar for each file.",
     )
     parser.add_argument(
-        "--directory", type=str, default="./", help="Directory to which downloaded files are saved."
-    )
-    parser.add_argument(
         "--print-filenames",
         action="store_const",
         const=True,
@@ -54,6 +87,14 @@ def parse_args(args):
         dest="print_filenames",
         help="Print successfully downloaded files's names to stdout.",
     )
+    parser.add_argument(
+        "--verbose",
+        action="store_const",
+        const=True,
+        default=False,
+        help="Log debugging output while transferring the files.",
+    )
+    parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
 
     args = parser.parse_args(args)
     return args
