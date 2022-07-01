@@ -269,13 +269,14 @@ class Downloader:
                     tasks.add(asyncio.create_task(self._run_http_download(main_pb)))
                 if len(self.ftp_queue):
                     tasks.add(asyncio.create_task(self._run_ftp_download(main_pb)))
+                dl_results = await asyncio.gather(*tasks, return_exceptions=True)
 
             except asyncio.CancelledError:
                 for task in tasks:
                     task.cancel()
+                dl_results = await asyncio.gather(*tasks, return_exceptions=True)
 
             finally:
-                dl_results = await asyncio.gather(*tasks, return_exceptions=True)
                 results_obj = self._format_results(dl_results, main_pb)
                 return results_obj
 
