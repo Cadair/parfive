@@ -15,6 +15,10 @@ chunks.
 Usage
 -----
 
+.. image:: https://asciinema.org/a/EuALahgkiicWHGmrfFsZSLz81.svg
+   :alt: asciicast demo of parfive
+   :target: https://asciinema.org/a/EuALahgkiicWHGmrfFsZSLz81
+
 parfive works by creating a downloader object, appending files to it and then
 running the download. parfive has a synchronous API, but uses asyncio to
 paralellise downloading the files.
