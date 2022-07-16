@@ -54,7 +54,7 @@ class Downloader:
     max_conn
         The number of parallel download slots.
     max_splits
-        The maximum number of splits to use to download a file (server dependant).
+        The maximum number of splits to use to download a file (server dependent).
     progress
         If `True` show a main progress bar showing how many of the total files
         have been downloaded. If `False`, no progress bars will be shown at all.
