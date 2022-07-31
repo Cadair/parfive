@@ -13,7 +13,7 @@ The parfive package was motivated by the needs of `SunPy's <https://sunpy.org>`_
 Parfive uses asyncio to support downloading multiple files in parallel, and to support downloading a single file in multiple parallel chunks.
 Parfive supports downloading files over either HTTP or FTP using `aiohttp <http://aiohttp.readthedocs.io/>`__ and `aioftp <https://aioftp.readthedocs.io/>`__ (``aioftp`` is an optional dependency, which does not need to be installed to download files over HTTP).
 
-Parfive provides both a function and coroutine interface, so that it can be used from both synchronous and asyncronous code.
+Parfive provides both a function and coroutine interface, so that it can be used from both synchronous and asynchronous code.
 It also has opt-in support for using `aiofiles <https://github.com/Tinche/aiofiles>`__ to write downloaded data to disk using a separate thread pool, which may be useful if you are using parfive from within an asyncio application.
 
 
