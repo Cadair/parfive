@@ -1,5 +1,4 @@
 import os
-import cgi
 import asyncio
 import hashlib
 import pathlib
@@ -22,12 +21,32 @@ __all__ = [
 ]
 
 
+# Copied out of CPython under PSF Licence 2
+def parse_header(line):
+    """Parse a Content-type like header.
+    Return the main content-type and a dictionary of options.
+    """
+    parts = _parseparam(";" + line)
+    key = parts.__next__()
+    pdict = {}
+    for p in parts:
+        i = p.find("=")
+        if i >= 0:
+            name = p[:i].strip().lower()
+            value = p[i + 1 :].strip()
+            if len(value) >= 2 and value[0] == value[-1] == '"':
+                value = value[1:-1]
+                value = value.replace("\\\\", "\\").replace('\\"', '"')
+            pdict[name] = value
+    return key, pdict
+
+
 def default_name(path: os.PathLike, resp: aiohttp.ClientResponse, url: str) -> os.PathLike:
     url_filename = url.split("/")[-1]
     if resp:
         cdheader = resp.headers.get("Content-Disposition", None)
         if cdheader:
-            value, params = cgi.parse_header(cdheader)
+            value, params = parse_header(cdheader)
             name = params.get("filename", url_filename)
         else:
             name = url_filename
