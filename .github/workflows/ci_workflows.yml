@@ -2,7 +2,18 @@ name: CI
 
 on:
   push:
+    branches:
+      - 'main'
+      - '*.*'
+      - '!*backport*'
+    tags:
+      - 'v*'
+      - '!*dev*'
+      - '!*pre*'
+      - '!*post*'
   pull_request:
+  # Allow manual runs through the web UI
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
