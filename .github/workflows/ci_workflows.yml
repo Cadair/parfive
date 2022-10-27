@@ -38,7 +38,7 @@ jobs:
     needs: tests
     uses: OpenAstronomy/github-actions-workflows/.github/workflows/publish_pure_python.yml@v1
     with:
-      test_extras: tests
+      test_extras: tests,ftp
       test_command: pytest --pyargs parfive
     secrets:
       pypi_token: ${{ secrets.pypi_token }}
