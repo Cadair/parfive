@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - 'main'
+      - '*.*'
+      - '!*backport*'
+    tags:
+      - 'v*'
+      - '!*dev*'
+      - '!*pre*'
+      - '!*post*'
+  pull_request:
+  # Allow manual runs through the web UI
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+
+  tests:
+    uses: OpenAstronomy/github-actions-workflows/.github/workflows/tox.yml@v1
+    with:
+      envs: |
+        - linux: mypy
+        - linux: py38-conda
+        - linux: py310
+        - linux: py311
+        - linux: py39
+        - windows: py38
+        - macos: py37
+      coverage: 'codecov'
+
+  publish:
+    needs: tests
+    uses: OpenAstronomy/github-actions-workflows/.github/workflows/publish_pure_python.yml@v1
+    with:
+      test_extras: tests,ftp
+      test_command: pytest --pyargs parfive
+    secrets:
+      pypi_token: ${{ secrets.pypi_token }}
