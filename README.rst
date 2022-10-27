@@ -4,9 +4,6 @@ Parfive
 .. image:: https://img.shields.io/pypi/v/parfive.svg
     :target: https://pypi.python.org/pypi/parfive
     :alt: Latest PyPI version
-.. image:: https://dev.azure.com/DrCadair/parfive/_apis/build/status/Cadair.parfive?repoName=Cadair%2Fparfive&branchName=master
-    :target: https://dev.azure.com/DrCadair/parfive/_build/latest?definitionId=1&repoName=Cadair%2Fparfive&branchName=master
-    :alt: Azure Pipelines Build Status
 
 A parallel file downloader using asyncio. parfive can handle downloading
 multiple files in parallel as well as downloading each file in a number of
