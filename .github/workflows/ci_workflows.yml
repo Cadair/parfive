@@ -27,6 +27,7 @@ jobs:
       envs: |
         - linux: mypy
         - linux: py38-conda
+          toxdeps: tox-conda
         - linux: py310
         - linux: py311
         - linux: py39
