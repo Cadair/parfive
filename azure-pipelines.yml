@@ -45,6 +45,8 @@ stages:
 
           - linux: py310
 
+          - linux: py311
+
           - linux: py39
 
           - macos: py37
