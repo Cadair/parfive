@@ -75,7 +75,7 @@ class Downloader:
         max_splits: int = 5,
         progress: bool = True,
         overwrite: Union[bool, Literal["unique"]] = False,
-        config: SessionConfig = None,
+        config: Optional[SessionConfig] = None,
     ):
 
         self.config = DownloaderConfig(
@@ -151,9 +151,9 @@ class Downloader:
     def enqueue_file(
         self,
         url: str,
-        path: Union[str, os.PathLike] = None,
-        filename: Union[str, Callable[[str, Optional[aiohttp.ClientResponse]], os.PathLike]] = None,
-        overwrite: Union[bool, Literal["unique"]] = None,
+        path: Optional[Union[str, os.PathLike]] = None,
+        filename: Optional[Union[str, Callable[[str, Optional[aiohttp.ClientResponse]], os.PathLike]]] = None,
+        overwrite: Optional[Union[bool, Literal["unique"]]] = None,
         **kwargs,
     ):
         """
