@@ -152,7 +152,9 @@ class Downloader:
         self,
         url: str,
         path: Optional[Union[str, os.PathLike]] = None,
-        filename: Optional[Union[str, Callable[[str, Optional[aiohttp.ClientResponse]], os.PathLike]]] = None,
+        filename: Optional[
+            Union[str, Callable[[str, Optional[aiohttp.ClientResponse]], os.PathLike]]
+        ] = None,
         overwrite: Optional[Union[bool, Literal["unique"]]] = None,
         **kwargs,
     ):
