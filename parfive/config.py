@@ -1,14 +1,14 @@
 import os
 import platform
 import warnings
-from typing import Dict, Union, Callable, Optional
+from typing import Callable, Dict, Optional, Union
 
 try:
     from typing import Literal  # Added in Python 3.8
 except ImportError:
     from typing_extensions import Literal  # type: ignore
 
-from dataclasses import InitVar, field, dataclass
+from dataclasses import InitVar, dataclass, field
 
 import aiohttp
 
@@ -35,7 +35,7 @@ def _default_aiohttp_session(config: "SessionConfig") -> aiohttp.ClientSession:
     `aiohttp.ClientSession` expects to be instantiated in a asyncio context
     where it can get a running loop.
     """
-    return aiohttp.ClientSession(headers=config.headers)
+    return aiohttp.ClientSession(headers=config.headers, requote_redirect_url=False)
 
 
 @dataclass
