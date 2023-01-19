@@ -1,14 +1,14 @@
 import os
 import platform
 import warnings
-from typing import Callable, Dict, Optional, Union
+from typing import Dict, Union, Callable, Optional
 
 try:
     from typing import Literal  # Added in Python 3.8
 except ImportError:
     from typing_extensions import Literal  # type: ignore
 
-from dataclasses import InitVar, dataclass, field
+from dataclasses import InitVar, field, dataclass
 
 import aiohttp
 
