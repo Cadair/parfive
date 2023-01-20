@@ -148,7 +148,7 @@ class SessionConfig:
     A function to be called when a download is completed.
 
     The signature of the function to be called is `done_callback(filepath: str, url: str, error: Optional[Exception])`.
-    If succesful, error will be None, else the occured exception.
+    If successful, error will be None, else the occured exception.
     """
 
     @staticmethod
