@@ -143,6 +143,14 @@ class SessionConfig:
     """
     env: EnvConfig = field(default_factory=EnvConfig)
 
+    done_callback: Optional[Callable] = None
+    """
+    A function to be called when a download is completed.
+
+    The signature of the function to be called is `done_callback(filepath: str, url: str, error: Optional[Exception])`.
+    If succesful, error will be None, else the occured exception.
+    """
+
     @staticmethod
     def _aiofiles_importable():
         try:
