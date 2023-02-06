@@ -77,7 +77,6 @@ class Downloader:
         overwrite: Union[bool, Literal["unique"]] = False,
         config: SessionConfig = None,
     ):
-
         self.config = DownloaderConfig(
             max_conn=max_conn,
             max_splits=max_splits,
