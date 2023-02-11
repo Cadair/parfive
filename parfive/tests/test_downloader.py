@@ -446,9 +446,7 @@ def test_custom_user_agent(httpserver, tmpdir):
     ],
 )
 def test_proxy_passed_as_kwargs_to_get(tmpdir, url, proxy):
-
     with mock.patch("aiohttp.client.ClientSession._request", new_callable=mock.MagicMock) as patched:
-
         dl = Downloader()
         dl.enqueue_file(url, path=Path(tmpdir), max_splits=None)
 
