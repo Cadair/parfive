@@ -35,7 +35,7 @@ def _default_aiohttp_session(config: "SessionConfig") -> aiohttp.ClientSession:
     `aiohttp.ClientSession` expects to be instantiated in a asyncio context
     where it can get a running loop.
     """
-    return aiohttp.ClientSession(headers=config.headers)
+    return aiohttp.ClientSession(headers=config.headers, requote_redirect_url=False)
 
 
 @dataclass
