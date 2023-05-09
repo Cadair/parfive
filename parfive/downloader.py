@@ -1,12 +1,12 @@
-import os
-import signal
 import asyncio
-import logging
-import pathlib
 import contextlib
+import logging
+import os
+import pathlib
+import signal
 import urllib.parse
-from typing import Union, Callable, Optional
 from functools import reduce
+from typing import Callable, Optional, Union
 
 try:
     from typing import Literal  # Added in Python 3.8
@@ -20,21 +20,12 @@ from tqdm import tqdm as tqdm_std
 from tqdm.auto import tqdm as tqdm_auto
 
 import parfive
+
 from .config import DownloaderConfig, SessionConfig
 from .results import Results
-from .utils import (
-    FailedDownload,
-    MultiPartDownloadError,
-    Token,
-    _QueueList,
-    cancel_task,
-    default_name,
-    get_filepath,
-    get_ftp_size,
-    get_http_size,
-    remove_file,
-    run_task_in_thread,
-)
+from .utils import (FailedDownload, MultiPartDownloadError, Token, _QueueList,
+                    cancel_task, default_name, get_filepath, get_ftp_size,
+                    get_http_size, remove_file, run_task_in_thread)
 
 try:
     import aioftp
@@ -608,7 +599,8 @@ class Downloader:
             await asyncio.gather(*tasks)
             # join() waits till all the items in the queue have been processed
             await downloaded_chunk_queue.join()
-            self.config.done_callback(filepath, url, None)
+            for callback in self.config.done_callbacks:
+                callback(filepath, url, None)
             return str(filepath)
 
         except (Exception, asyncio.CancelledError) as e:
@@ -624,7 +616,8 @@ class Downloader:
             # computed the filepath, so we have no file to cleanup
             if filepath is not None:
                 remove_file(filepath)
-            self.config.done_callback(filepath, url, e)
+            for callback in self.config.done_callbacks:
+                callback(filepath, url, None)
             raise FailedDownload(filepath_partial, url, e)
 
         finally:

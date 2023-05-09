@@ -1,14 +1,14 @@
 import os
 import platform
 import warnings
-from typing import Dict, Union, Callable, Optional
+from typing import Callable, Dict, List, Optional, Union
 
 try:
     from typing import Literal  # Added in Python 3.8
 except ImportError:
     from typing_extensions import Literal  # type: ignore
 
-from dataclasses import InitVar, field, dataclass
+from dataclasses import InitVar, dataclass, field
 
 import aiohttp
 
@@ -143,12 +143,12 @@ class SessionConfig:
     """
     env: EnvConfig = field(default_factory=EnvConfig)
 
-    done_callback: Optional[Callable] = None
+    done_callbacks: List[Callable] = []
     """
-    A function to be called when a download is completed.
+    A list of functions to be called when a download is completed.
 
-    The signature of the function to be called is `done_callback(filepath: str, url: str, error: Optional[Exception])`.
-    If successful, error will be None, else the occured exception.
+    The signature of the function to be called is `f(filepath: str, url: str, error: Optional[Exception])`.
+    If successful, error will be None, else the occured exception or asyncio.CancelledError.
     """
 
     @staticmethod
