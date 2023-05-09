@@ -1,14 +1,14 @@
 import os
 import platform
 import warnings
-from typing import Dict, List, Union, Callable, Optional
+from typing import Callable, Dict, Iterable, Optional, Union
 
 try:
     from typing import Literal  # Added in Python 3.8
 except ImportError:
     from typing_extensions import Literal  # type: ignore
 
-from dataclasses import InitVar, field, dataclass
+from dataclasses import InitVar, dataclass, field
 
 import aiohttp
 
@@ -143,7 +143,7 @@ class SessionConfig:
     """
     env: EnvConfig = field(default_factory=EnvConfig)
 
-    done_callbacks: List[Callable] = tuple()
+    done_callbacks: Iterable[Callable] = tuple()
     """
     A list of functions to be called when a download is completed.
 
