@@ -463,3 +463,22 @@ def test_proxy_passed_as_kwargs_to_get(tmpdir, url, proxy):
             "proxy": proxy,
         },
     ]
+
+def test_done_callback(httpserver, tmpdir):
+    tmpdir = str(tmpdir)
+    httpserver.serve_content(
+        "SIMPLE  = T", headers={"Content-Disposition": "attachment; filename=testfile.fits"}
+    )
+
+    def done_callback():
+        Path("callback.done").touch()
+
+    dl = Downloader(config=SessionConfig(done_callbacks=[done_callback]))
+    dl.enqueue_file(httpserver.url, path=Path(tmpdir), max_splits=None)
+
+    assert dl.queued_downloads == 1
+
+    dl.download()
+
+    assert Path("callback.done").exists()
+    Path("callback.done").unlink()
