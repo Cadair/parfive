@@ -464,6 +464,7 @@ def test_proxy_passed_as_kwargs_to_get(tmpdir, url, proxy):
         },
     ]
 
+
 def test_done_callback(httpserver, tmpdir):
     tmpdir = str(tmpdir)
     httpserver.serve_content(
