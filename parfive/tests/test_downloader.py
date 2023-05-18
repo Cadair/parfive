@@ -1,5 +1,6 @@
 import os
 import platform
+import threading
 from pathlib import Path
 from unittest import mock
 from unittest.mock import patch
@@ -463,3 +464,27 @@ def test_proxy_passed_as_kwargs_to_get(tmpdir, url, proxy):
             "proxy": proxy,
         },
     ]
+
+
+class CustomThread(threading.Thread):
+    def __init__(self, *args, **kwargs):
+        self.result = None
+        super().__init__(*args, **kwargs)
+
+    def run(self):
+        self.result = self._target(*self._args, **self._kwargs)
+
+def test_download_out_of_main_thread(httpserver, tmpdir):
+    tmpdir = str(tmpdir)
+    httpserver.serve_content(
+        "SIMPLE  = T", headers={"Content-Disposition": "attachment; filename=testfile.fits"}
+    )
+    dl = Downloader()
+
+    dl.enqueue_file(httpserver.url, path=Path(tmpdir), max_splits=None)
+
+    thread = CustomThread(target=dl.download)
+    thread.start()
+    thread.join()
+
+    validate_test_file(thread.result)
