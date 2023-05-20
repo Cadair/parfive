@@ -3,10 +3,10 @@ import signal
 import asyncio
 import logging
 import pathlib
+import warnings
+import threading
 import contextlib
 import urllib.parse
-import threading
-import warnings
 from typing import Union, Callable, Optional
 from functools import reduce
 
@@ -225,11 +225,13 @@ class Downloader:
     def _add_shutdown_signals(loop, task):
         if os.name == "nt":
             return
-        
+
         if threading.current_thread() != threading.main_thread():
-            warnings.warn("Signal only works in main thread of the main interpreter and the handlers to interrupt the kernel have not been added.")
+            warnings.warn(
+                "Signal only works in main thread of the main interpreter and the handlers to interrupt the kernel have not been added."
+            )
             return
-        
+
         for sig in (signal.SIGINT, signal.SIGTERM):
             loop.add_signal_handler(sig, task.cancel)
 
