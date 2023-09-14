@@ -228,7 +228,7 @@ class Downloader:
 
         if threading.current_thread() != threading.main_thread():
             warnings.warn(
-                "Signal only works in main thread of the main interpreter and the handlers to interrupt the kernel have not been added."
+                "This download has been started in a thread which is not the main thread. You will not be able to interrupt the download."
             )
             return
 
