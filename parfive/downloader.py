@@ -229,7 +229,7 @@ class Downloader:
         if threading.current_thread() != threading.main_thread():
             warnings.warn(
                 "This download has been started in a thread which is not the main thread. You will not be able to interrupt the download.",
-                UserWarning
+                UserWarning,
             )
             return
 
