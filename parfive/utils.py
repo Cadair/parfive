@@ -114,19 +114,19 @@ def replacement_filename(path: os.PathLike[str]) -> Path:  # type: ignore[return
     """
     Given a path generate a unique filename.
     """
-    path_ = pathlib.Path(path)
+    path = pathlib.Path(path)
 
-    if not path_.exists():
-        return path_
+    if not path.exists():
+        return path
 
-    suffix = "".join(path_.suffixes)
+    suffix = "".join(path.suffixes)
     for c in count(start=1):
         if suffix:
-            name, _ = path_.name.split(suffix)
+            name, _ = path.name.split(suffix)
         else:
-            name = path_.name
+            name = path.name
         new_name = f"{name}.{c}{suffix}"
-        new_path = path_.parent / new_name
+        new_path = path.parent / new_name
         if not new_path.exists():
             return new_path
 
@@ -139,16 +139,16 @@ def get_filepath(filepath: os.PathLike[str], overwrite: bool) -> Tuple[Union[Pat
     -------
     `pathlib.Path`, `bool`
     """
-    filepath_ = pathlib.Path(filepath)
-    if filepath_.exists():
+    filepath = pathlib.Path(filepath)
+    if filepath.exists():
         if not overwrite:
-            return str(filepath_), True
+            return str(filepath), True
         if overwrite == "unique":
-            filepath_ = replacement_filename(filepath_)
-    if not filepath_.parent.exists():
-        filepath_.parent.mkdir(parents=True)
+            filepath = replacement_filename(filepath)
+    if not filepath.parent.exists():
+        filepath.parent.mkdir(parents=True)
 
-    return filepath_, False
+    return filepath, False
 
 
 def sha256sum(filename: str) -> str:
