@@ -206,8 +206,8 @@ class _QueueList(List[_T]):
     Creating the queue can only be done inside a running asyncio loop.
     """
 
-    def generate_queue(self, maxsize: int = 0) -> asyncio.Queue[_T]:
-        queue: asyncio.Queue[_T] = asyncio.Queue(maxsize=maxsize)
+    def generate_queue(self, maxsize: int = 0) -> asyncio.Queue:
+        queue = asyncio.Queue(maxsize=maxsize)
         for item in self:
             queue.put_nowait(item)
         self.clear()
