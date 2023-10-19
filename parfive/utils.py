@@ -3,16 +3,19 @@ import asyncio
 import hashlib
 import pathlib
 import warnings
-from typing import Any, Dict, List, Tuple, Union, TypeVar, Generator
+from typing import TYPE_CHECKING, Any, Dict, List, Tuple, Union, TypeVar, Generator
 from pathlib import Path
 from itertools import count
 from concurrent.futures import ThreadPoolExecutor
 
-import aioftp
 import aiohttp
 import requests
 
 import parfive
+
+if TYPE_CHECKING:
+    import aioftp
+
 
 __all__ = [
     "cancel_task",
