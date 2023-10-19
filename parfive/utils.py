@@ -89,7 +89,7 @@ def run_task_in_thread(loop: asyncio.BaseEventLoop, coro: asyncio.Task) -> Any:
     return future.result()
 
 
-async def get_ftp_size(client: aioftp.Client, filepath: os.PathLike[str]) -> int:
+async def get_ftp_size(client: "aioftp.Client", filepath: os.PathLike[str]) -> int:
     """
     Given an `aioftp.ClientSession` object get the expected size of the file,
     return ``None`` if the size can not be determined.
