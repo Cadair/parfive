@@ -89,7 +89,7 @@ def run_task_in_thread(loop: asyncio.BaseEventLoop, coro: asyncio.Task) -> Any:
     return future.result()
 
 
-async def get_ftp_size(client: "aioftp.Client", filepath: os.PathLike[str]) -> int:
+async def get_ftp_size(client: "aioftp.Client", filepath: os.PathLike) -> int:
     """
     Given an `aioftp.ClientSession` object get the expected size of the file,
     return ``None`` if the size can not be determined.
@@ -109,7 +109,7 @@ def get_http_size(resp: aiohttp.ClientResponse) -> Union[int, str, None]:
     return int(size) if size else size
 
 
-def replacement_filename(path: os.PathLike[str]) -> Path:  # type: ignore[return]
+def replacement_filename(path: os.PathLike) -> Path:  # type: ignore[return]
     """
     Given a path generate a unique filename.
     """
@@ -130,7 +130,7 @@ def replacement_filename(path: os.PathLike[str]) -> Path:  # type: ignore[return
             return new_path
 
 
-def get_filepath(filepath: os.PathLike[str], overwrite: bool) -> Tuple[Union[Path, str], bool]:
+def get_filepath(filepath: os.PathLike, overwrite: bool) -> Tuple[Union[Path, str], bool]:
     """
     Get the filepath to download to and ensure dir exists.
 
