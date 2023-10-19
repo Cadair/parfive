@@ -9,7 +9,6 @@ from itertools import count
 from concurrent.futures import ThreadPoolExecutor
 
 import aiohttp
-import requests
 
 import parfive
 
@@ -105,7 +104,7 @@ async def get_ftp_size(client: aioftp.Client, filepath: os.PathLike[str]) -> int
     return int(size) if size else size
 
 
-def get_http_size(resp: requests.Response) -> Union[int, str, None]:
+def get_http_size(resp: aiohttp.ClientResponse) -> Union[int, str, None]:
     size = resp.headers.get("content-length", None)
     return int(size) if size else size
 
@@ -165,7 +164,7 @@ def sha256sum(filename: str) -> str:
 
 
 class MultiPartDownloadError(Exception):
-    def __init__(self, response: requests.Response) -> None:
+    def __init__(self, response: aiohttp.ClientResponse) -> None:
         self.response = response
 
 
