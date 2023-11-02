@@ -327,10 +327,8 @@ def test_wrongscheme(tmpdir):
 
     dl = Downloader(progress=False)
 
-    dl.enqueue_file("webcal://notaurl.wibble/file", path=tmpdir)
-
     try:
-        f = dl.download()
+        dl.enqueue_file("webcal://notaurl.wibble/file", path=tmpdir)
     except ValueError as ve:
         assert isinstance(ve, ValueError)
 
