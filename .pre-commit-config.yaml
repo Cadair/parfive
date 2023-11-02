@@ -2,7 +2,7 @@
 # See https://pre-commit.com/hooks.html for more hooks
 repos:
 -   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.4.0
+    rev: v4.5.0
     hooks:
     - id: check-ast
     - id: check-case-conflict
@@ -18,6 +18,6 @@ repos:
     - id: isort
       args: ['--sp','setup.cfg']
 - repo: https://github.com/psf/black
-  rev: 23.3.0
+  rev: 23.10.0
   hooks:
     - id: black
