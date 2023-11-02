@@ -327,10 +327,8 @@ def test_wrongscheme(tmpdir):
 
     dl = Downloader(progress=False)
 
-    try:
+    with pytest.raises(ValueError, match="URL must start with either"):
         dl.enqueue_file("webcal://notaurl.wibble/file", path=tmpdir)
-    except ValueError as ve:
-        assert isinstance(ve, ValueError)
 
 
 def test_retry(tmpdir, testserver):
