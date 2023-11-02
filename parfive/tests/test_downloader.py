@@ -360,6 +360,7 @@ def test_empty_retry():
 
 def test_done_callback_error(tmpdir, testserver):
     tmpdir = str(tmpdir)
+
     def done_callback(filepath, url, error):
         if error is not None:
             (Path(gettempdir()) / "callback.error").touch()
