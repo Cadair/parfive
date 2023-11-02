@@ -1,5 +1,6 @@
 import os
 import platform
+import unittest
 from pathlib import Path
 from unittest import mock
 from unittest.mock import patch
@@ -328,10 +329,8 @@ def test_wrongscheme(tmpdir):
 
     dl.enqueue_file("webcal://notaurl.wibble/file", path=tmpdir)
 
-    f = dl.download()
-
-    assert len(f.errors) == 1
-    assert isinstance(f.errors[0].exception, ValueError)
+    with unittest.TestCase.assertRaises(ValueError):
+        f = dl.download()
 
 
 def test_retry(tmpdir, testserver):
