@@ -359,10 +359,13 @@ def test_empty_retry():
 
 def test_done_callback_error(tmpdir, testserver):
     tmpdir = str(tmpdir)
-
+   
+    at_least_one_error = False
     def done_callback(filepath, url, error):
+        nonlocal at_least_one_error
         if error is not None:
-            Path("callback.error").touch()
+            at_least_one_error = True
+    assert at_least_one_error
 
     dl = Downloader(config=SessionConfig(done_callbacks=[done_callback]))
 
