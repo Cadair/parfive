@@ -143,7 +143,7 @@ class SessionConfig:
     """
     env: EnvConfig = field(default_factory=EnvConfig)
 
-    done_callbacks: Iterable[Callable[[str, str, Optional[Exception], None]]] = tuple()
+    done_callbacks: Iterable[Callable[[str, str, Optional[Exception]], None]] = tuple()
     """
     A list of functions to be called when a download is completed.
 
