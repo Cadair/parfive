@@ -471,7 +471,7 @@ def test_done_callback(httpserver, tmpdir):
         "SIMPLE  = T", headers={"Content-Disposition": "attachment; filename=testfile.fits"}
     )
 
-    def done_callback():
+    def done_callback(*args, **kwargs):
         Path("callback.done").touch()
 
     dl = Downloader(config=SessionConfig(done_callbacks=[done_callback]))
