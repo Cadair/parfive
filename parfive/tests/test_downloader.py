@@ -359,6 +359,23 @@ def test_empty_retry():
     dl.retry(f)
 
 
+def test_done_callback_error(tmpdir, testserver):
+    tmpdir = str(tmpdir)
+    def done_callback(filepath, url, error):
+        if error is not None:
+            Path("callback.error").touch()
+
+    dl = Downloader(config=SessionConfig(done_callbacks=[done_callback]))
+
+    nn = 5
+    for i in range(nn):
+        dl.enqueue_file(testserver.url, path=tmpdir)
+
+    f = dl.download()
+
+    assert Path("callback.error").exists()
+    Path("callback.error").unlink()
+
 @skip_windows
 @pytest.mark.allow_hosts(True)
 def test_ftp(tmpdir):
