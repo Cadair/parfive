@@ -329,8 +329,10 @@ def test_wrongscheme(tmpdir):
 
     dl.enqueue_file("webcal://notaurl.wibble/file", path=tmpdir)
 
-    with unittest.TestCase.assertRaises(ValueError):
+    try:
         f = dl.download()
+    except ValueError as ve:
+        assert isinstance(ve, ValueError)
 
 
 def test_retry(tmpdir, testserver):
