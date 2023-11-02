@@ -2,6 +2,7 @@ import os
 import platform
 import unittest
 from pathlib import Path
+from tempfile import gettempdir
 from unittest import mock
 from unittest.mock import patch
 
@@ -359,15 +360,9 @@ def test_empty_retry():
 
 def test_done_callback_error(tmpdir, testserver):
     tmpdir = str(tmpdir)
-
-    at_least_one_error = False
-
     def done_callback(filepath, url, error):
-        nonlocal at_least_one_error
         if error is not None:
-            at_least_one_error = True
-
-    assert at_least_one_error
+            (Path(gettempdir()) / "callback.error").touch()
 
     dl = Downloader(config=SessionConfig(done_callbacks=[done_callback]))
 
@@ -377,8 +372,8 @@ def test_done_callback_error(tmpdir, testserver):
 
     f = dl.download()
 
-    assert Path("callback.error").exists()
-    Path("callback.error").unlink()
+    assert (Path(gettempdir()) / "callback.error").exists()
+    (Path(gettempdir()) / "callback.error").unlink()
 
 
 @skip_windows
@@ -506,7 +501,7 @@ def test_done_callback(httpserver, tmpdir):
     )
 
     def done_callback(filepath, url, error):
-        Path("callback.done").touch()
+        (Path(gettempdir()) / "callback.done").touch()
 
     dl = Downloader(config=SessionConfig(done_callbacks=[done_callback]))
     dl.enqueue_file(httpserver.url, path=Path(tmpdir), max_splits=None)
@@ -515,5 +510,5 @@ def test_done_callback(httpserver, tmpdir):
 
     dl.download()
 
-    assert Path("callback.done").exists()
-    Path("callback.done").unlink()
+    assert (Path(gettempdir()) / "callback.done").exists()
+    (Path(gettempdir()) / "callback.done").unlink()
