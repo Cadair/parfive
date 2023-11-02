@@ -321,6 +321,19 @@ def test_notaurl(tmpdir):
     assert isinstance(f.errors[0].exception, aiohttp.ClientConnectionError)
 
 
+def test_wrongscheme(tmpdir):
+    tmpdir = str(tmpdir)
+
+    dl = Downloader(progress=False)
+
+    dl.enqueue_file("webcal://notaurl.wibble/file", path=tmpdir)
+
+    f = dl.download()
+
+    assert len(f.errors) == 1
+    assert isinstance(f.errors[0].exception, ValueError)
+
+
 def test_retry(tmpdir, testserver):
     tmpdir = str(tmpdir)
     dl = Downloader()
