@@ -3,10 +3,8 @@
 
 import os
 
-from setuptools import setup
-
 from extension_helpers import get_extensions
-
+from setuptools import setup
 
 VERSION_TEMPLATE = """
 # Note that we need to fall back to the hard-coded version if either
@@ -20,9 +18,9 @@ except Exception:
 """.lstrip()
 
 setup(
-    use_scm_version={'write_to': os.path.join('parfive', 'version.py'),
-                     'write_to_template': VERSION_TEMPLATE},
-
-    ext_modules=get_extensions()
-
+    use_scm_version={
+        "write_to": os.path.join("parfive", "version.py"),
+        "write_to_template": VERSION_TEMPLATE,
+    },
+    ext_modules=get_extensions(),
 )

@@ -2,7 +2,11 @@ from functools import partial
 
 import pytest
 
-from parfive.tests.localserver import MultiPartTestServer, SimpleTestServer, error_on_nth_request
+from parfive.tests.localserver import (
+    MultiPartTestServer,
+    SimpleTestServer,
+    error_on_nth_request,
+)
 
 
 @pytest.fixture

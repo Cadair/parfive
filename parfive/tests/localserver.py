@@ -56,7 +56,10 @@ class SimpleTestServer(BaseTestServer):
         status = "200 OK"
         response_headers = [
             ("Content-type", "text/plain"),
-            ("Content-Disposition", "attachment; filename=testfile_{self.request_number}.txt"),
+            (
+                "Content-Disposition",
+                "attachment; filename=testfile_{self.request_number}.txt",
+            ),
         ]
         start_response(status, response_headers)
         return [b"Hello world!\n"]

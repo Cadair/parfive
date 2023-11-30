@@ -1,11 +1,11 @@
-import os
 import asyncio
 import hashlib
+import os
 import pathlib
 import warnings
-from pathlib import Path
-from itertools import count
 from concurrent.futures import ThreadPoolExecutor
+from itertools import count
+from pathlib import Path
 
 import aiohttp
 
@@ -54,7 +54,9 @@ def parse_header(line):
     return key, pdict
 
 
-def default_name(path: os.PathLike, resp: aiohttp.ClientResponse, url: str) -> os.PathLike:
+def default_name(
+    path: os.PathLike, resp: aiohttp.ClientResponse, url: str
+) -> os.PathLike:
     url_filename = url.split("/")[-1]
     if resp:
         cdheader = resp.headers.get("Content-Disposition", None)

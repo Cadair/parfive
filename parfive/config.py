@@ -1,14 +1,14 @@
 import os
 import platform
 import warnings
-from typing import Dict, Union, Callable, Optional
+from typing import Callable, Dict, Optional, Union
 
 try:
     from typing import Literal  # Added in Python 3.8
 except ImportError:
     from typing_extensions import Literal  # type: ignore
 
-from dataclasses import InitVar, field, dataclass
+from dataclasses import InitVar, dataclass, field
 
 import aiohttp
 
@@ -131,7 +131,9 @@ class SessionConfig:
     overridden by the ``PARFIVE_TOTAL_TIMEOUT`` and
     ``PARFIVE_SOCK_READ_TIMEOUT`` environment variables.
     """
-    aiohttp_session_generator: Optional[Callable[["SessionConfig"], aiohttp.ClientSession]] = None
+    aiohttp_session_generator: Optional[
+        Callable[["SessionConfig"], aiohttp.ClientSession]
+    ] = None
     """
     A function to override the generation of the `aiohttp.ClientSession` object.
 
@@ -198,7 +200,9 @@ class DownloaderConfig:
             self.config = SessionConfig()
 
         self.max_conn = 1 if self.env.serial_mode else self.max_conn
-        self.max_splits = 1 if self.env.serial_mode or self.env.disable_range else self.max_splits
+        self.max_splits = (
+            1 if self.env.serial_mode or self.env.disable_range else self.max_splits
+        )
         self.progress = False if self.env.hide_progress else self.progress
 
         if self.progress is False:

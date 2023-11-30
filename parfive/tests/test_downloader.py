@@ -19,7 +19,10 @@ skip_windows = pytest.mark.skipif(platform.system() == "Windows", reason="Window
 def validate_test_file(f):
     assert len(f) == 1
     assert Path(f[0]).name == "testfile.fits"
-    assert sha256sum(f[0]) == "a1c58cd340e3bd33f94524076f1fa5cf9a7f13c59d5272a9d4bc0b5bc436d9b3"
+    assert (
+        sha256sum(f[0])
+        == "a1c58cd340e3bd33f94524076f1fa5cf9a7f13c59d5272a9d4bc0b5bc436d9b3"
+    )
 
 
 def test_setup():
@@ -35,7 +38,8 @@ def test_setup():
 def test_download(httpserver, tmpdir):
     tmpdir = str(tmpdir)
     httpserver.serve_content(
-        "SIMPLE  = T", headers={"Content-Disposition": "attachment; filename=testfile.fits"}
+        "SIMPLE  = T",
+        headers={"Content-Disposition": "attachment; filename=testfile.fits"},
     )
     dl = Downloader()
 
@@ -50,7 +54,8 @@ def test_download(httpserver, tmpdir):
 def test_simple_download(httpserver, tmpdir):
     tmpdir = str(tmpdir)
     httpserver.serve_content(
-        "SIMPLE  = T", headers={"Content-Disposition": "attachment; filename=testfile.fits"}
+        "SIMPLE  = T",
+        headers={"Content-Disposition": "attachment; filename=testfile.fits"},
     )
 
     f = Downloader.simple_download([httpserver.url], path=Path(tmpdir))
@@ -61,7 +66,8 @@ def test_changed_max_conn(httpserver, tmpdir):
     # Check that changing max_conn works after creating Downloader
     tmpdir = str(tmpdir)
     httpserver.serve_content(
-        "SIMPLE  = T", headers={"Content-Disposition": "attachment; filename=testfile.fits"}
+        "SIMPLE  = T",
+        headers={"Content-Disposition": "attachment; filename=testfile.fits"},
     )
     dl = Downloader(max_conn=4)
     dl.enqueue_file(httpserver.url, path=Path(tmpdir), max_splits=None)
@@ -75,7 +81,8 @@ def test_changed_max_conn(httpserver, tmpdir):
 @pytest.mark.parametrize("use_aiofiles", [True, False])
 async def test_async_download(httpserver, tmpdir, use_aiofiles):
     httpserver.serve_content(
-        "SIMPLE  = T", headers={"Content-Disposition": "attachment; filename=testfile.fits"}
+        "SIMPLE  = T",
+        headers={"Content-Disposition": "attachment; filename=testfile.fits"},
     )
     dl = Downloader(config=SessionConfig(use_aiofiles=use_aiofiles))
 
@@ -90,7 +97,8 @@ async def test_async_download(httpserver, tmpdir, use_aiofiles):
 def test_download_ranged_http(httpserver, tmpdir):
     tmpdir = str(tmpdir)
     httpserver.serve_content(
-        "SIMPLE  = T", headers={"Content-Disposition": "attachment; filename=testfile.fits"}
+        "SIMPLE  = T",
+        headers={"Content-Disposition": "attachment; filename=testfile.fits"},
     )
     dl = Downloader()
 
@@ -126,7 +134,9 @@ def test_download_partial(httpserver, tmpdir):
     httpserver.serve_content("SIMPLE  = T")
     dl = Downloader()
 
-    dl.enqueue_file(httpserver.url, filename=lambda resp, url: Path(tmpdir) / "filename")
+    dl.enqueue_file(
+        httpserver.url, filename=lambda resp, url: Path(tmpdir) / "filename"
+    )
     f = dl.download()
     assert len(f) == 1
 
@@ -353,8 +363,12 @@ def test_ftp(tmpdir):
     tmpdir = str(tmpdir)
     dl = Downloader()
 
-    dl.enqueue_file("ftp://ftp.swpc.noaa.gov/pub/warehouse/2011/2011_SRS.tar.gz", path=tmpdir)
-    dl.enqueue_file("ftp://ftp.swpc.noaa.gov/pub/warehouse/2011/2013_SRS.tar.gz", path=tmpdir)
+    dl.enqueue_file(
+        "ftp://ftp.swpc.noaa.gov/pub/warehouse/2011/2011_SRS.tar.gz", path=tmpdir
+    )
+    dl.enqueue_file(
+        "ftp://ftp.swpc.noaa.gov/pub/warehouse/2011/2013_SRS.tar.gz", path=tmpdir
+    )
     dl.enqueue_file("ftp://ftp.swpc.noaa.gov/pub/_SRS.tar.gz", path=tmpdir)
     dl.enqueue_file("ftp://notaserver/notafile.fileL", path=tmpdir)
 
@@ -386,8 +400,12 @@ def test_ftp_http(tmpdir, httpserver):
     httpserver.serve_content("SIMPLE  = T")
     dl = Downloader()
 
-    dl.enqueue_file("ftp://ftp.swpc.noaa.gov/pub/warehouse/2011/2011_SRS.tar.gz", path=tmpdir)
-    dl.enqueue_file("ftp://ftp.swpc.noaa.gov/pub/warehouse/2011/2013_SRS.tar.gz", path=tmpdir)
+    dl.enqueue_file(
+        "ftp://ftp.swpc.noaa.gov/pub/warehouse/2011/2011_SRS.tar.gz", path=tmpdir
+    )
+    dl.enqueue_file(
+        "ftp://ftp.swpc.noaa.gov/pub/warehouse/2011/2013_SRS.tar.gz", path=tmpdir
+    )
     dl.enqueue_file("ftp://ftp.swpc.noaa.gov/pub/_SRS.tar.gz", path=tmpdir)
     dl.enqueue_file("ftp://notaserver/notafile.fileL", path=tmpdir)
     dl.enqueue_file(httpserver.url, path=tmpdir)
@@ -403,7 +421,8 @@ def test_ftp_http(tmpdir, httpserver):
 def test_default_user_agent(httpserver, tmpdir):
     tmpdir = str(tmpdir)
     httpserver.serve_content(
-        "SIMPLE  = T", headers={"Content-Disposition": "attachment; filename=testfile.fits"}
+        "SIMPLE  = T",
+        headers={"Content-Disposition": "attachment; filename=testfile.fits"},
     )
 
     dl = Downloader()
@@ -423,10 +442,13 @@ def test_default_user_agent(httpserver, tmpdir):
 def test_custom_user_agent(httpserver, tmpdir):
     tmpdir = str(tmpdir)
     httpserver.serve_content(
-        "SIMPLE  = T", headers={"Content-Disposition": "attachment; filename=testfile.fits"}
+        "SIMPLE  = T",
+        headers={"Content-Disposition": "attachment; filename=testfile.fits"},
     )
 
-    dl = Downloader(config=SessionConfig(headers={"User-Agent": "test value 299792458"}))
+    dl = Downloader(
+        config=SessionConfig(headers={"User-Agent": "test value 299792458"})
+    )
     dl.enqueue_file(httpserver.url, path=Path(tmpdir), max_splits=None)
 
     assert dl.queued_downloads == 1
@@ -437,7 +459,9 @@ def test_custom_user_agent(httpserver, tmpdir):
     assert httpserver.requests[0].headers["User-Agent"] == "test value 299792458"
 
 
-@patch.dict(os.environ, {"HTTP_PROXY": "http_proxy_url", "HTTPS_PROXY": "https_proxy_url"})
+@patch.dict(
+    os.environ, {"HTTP_PROXY": "http_proxy_url", "HTTPS_PROXY": "https_proxy_url"}
+)
 @pytest.mark.parametrize(
     "url,proxy",
     [
@@ -446,7 +470,9 @@ def test_custom_user_agent(httpserver, tmpdir):
     ],
 )
 def test_proxy_passed_as_kwargs_to_get(tmpdir, url, proxy):
-    with mock.patch("aiohttp.client.ClientSession._request", new_callable=mock.MagicMock) as patched:
+    with mock.patch(
+        "aiohttp.client.ClientSession._request", new_callable=mock.MagicMock
+    ) as patched:
         dl = Downloader()
         dl.enqueue_file(url, path=Path(tmpdir), max_splits=None)
 
@@ -459,7 +485,9 @@ def test_proxy_passed_as_kwargs_to_get(tmpdir, url, proxy):
         ("GET", url),
         {
             "allow_redirects": True,
-            "timeout": ClientTimeout(total=0, connect=None, sock_read=90, sock_connect=None),
+            "timeout": ClientTimeout(
+                total=0, connect=None, sock_read=90, sock_connect=None
+            ),
             "proxy": proxy,
         },
     ]

@@ -1,5 +1,5 @@
-import sys
 import argparse
+import sys
 
 from parfive import Downloader, SessionConfig, __version__
 
@@ -43,10 +43,17 @@ def parse_args(args):
         description="Parfive: A parallel file downloader written in Python."
     )
     parser.add_argument(
-        "urls", metavar="URLS", type=str, nargs="+", help="URLs of files to be downloaded."
+        "urls",
+        metavar="URLS",
+        type=str,
+        nargs="+",
+        help="URLs of files to be downloaded.",
     )
     parser.add_argument(
-        "--max-conn", type=int, default=5, help="Maximum number of parallel file downloads."
+        "--max-conn",
+        type=int,
+        default=5,
+        help="Maximum number of parallel file downloads.",
     )
     parser.add_argument(
         "--max-splits",
@@ -55,7 +62,10 @@ def parse_args(args):
         help="Maximum number of parallel connections per file (only used if supported by the server).",
     )
     parser.add_argument(
-        "--directory", type=str, default="./", help="Directory to which downloaded files are saved."
+        "--directory",
+        type=str,
+        default="./",
+        help="Directory to which downloaded files are saved.",
     )
     parser.add_argument(
         "--overwrite",
@@ -95,7 +105,9 @@ def parse_args(args):
         default=False,
         help="Log debugging output while transferring the files.",
     )
-    parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
+    parser.add_argument(
+        "--version", action="version", version=f"%(prog)s {__version__}"
+    )
 
     args = parser.parse_args(args)
     return args

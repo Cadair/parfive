@@ -1,12 +1,12 @@
-import os
-import signal
 import asyncio
-import logging
-import pathlib
 import contextlib
+import logging
+import os
+import pathlib
+import signal
 import urllib.parse
-from typing import Union, Callable, Optional
 from functools import reduce
+from typing import Callable, Optional, Union
 
 try:
     from typing import Literal  # Added in Python 3.8
@@ -20,6 +20,7 @@ from tqdm import tqdm as tqdm_std
 from tqdm.auto import tqdm as tqdm_auto
 
 import parfive
+
 from .config import DownloaderConfig, SessionConfig
 from .results import Results
 from .utils import (
@@ -206,14 +207,24 @@ class Downloader:
 
         if scheme in ("http", "https"):
             get_file = partial(
-                self._get_http, url=url, filepath_partial=filepath, overwrite=overwrite, **kwargs
+                self._get_http,
+                url=url,
+                filepath_partial=filepath,
+                overwrite=overwrite,
+                **kwargs,
             )
             self.http_queue.append(get_file)
         elif scheme == "ftp":
             if aioftp is None:
-                raise ValueError("The aioftp package must be installed to download over FTP.")
+                raise ValueError(
+                    "The aioftp package must be installed to download over FTP."
+                )
             get_file = partial(
-                self._get_ftp, url=url, filepath_partial=filepath, overwrite=overwrite, **kwargs
+                self._get_ftp,
+                url=url,
+                filepath_partial=filepath,
+                overwrite=overwrite,
+                **kwargs,
             )
             self.ftp_queue.append(get_file)
         else:
@@ -304,7 +315,9 @@ class Downloader:
             if isinstance(res, FailedDownload):
                 results.add_error(res.filepath_partial, res.url, res.exception)
                 parfive.log.info(
-                    "%s failed to download with exception\n" "%s", res.url, res.exception
+                    "%s failed to download with exception\n" "%s",
+                    res.url,
+                    res.exception,
                 )
             elif isinstance(res, Exception):
                 raise res
@@ -396,7 +409,9 @@ class Downloader:
         that just returns None.
         """
         if self.config.progress:
-            return self.tqdm(total=total, unit="file", desc="Files Downloaded", position=0)
+            return self.tqdm(
+                total=total, unit="file", desc="Files Downloaded", position=0
+            )
         else:
             return contextlib.contextmanager(lambda: iter([None]))()
 
@@ -441,7 +456,9 @@ class Downloader:
                 get_file = await queue.get()
                 token = await tokens.get()
                 file_pb = self.tqdm if self.config.file_progress else False
-                future = asyncio.create_task(get_file(session, token=token, file_pb=file_pb))
+                future = asyncio.create_task(
+                    get_file(session, token=token, file_pb=file_pb)
+                )
 
                 def callback(token, future, main_pb):
                     try:
@@ -535,7 +552,9 @@ class Downloader:
                 if resp.status < 200 or resp.status >= 300:
                     raise FailedDownload(filepath_partial, url, resp)
                 else:
-                    filepath, skip = get_filepath(filepath_partial(resp, url), overwrite)
+                    filepath, skip = get_filepath(
+                        filepath_partial(resp, url), overwrite
+                    )
                     if skip:
                         parfive.log.debug(
                             "File %s already exists and overwrite is False; skipping download.",
@@ -685,7 +704,9 @@ class Downloader:
 
                 queue.task_done()
 
-    async def _http_download_worker(self, session, url, chunksize, http_range, queue, **kwargs):
+    async def _http_download_worker(
+        self, session, url, chunksize, http_range, queue, **kwargs
+    ):
         """
         Worker for downloading chunks from http urls.
 
@@ -717,7 +738,9 @@ class Downloader:
         else:
             offset = 0
 
-        async with session.get(url, timeout=self.config.timeouts, headers=headers, **kwargs) as resp:
+        async with session.get(
+            url, timeout=self.config.timeouts, headers=headers, **kwargs
+        ) as resp:
             parfive.log.debug(
                 "%s request made for download to %s with headers=%s",
                 resp.request_info.method,
@@ -785,7 +808,9 @@ class Downloader:
                 parfive.log.debug("Connected to ftp server %s", parse.hostname)
                 if parse.username and parse.password:
                     parfive.log.debug(
-                        "Explicitly Logging in with %s:%s", parse.username, parse.password
+                        "Explicitly Logging in with %s:%s",
+                        parse.username,
+                        parse.password,
                     )
                     await client.login(parse.username, parse.password)
 
@@ -811,7 +836,9 @@ class Downloader:
                 else:
                     file_pb = None
 
-                parfive.log.debug("Downloading file %s from %s", parse.path, parse.hostname)
+                parfive.log.debug(
+                    "Downloading file %s from %s", parse.path, parse.hostname
+                )
                 async with client.download_stream(parse.path) as stream:
                     downloaded_chunks_queue = asyncio.Queue()
                     download_workers = []
