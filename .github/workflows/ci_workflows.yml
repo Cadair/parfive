@@ -33,6 +33,7 @@ jobs:
         - linux: py39
         - windows: py38
         - macos: py37
+        - linux: py311-devdeps
       coverage: 'codecov'
 
   publish:
