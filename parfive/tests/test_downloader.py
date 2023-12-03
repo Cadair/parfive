@@ -475,6 +475,7 @@ class CustomThread(threading.Thread):
         self.result = self._target(*self._args, **self._kwargs)
 
 
+@skip_windows
 def test_download_out_of_main_thread(httpserver, tmpdir):
     tmpdir = str(tmpdir)
     httpserver.serve_content(
