@@ -1,30 +1,31 @@
-"""
-Configuration file for the Sphinx documentation builder.
+# -*- coding: utf-8 -*-
+#
+# Configuration file for the Sphinx documentation builder.
+#
+# This file does only contain a selection of the most common options. For a
+# full list see the documentation:
+# http://www.sphinx-doc.org/en/master/config
 
 isort:skip_file
 """
 # flake8: NOQA: E402
 
-# -- stdlib imports ------------------------------------------------------------
-from parfive import __version__
-import datetime
-from packaging.version import Version
-
-# -- Project information -------------------------------------------------------
+# -- Project information -----------------------------------------------------
 
 project = "Parfive"
 author = "Stuart Mumford and Contributors"
 copyright = "{}, {}".format(datetime.datetime.now().year, author)
 
 # The full version, including alpha/beta/rc tags
+from parfive import __version__
 release = __version__
 parfive_version = Version(__version__)
 is_release = not (parfive_version.is_prerelease or parfive_version.is_devrelease)
 
-# -- General configuration -----------------------------------------------------
+# -- General configuration ---------------------------------------------------
 
 # Add any Sphinx extension module names here, as strings. They can be
-# extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
+# extensions coming with Sphinx (named "sphinx.ext.*") or your custom
 # ones.
 extensions = [
     "sphinx.ext.autodoc",
@@ -43,7 +44,7 @@ extensions = [
 ]
 
 # Add any paths that contain templates here, relative to this directory.
-# templates_path = ['_templates']
+# templates_path = ["_templates"]
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
@@ -78,7 +79,7 @@ typehints_fully_qualified = False
 typehints_use_rtype = napoleon_use_rtype
 typehints_defaults = "comma"
 
-# -- Options for intersphinx extension -----------------------------------------
+# -- Options for intersphinx extension ---------------------------------------
 
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {
@@ -87,7 +88,7 @@ intersphinx_mapping = {
     "https://aioftp.readthedocs.io/": None,
 }
 
-# -- Options for HTML output ---------------------------------------------------
+# -- Options for HTML output -------------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
@@ -120,3 +121,12 @@ graphviz_dot_args = [
     "-Gfontsize=10",
     "-Gfontname=Helvetica Neue, Helvetica, Arial, sans-serif",
 ]
+
+# By default, when rendering docstrings for classes, sphinx.ext.autodoc will 
+# make docs with the class-level docstring and the class-method docstrings, 
+# but not the __init__ docstring, which often contains the parameters to 
+# class constructors across the scientific Python ecosystem. The option below
+# will append the __init__ docstring to the class-level docstring when rendering
+# the docs. For more options, see:
+# https://www.sphinx-doc.org/en/master/usage/extensions/autodoc.html#confval-autoclass_content
+autoclass_content = "both"
