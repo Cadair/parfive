@@ -20,8 +20,7 @@
       "_install_requires": "",
       "_copy_without_render": [
         "docs/_templates",
-        "docs/_static",
-        ".github/workflows/sub_package_update.yml"
+        "docs/_static"
       ],
       "_template": "https://github.com/OpenAstronomy/packaging-guide"
     }
