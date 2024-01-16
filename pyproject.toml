@@ -12,7 +12,7 @@ name = "parfive"
 description = "A HTTP and FTP parallel file downloader."
 readme = "README.rst"
 requires-python = ">=3.7"
-license = { file = "licenses/LICENSE.rst", content-type = "text/plain" }
+license = { file = "LICENSE", content-type = "text/plain" }
 
 authors = [
   { name = "Stuart Mumford", email = "stuart@cadair.com" },
