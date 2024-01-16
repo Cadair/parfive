@@ -8,6 +8,7 @@
 
 # -- stdlib imports ------------------------------------------------------------
 import datetime
+
 from packaging.version import Version
 
 # -- Project information -----------------------------------------------------
@@ -18,6 +19,7 @@ copyright = "{}, {}".format(datetime.datetime.now().year, author)
 
 # The full version, including alpha/beta/rc tags
 from parfive import __version__
+
 release = __version__
 parfive_version = Version(__version__)
 is_release = not (parfive_version.is_prerelease or parfive_version.is_devrelease)
@@ -122,9 +124,9 @@ graphviz_dot_args = [
     "-Gfontname=Helvetica Neue, Helvetica, Arial, sans-serif",
 ]
 
-# By default, when rendering docstrings for classes, sphinx.ext.autodoc will 
-# make docs with the class-level docstring and the class-method docstrings, 
-# but not the __init__ docstring, which often contains the parameters to 
+# By default, when rendering docstrings for classes, sphinx.ext.autodoc will
+# make docs with the class-level docstring and the class-method docstrings,
+# but not the __init__ docstring, which often contains the parameters to
 # class constructors across the scientific Python ecosystem. The option below
 # will append the __init__ docstring to the class-level docstring when rendering
 # the docs. For more options, see:
