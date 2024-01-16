@@ -6,9 +6,9 @@
 # full list see the documentation:
 # http://www.sphinx-doc.org/en/master/config
 
-isort:skip_file
-"""
-# flake8: NOQA: E402
+# -- stdlib imports ------------------------------------------------------------
+import datetime
+from packaging.version import Version
 
 # -- Project information -----------------------------------------------------
 
