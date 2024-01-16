@@ -96,3 +96,6 @@ exclude_lines = [
   # Don't complain about IPython completion helper
   "def _ipython_key_completions_", 
 ]
+
+[tool.black]
+line-length = 101
