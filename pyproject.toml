@@ -19,14 +19,16 @@ authors = [
 ]
 
 dependencies = [
-
+  "tqdm>=4.27.0",
+  "aiohttp",
+  "typing_extensions;python_version<'3.8'",
 ]
 dynamic = ["version"]
 
 [project.optional-dependencies]
 ftp = ["aioftp>=0.17.1"]
 tests = ["aiofiles", "pytest", "pytest-asyncio", "pytest-cov", "pytest-localserver", "pytest-socket"]
-docs = ["sphinx", "sphinx-automodapi", "tomli; python_version < \"3.11\""]
+docs = ["sphinx", "sphinx-automodapi", "tomli; python_version < '3.11'"]
 test = ["pytest", "pytest-doctestplus"]
 
 [project.scripts]
