@@ -10,7 +10,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "parfive"
 description = "A HTTP and FTP parallel file downloader."
-readme = "README.rst"
+readme = {file = "README.rst", content-type = "text/x-rst"}
 requires-python = ">=3.7"
 license = { file = "LICENSE", content-type = "text/plain" }
 
@@ -24,23 +24,18 @@ dependencies = [
 dynamic = ["version"]
 
 [project.optional-dependencies]
-test = [
-    "pytest",
-    "pytest-doctestplus",
-]
-docs = [
-    "sphinx",
-    "sphinx-automodapi",
-    "tomli; python_version <\"3.11\"",
-]
+ftp = ["aioftp>=0.17.1"]
+tests = ["aiofiles", "pytest", "pytest-asyncio", "pytest-cov", "pytest-localserver", "pytest-socket"]
+docs = ["sphinx", "sphinx-automodapi", "tomli; python_version < \"3.11\""]
+test = ["pytest", "pytest-doctestplus"]
 
-
-
+[project.scripts]
+parfive = "parfive.main:main"
 
 [project.urls]
 repository = "https://parfive.readthedocs.io/"
 
-
+[tool]
 [tool.setuptools]
 zip-safe = false
 include-package-data = true
@@ -48,19 +43,11 @@ include-package-data = true
 [tool.setuptools.packages.find]
 
 [tool.setuptools_scm]
-
 write_to = "parfive/version.py"
 
-
-
 [tool.pytest.ini_options]
-testpaths = [
-  "parfive",
-  "docs",
-]
-doctest_plus = "enabled"
-text_file_format = "rst"
-addopts = "--doctest-rst"
+addopts = ["--allow-hosts=127.0.0.1,::1"]
+asyncio_mode = "strict"
 
 [tool.coverage.run]
 omit = [
@@ -96,6 +83,47 @@ exclude_lines = [
   # Don't complain about IPython completion helper
   "def _ipython_key_completions_",
 ]
+
+[tool.isort]
+profile = "black"
+balanced_wrapping = true
+skip = ["docs/conf.py"]
+default_section = "THIRDPARTY"
+include_trailing_comma = true
+known_first_party = "parfive"
+length_sort = false
+length_sort_sections = "stdlib"
+line_length = 110
+multi_line_output = 3
+no_lines_before = "LOCALFOLDER"
+sections = "STDLIB, THIRDPARTY, FIRSTPARTY, LOCALFOLDER"
+
+[tool.mypy]
+plugins = "pydantic.mypy"
+
+[[tool.mypy.overrides]]
+module = "parfive._version"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "tqdm.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "pytest_localserver.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "aioftp.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "aiohttp.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "pytest.*"
+ignore_missing_imports = true
 
 [tool.black]
 line-length = 101
