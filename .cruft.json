@@ -1,0 +1,29 @@
+{
+  "template": "https://github.com/OpenAstronomy/packaging-guide",
+  "commit": "a5757c3d65d28dc6fb191a94360483b83a75b5a6",
+  "checkout": null,
+  "context": {
+    "cookiecutter": {
+      "package_name": "parfive",
+      "module_name": "parfive",
+      "short_description": "A HTTP and FTP parallel file downloader.",
+      "author_name": "Stuart Mumford",
+      "author_email": "stuart@cadair.com",
+      "license": "Other",
+      "project_url": "https://parfive.readthedocs.io/",
+      "minimum_python_version": "3.9",
+      "use_compiled_extensions": "n",
+      "enable_dynamic_dev_versions": "n",
+      "include_example_code": "n",
+      "_sphinx_theme": "alabaster",
+      "_parent_project": "",
+      "_install_requires": "",
+      "_copy_without_render": [
+        "docs/_templates",
+        "docs/_static"
+      ],
+      "_template": "https://github.com/OpenAstronomy/packaging-guide"
+    }
+  },
+  "directory": null
+}

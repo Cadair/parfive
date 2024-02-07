@@ -1,7 +1,6 @@
-#!/usr/bin/env python
-from setuptools import setup  # isort:skip
-import os
+diff a/setup.py b/setup.py	(rejected hunks)
+@@ -1,7 +1,4 @@
+ #!/usr/bin/env python
+ from setuptools import setup
 
-setup(
-    use_scm_version={"write_to": os.path.join("parfive", "_version.py")},
-)
++setup()
