@@ -3,41 +3,41 @@ requires = [
   "setuptools>=62.1",
   "setuptools_scm[toml]>=6.2",
   "wheel",
+
 ]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "parfive"
 description = "A HTTP and FTP parallel file downloader."
-readme = "README.rst"
+readme = {file = "README.rst", content-type = "text/x-rst"}
 requires-python = ">=3.7"
-license = { file = "licenses/LICENSE.rst", content-type = "text/plain" }
+license = { file = "LICENSE", content-type = "text/plain" }
 
 authors = [
   { name = "Stuart Mumford", email = "stuart@cadair.com" },
 ]
 
 dependencies = [
-    "setuptools",
-    "setuptools-scm",
-    "wheel"
+  "tqdm>=4.27.0",
+  "aiohttp",
+  "typing_extensions;python_version<'3.8'",
 ]
 dynamic = ["version"]
 
 [project.optional-dependencies]
-test = [
-    "pytest",
-    "pytest-doctestplus",
-]
-docs = [
-    "sphinx",
-    "sphinx-automodapi",
-    "tomli; python_version <\"3.11\"",
-]
+ftp = ["aioftp>=0.17.1"]
+tests = ["aiofiles", "pytest", "pytest-asyncio", "pytest-cov", "pytest-localserver", "pytest-socket"]
+docs = ["sphinx", "sphinx-automodapi", "tomli; python_version < '3.11'"]
+test = ["pytest", "pytest-doctestplus"]
+
+[project.scripts]
+parfive = "parfive.main:main"
 
 [project.urls]
 repository = "https://parfive.readthedocs.io/"
 
+[tool]
 [tool.setuptools]
 zip-safe = false
 include-package-data = true
@@ -45,17 +45,11 @@ include-package-data = true
 [tool.setuptools.packages.find]
 
 [tool.setuptools_scm]
-
 write_to = "parfive/version.py"
 
 [tool.pytest.ini_options]
-testpaths = [
-  "parfive",
-  "docs",
-]
-doctest_plus = "enabled"
-text_file_format = "rst"
-addopts = "--doctest-rst"
+addopts = ["--allow-hosts=127.0.0.1,::1"]
+asyncio_mode = "strict"
 
 [tool.coverage.run]
 omit = [
