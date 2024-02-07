@@ -3,7 +3,6 @@ requires = [
   "setuptools>=62.1",
   "setuptools_scm[toml]>=6.2",
   "wheel",
-
 ]
 build-backend = "setuptools.build_meta"
 
@@ -19,7 +18,9 @@ authors = [
 ]
 
 dependencies = [
-  
+    "setuptools",
+    "setuptools-scm",
+    "wheel"
 ]
 dynamic = ["version"]
 
@@ -34,12 +35,8 @@ docs = [
     "tomli; python_version <\"3.11\"",
 ]
 
-
-
-
 [project.urls]
 repository = "https://parfive.readthedocs.io/"
-
 
 [tool.setuptools]
 zip-safe = false
@@ -50,8 +47,6 @@ include-package-data = true
 [tool.setuptools_scm]
 
 write_to = "parfive/version.py"
-
-
 
 [tool.pytest.ini_options]
 testpaths = [
