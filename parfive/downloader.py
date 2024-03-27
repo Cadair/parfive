@@ -608,6 +608,8 @@ class Downloader:
             await asyncio.gather(*tasks)
             # join() waits till all the items in the queue have been processed
             await downloaded_chunk_queue.join()
+            for callback in self.config.done_callbacks:
+                callback(filepath, url, None)
             return str(filepath)
 
         except (Exception, asyncio.CancelledError) as e:
@@ -623,6 +625,8 @@ class Downloader:
             # computed the filepath, so we have no file to cleanup
             if filepath is not None:
                 remove_file(filepath)
+            for callback in self.config.done_callbacks:
+                callback(filepath, url, e)
             raise FailedDownload(filepath_partial, url, e)
 
         finally:

@@ -18,6 +18,7 @@ def test_session_config_defaults():
     assert c.https_proxy is None
     assert c.chunksize == 1024
     assert c.use_aiofiles is False
+    assert len(c.done_callbacks) == 0
 
     assert isinstance(c.headers, dict)
     assert "User-Agent" in c.headers
