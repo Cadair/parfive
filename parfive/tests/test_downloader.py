@@ -45,6 +45,7 @@ def test_download(httpserver, tmpdir):
     assert dl.queued_downloads == 1
 
     f = dl.download()
+    f.urls == [httpserver.url]
     validate_test_file(f)
 
 

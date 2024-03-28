@@ -319,7 +319,9 @@ class Downloader:
             elif isinstance(res, Exception):
                 raise res
             else:
-                results.append(res)
+                requested_url, filepath = res
+                results.append(filepath)
+                results.urls.append(requested_url)
 
         return results
 
@@ -551,7 +553,7 @@ class Downloader:
                             "File %s already exists and overwrite is False; skipping download.",
                             filepath,
                         )
-                        return str(filepath)
+                        return url, str(filepath)
                     if callable(file_pb):
                         file_pb = file_pb(
                             position=token.n,
@@ -618,7 +620,7 @@ class Downloader:
             await asyncio.gather(*tasks)
             # join() waits till all the items in the queue have been processed
             await downloaded_chunk_queue.join()
-            return str(filepath)
+            return url, str(filepath)
 
         except (Exception, asyncio.CancelledError) as e:
             for task in tasks:
@@ -806,7 +808,7 @@ class Downloader:
                         "File %s already exists and overwrite is False; skipping download.",
                         filepath,
                     )
-                    return str(filepath)
+                    return url, str(filepath)
 
                 if callable(file_pb):
                     total_size = await get_ftp_size(client, parse.path)
@@ -837,7 +839,7 @@ class Downloader:
 
                     await asyncio.gather(*download_workers)
                     await downloaded_chunks_queue.join()
-                    return str(filepath)
+                    return url, str(filepath)
 
         except (Exception, asyncio.CancelledError) as e:
             if writer is not None:

@@ -83,9 +83,9 @@ typehints_defaults = "comma"
 
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {
-    "https://docs.python.org/": None,
-    "https://docs.aiohttp.org/en/stable": None,
-    "https://aioftp.readthedocs.io/": None,
+    "python": ("https://docs.python.org/", None),
+    "aiohttp": ("https://docs.aiohttp.org/en/stable", None),
+    "aioftp": ("https://aioftp.readthedocs.io/", None),
 }
 
 # -- Options for HTML output ---------------------------------------------------
