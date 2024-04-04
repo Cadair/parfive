@@ -207,7 +207,7 @@ class _QueueList(List[_T]):
     """
 
     def generate_queue(self, maxsize: int = 0) -> asyncio.Queue:
-        queue = asyncio.Queue(maxsize=maxsize)
+        queue: asyncio.Queue = asyncio.Queue(maxsize=maxsize)
         for item in self:
             queue.put_nowait(item)
         self.clear()
