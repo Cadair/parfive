@@ -98,7 +98,7 @@ async def get_ftp_size(client: "aioftp.Client", filepath: os.PathLike) -> int:
         size = await client.stat(filepath)
         size = size.get("size", None)
     except Exception:
-        parfive.log.exception("Failed to get size of FTP file")
+        parfive.log.info("Failed to get size of FTP file", exc_info=True)
         size = None
 
     return int(size) if size else size
