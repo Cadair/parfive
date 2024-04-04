@@ -585,7 +585,7 @@ class CustomThread(threading.Thread):
 
 
 @skip_windows
-def test_download_out_of_main_thread(httpserver, tmpdir):
+def test_download_out_of_main_thread(httpserver, tmpdir, recwarn):
     tmpdir = str(tmpdir)
     httpserver.serve_content(
         "SIMPLE  = T", headers={"Content-Disposition": "attachment; filename=testfile.fits"}
@@ -596,11 +596,10 @@ def test_download_out_of_main_thread(httpserver, tmpdir):
 
     thread = CustomThread(target=dl.download)
     thread.start()
-
-    with pytest.warns(
-        UserWarning,
-        match="This download has been started in a thread which is not the main thread. You will not be able to interrupt the download.",
-    ):
-        thread.join()
+    thread.join()
 
     validate_test_file(thread.result)
+
+    assert len(recwarn) > 0
+    assert any(['This download has been started in a thread which is not the main thread. You will not be able to interrupt the download.' ==
+                w.message.args[0] for w in recwarn])
