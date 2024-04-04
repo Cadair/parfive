@@ -578,7 +578,10 @@ class CustomThread(threading.Thread):
         super().__init__(*args, **kwargs)
 
     def run(self):
-        self.result = self._target(*self._args, **self._kwargs)
+        try:
+            self.result = self._target(*self._args, **self._kwargs)
+        finally:
+            del self._target, self._args, self._kwargs
 
 
 @skip_windows
