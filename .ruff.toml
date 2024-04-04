@@ -1,0 +1,21 @@
+target-version = "py38"
+line-length = 110
+exclude = [
+  ".git,",
+  "__pycache__",
+  "parfive/version.py",
+]
+
+[lint]
+select = ["UP"]
+extend-ignore = [
+  # pytest (PT)
+  "PT001", # Always use pytest.fixture()
+  "PT004", # Fixtures which don't return anything should have leading _
+  "PT007", # Parametrize should be lists of tuples  # TODO! fix
+  "PT011", # Too broad exception assert             # TODO! fix
+  "PT023", # Always use () on pytest decorators
+]
+
+[pydocstyle]
+convention = "numpy"

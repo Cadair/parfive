@@ -181,7 +181,7 @@ class FailedDownload(Exception):
         return out
 
     def __str__(self) -> str:
-        return "Download Failed: {} with error {}".format(self.url, str(self.exception))
+        return f"Download Failed: {self.url} with error {str(self.exception)}"
 
 
 class Token:
@@ -232,9 +232,7 @@ def remove_file(filepath: os.PathLike) -> None:
     """
     filepath = Path(filepath)
     try:
-        # When we drop 3.7 support we can use unlink(missing_ok=True)
-        if filepath.exists():
-            filepath.unlink()
+        filepath.unlink(missing_ok=True)
     except Exception as remove_exception:
         warnings.warn(
             f"Failed to delete possibly incomplete file {filepath} {remove_exception}",
