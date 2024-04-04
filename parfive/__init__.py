@@ -8,6 +8,7 @@ A parallel file downloader using asyncio.
 * Documentation: https://parfive.readthedocs.io/en/stable/
 * Source code: https://github.com/Cadair/parfive
 """
+
 import logging as _logging
 
 from .config import SessionConfig

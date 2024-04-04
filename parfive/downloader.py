@@ -3,6 +3,8 @@ import signal
 import asyncio
 import logging
 import pathlib
+import warnings
+import threading
 import contextlib
 import urllib.parse
 from typing import Union, Callable, Optional
@@ -223,6 +225,14 @@ class Downloader:
     def _add_shutdown_signals(loop, task):
         if os.name == "nt":
             return
+
+        if threading.current_thread() != threading.main_thread():
+            warnings.warn(
+                "This download has been started in a thread which is not the main thread. You will not be able to interrupt the download.",
+                UserWarning,
+            )
+            return
+
         for sig in (signal.SIGINT, signal.SIGTERM):
             loop.add_signal_handler(sig, task.cancel)
 

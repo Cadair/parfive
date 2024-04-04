@@ -1,6 +1,7 @@
 import os
 import platform
 import unittest
+import threading
 from pathlib import Path
 from tempfile import gettempdir
 from unittest import mock
@@ -513,3 +514,34 @@ def test_done_callback(httpserver, tmpdir):
 
     assert (Path(gettempdir()) / "callback.done").exists()
     (Path(gettempdir()) / "callback.done").unlink()
+
+
+class CustomThread(threading.Thread):
+    def __init__(self, *args, **kwargs):
+        self.result = None
+        super().__init__(*args, **kwargs)
+
+    def run(self):
+        self.result = self._target(*self._args, **self._kwargs)
+
+
+@skip_windows
+def test_download_out_of_main_thread(httpserver, tmpdir):
+    tmpdir = str(tmpdir)
+    httpserver.serve_content(
+        "SIMPLE  = T", headers={"Content-Disposition": "attachment; filename=testfile.fits"}
+    )
+    dl = Downloader()
+
+    dl.enqueue_file(httpserver.url, path=Path(tmpdir), max_splits=None)
+
+    thread = CustomThread(target=dl.download)
+    thread.start()
+
+    with pytest.warns(
+        UserWarning,
+        match="This download has been started in a thread which is not the main thread. You will not be able to interrupt the download.",
+    ):
+        thread.join()
+
+    validate_test_file(thread.result)
