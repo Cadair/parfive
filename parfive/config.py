@@ -1,7 +1,7 @@
 import os
 import platform
 import warnings
-from typing import Dict, Union, Callable, Optional
+from typing import Dict, Union, Callable, Iterable, Optional
 
 try:
     from typing import Literal  # Added in Python 3.8
@@ -142,6 +142,14 @@ class SessionConfig:
     ``headers=`` keyword argument of the session you instantiate.
     """
     env: EnvConfig = field(default_factory=EnvConfig)
+
+    done_callbacks: Iterable[Callable[[str, str, Optional[Exception]], None]] = tuple()
+    """
+    A list of functions to be called when a download is completed.
+
+    The signature of the function to be called is `f(filepath: str, url: str, error: Optional[Exception])`.
+    If successful, error will be None, else the occured exception or asyncio.CancelledError.
+    """
 
     @staticmethod
     def _aiofiles_importable():
