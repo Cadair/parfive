@@ -601,5 +601,10 @@ def test_download_out_of_main_thread(httpserver, tmpdir, recwarn):
     validate_test_file(thread.result)
 
     assert len(recwarn) > 0
-    assert any(['This download has been started in a thread which is not the main thread. You will not be able to interrupt the download.' ==
-                w.message.args[0] for w in recwarn])
+    assert any(
+        [
+            "This download has been started in a thread which is not the main thread. You will not be able to interrupt the download."
+            == w.message.args[0]
+            for w in recwarn
+        ]
+    )
