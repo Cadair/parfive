@@ -855,6 +855,7 @@ class Downloader:
             # computed the filepath, so we have no file to cleanup
             if filepath is not None:
                 remove_file(filepath)
+                filepath = None
 
             for callback in self.config.done_callbacks:
                 callback(filepath, url, e)
