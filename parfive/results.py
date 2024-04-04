@@ -41,9 +41,7 @@ class Results(UserList):
                 )
             else:
                 ascii_encodable_reason = response.reason
-            return "<ClientResponse({}) [{} {}]>".format(
-                ascii_encodable_url, response.status, ascii_encodable_reason
-            )
+            return f"<ClientResponse({ascii_encodable_url}) [{response.status} {ascii_encodable_reason}]>"
         else:
             return repr(response)
 
@@ -56,7 +54,7 @@ class Results(UserList):
                     resp = self._get_nice_resp_repr(error.exception)
                     out += f"(url={error.url}, response={resp})\n"
                 else:
-                    out += "({})".format(repr(error))
+                    out += f"({repr(error)})"
         return out
 
     def __repr__(self):

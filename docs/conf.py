@@ -15,7 +15,7 @@ from packaging.version import Version
 
 project = "Parfive"
 author = "Stuart Mumford and Contributors"
-copyright = "{}, {}".format(datetime.datetime.now().year, author)
+copyright = f"{datetime.datetime.now().year}, {author}"
 
 # The full version, including alpha/beta/rc tags
 release = __version__
