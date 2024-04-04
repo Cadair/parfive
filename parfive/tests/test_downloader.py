@@ -2,6 +2,7 @@ import os
 import platform
 import threading
 from pathlib import Path
+from tempfile import gettempdir
 from unittest import mock
 from unittest.mock import patch
 
@@ -322,6 +323,15 @@ def test_notaurl(tmpdir):
     assert isinstance(f.errors[0].exception, aiohttp.ClientConnectionError)
 
 
+def test_wrongscheme(tmpdir):
+    tmpdir = str(tmpdir)
+
+    dl = Downloader(progress=False)
+
+    with pytest.raises(ValueError, match="URL must start with either"):
+        dl.enqueue_file("webcal://notaurl.wibble/file", path=tmpdir)
+
+
 def test_retry(tmpdir, testserver):
     tmpdir = str(tmpdir)
     dl = Downloader()
@@ -346,6 +356,25 @@ def test_empty_retry():
     dl = Downloader()
 
     dl.retry(f)
+
+
+def test_done_callback_error(tmpdir, testserver):
+    tmpdir = str(tmpdir)
+
+    def done_callback(filepath, url, error):
+        if error is not None:
+            (Path(gettempdir()) / "callback.error").touch()
+
+    dl = Downloader(config=SessionConfig(done_callbacks=[done_callback]))
+
+    nn = 5
+    for i in range(nn):
+        dl.enqueue_file(testserver.url, path=tmpdir)
+
+    f = dl.download()
+
+    assert (Path(gettempdir()) / "callback.error").exists()
+    (Path(gettempdir()) / "callback.error").unlink()
 
 
 @skip_windows
@@ -464,6 +493,26 @@ def test_proxy_passed_as_kwargs_to_get(tmpdir, url, proxy):
             "proxy": proxy,
         },
     ]
+
+
+def test_done_callback(httpserver, tmpdir):
+    tmpdir = str(tmpdir)
+    httpserver.serve_content(
+        "SIMPLE  = T", headers={"Content-Disposition": "attachment; filename=testfile.fits"}
+    )
+
+    def done_callback(filepath, url, error):
+        (Path(gettempdir()) / "callback.done").touch()
+
+    dl = Downloader(config=SessionConfig(done_callbacks=[done_callback]))
+    dl.enqueue_file(httpserver.url, path=Path(tmpdir), max_splits=None)
+
+    assert dl.queued_downloads == 1
+
+    dl.download()
+
+    assert (Path(gettempdir()) / "callback.done").exists()
+    (Path(gettempdir()) / "callback.done").unlink()
 
 
 class CustomThread(threading.Thread):
