@@ -1,6 +1,5 @@
 import os
 import platform
-import unittest
 import threading
 from pathlib import Path
 from tempfile import gettempdir
