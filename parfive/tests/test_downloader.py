@@ -599,6 +599,7 @@ def test_download_out_of_main_thread(httpserver, tmpdir, recwarn):
     thread.join()
 
     validate_test_file(thread.result)
+
     # We use recwarn here as for some reason pytest.warns did not reliably pickup this warning.
     assert len(recwarn) > 0
     assert any(
