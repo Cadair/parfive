@@ -110,6 +110,13 @@ html_css_files = [
     "css/contributors.css",
 ]
 
+html_js_files = [
+    (
+        "//gc.zgo.at/count.js",
+        {"async": "async", "data-goatcounter": "https://parfive.goatcounter.com/count"},
+    )
+]
+
 # Render inheritance diagrams in SVG
 graphviz_output_format = "svg"
 
