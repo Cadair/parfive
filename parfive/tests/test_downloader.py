@@ -47,6 +47,7 @@ def test_download(httpserver, tmpdir):
     assert dl.queued_downloads == 1
 
     f = dl.download()
+    f.urls == [httpserver.url]
     validate_test_file(f)
 
 
@@ -302,7 +303,10 @@ def test_failed_download():
 def test_results():
     res = Results()
 
-    res.append("hello")
+    res.append(path="hello", url="aurl")
+
+    assert res[0] == "hello"
+    assert res.urls[0] == "aurl"
 
     res.add_error("wibble", "notaurl", "out of cheese")
 

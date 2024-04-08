@@ -22,14 +22,16 @@ class Results(UserList):
     """
     The results of a download from `parfive.Downloader.download`.
 
-    This object contains the filenames of successful downloads as well
-    as a list of any errors encountered in the `~parfive.Results.errors`
+    This object contains the filenames of successful downloads as well,
+    a list of all urls requested in the `~parfive.Results.urls` property
+    and a list of any errors encountered in the `~parfive.Results.errors`
     property.
     """
 
-    def __init__(self, *args, errors=None):
+    def __init__(self, *args, errors=None, urls=None):
         super().__init__(*args)
         self._errors = errors or list()
+        self._urls = urls or list()
 
     def _get_nice_resp_repr(self, response):
         # This is a modified version of aiohttp.ClientResponse.__repr__
@@ -63,6 +65,10 @@ class Results(UserList):
         out += str(self)
         return out
 
+    def append(self, *, path, url):
+        super().append(path)
+        self._urls.append(url)
+
     def add_error(self, filename, url, exception):
         """
         Add an error to the results.
@@ -82,3 +88,11 @@ class Results(UserList):
         ``exception`` is the error raised during download.
         """
         return self._errors
+
+    @property
+    def urls(self):
+        """
+        A list of requested urls.
+
+        """
+        return self._urls
