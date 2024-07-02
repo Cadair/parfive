@@ -47,7 +47,8 @@ def test_download(httpserver, tmpdir):
     assert dl.queued_downloads == 1
 
     f = dl.download()
-    f.urls == [httpserver.url]
+    assert len(f.urls) == 1
+    assert f.urls[0] == httpserver.url
     validate_test_file(f)
 
 
@@ -343,7 +344,7 @@ def test_retry(tmpdir, testserver):
 
     nn = 5
     for i in range(nn):
-        dl.enqueue_file(testserver.url, path=tmpdir)
+        dl.enqueue_file(testserver.url + f"/{i}", path=tmpdir)
 
     f = dl.download()
 
@@ -354,6 +355,11 @@ def test_retry(tmpdir, testserver):
 
     assert len(f2) == nn
     assert len(f2.errors) == 0
+    assert ["0", "1", "3", "4", "2"] == [url[-1] for url in f2.urls]
+    assert "testfile_1.txt" == Path(f2[0]).name
+    # there are two requests made per file one for size and one download?
+    # Todo change handler to use path to create name not request call count
+    assert "testfile_10.txt" == Path(f2[-1]).name
 
 
 def test_empty_retry():
