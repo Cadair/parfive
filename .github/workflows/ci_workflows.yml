@@ -27,9 +27,9 @@ jobs:
       envs: |
         - linux: py312
         - linux: py311
-        - linux: py310
+        - linux: py38
         - windows: py39
-        - macos: py38
+        - macos: py310
         - linux: py312-devdeps
         - linux: py311-conda
           toxdeps: tox-conda
