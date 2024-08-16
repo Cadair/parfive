@@ -369,8 +369,10 @@ class Downloader:
 
         new_res = self.download()
 
+        # Append paths and urls overwrite errors
         results += new_res
-        results._errors = new_res._errors
+        results._urls += new_res.urls
+        results._errors = new_res.errors
 
         return results
 
