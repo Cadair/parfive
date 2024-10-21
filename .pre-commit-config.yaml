@@ -3,12 +3,12 @@
 repos:
 # This should be before any formatting hooks like isort
 - repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: "v0.5.4"
+  rev: "v0.7.0"
   hooks:
     - id: ruff
       args: ["--fix"]
 -   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.6.0
+    rev: v5.0.0
     hooks:
     - id: check-ast
     - id: check-case-conflict
@@ -24,6 +24,6 @@ repos:
     - id: isort
       args: ['--sp','setup.cfg']
 - repo: https://github.com/psf/black
-  rev: 24.4.2
+  rev: 24.10.0
   hooks:
     - id: black
