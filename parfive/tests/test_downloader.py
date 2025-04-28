@@ -398,6 +398,8 @@ def test_ftp(tmpdir):
     assert len(f.errors) == 3
 
 
+# I don't know of an alternative server which makes any sense to test this with
+@pytest.mark.skip("Remote server offline")
 @skip_windows
 @pytest.mark.allow_hosts(True)
 def test_ftp_pasv_command(tmpdir):
@@ -521,11 +523,11 @@ def test_http_callback_success(httpserver, tmpdir):
     assert cb_status is None
 
 
-def test_http_callback_fail(httpserver, tmpdir):
+def test_http_callback_fail(tmpdir):
     # Test callback on failed download
     cb = MagicMock()
     dl = Downloader(config=SessionConfig(done_callbacks=[cb]))
-    url = "http://test.com/myfile.txt"
+    url = "http://127.0.0.1/myfile.txt"
     dl.enqueue_file(url, path=tmpdir, max_splits=None)
 
     assert dl.queued_downloads == 1
@@ -536,7 +538,8 @@ def test_http_callback_fail(httpserver, tmpdir):
     cb_path, cb_url, cb_status = cb.call_args[0]
     assert cb_path is None
     assert url == cb_url
-    assert isinstance(cb_status, (SocketConnectBlockedError, ClientConnectorError))
+    # Returns 404 on windows on GHA, which triggers FailedDownload
+    assert isinstance(cb_status, (ClientConnectorError, FailedDownload))
 
 
 @pytest.mark.allow_hosts(True)

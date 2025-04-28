@@ -84,7 +84,7 @@ or if you want to use FTP downloads::
 Requirements
 ^^^^^^^^^^^^
 
-- Python 3.7 or above
+- Python 3.9 or above
 - aiohttp
 - tqdm
 - aioftp (for downloads over FTP)
