@@ -500,6 +500,7 @@ def test_proxy_passed_as_kwargs_to_get(tmpdir, url, proxy):
             "allow_redirects": False,
             "timeout": ClientTimeout(total=0, connect=None, sock_read=90, sock_connect=None),
             "proxy": proxy,
+            "headers": {},
         },
     ]
 
