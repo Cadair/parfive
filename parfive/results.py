@@ -30,8 +30,8 @@ class Results(UserList):
 
     def __init__(self, *args, errors=None, urls=None):
         super().__init__(*args)
-        self._errors = errors or list()
-        self._urls = urls or list()
+        self._errors = errors or []
+        self._urls = urls or []
 
     def _get_nice_resp_repr(self, response):
         # This is a modified version of aiohttp.ClientResponse.__repr__
@@ -44,8 +44,7 @@ class Results(UserList):
             else:
                 ascii_encodable_reason = response.reason
             return f"<ClientResponse({ascii_encodable_url}) [{response.status} {ascii_encodable_reason}]>"
-        else:
-            return repr(response)
+        return repr(response)
 
     def __str__(self):
         out = super().__repr__()
@@ -56,7 +55,7 @@ class Results(UserList):
                     resp = self._get_nice_resp_repr(error.exception)
                     out += f"(url={error.url}, response={resp})\n"
                 else:
-                    out += f"({repr(error)})"
+                    out += f"({error!r})"
         return out
 
     def __repr__(self):

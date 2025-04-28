@@ -1,4 +1,4 @@
-target-version = "py38"
+target-version = "py39"
 line-length = 110
 exclude = [
   ".git,",
@@ -7,15 +7,96 @@ exclude = [
 ]
 
 [lint]
-select = ["UP"]
-extend-ignore = [
-  # pytest (PT)
-  "PT001", # Always use pytest.fixture()
-  "PT004", # Fixtures which don't return anything should have leading _
-  "PT007", # Parametrize should be lists of tuples  # TODO! fix
-  "PT011", # Too broad exception assert             # TODO! fix
-  "PT023", # Always use () on pytest decorators
+select = [
+  "E",
+  "F",
+  "W",
+  "UP",
+  "PT",
+  "BLE",
+  "A",
+  "C4",
+  "ICN",
+  "G",
+  "INP",
+  "Q",
+  "RSE",
+  "PIE",
+  "T20",
+  "RET",
+  "TID",
+  "PTH",
+  "PD",
+  "PLC",
+  "PLE",
+  "FLY",
+  "NPY",
+  "PERF",
+  "RUF",
 ]
 
-[pydocstyle]
+extend-ignore = [
+  # pycodestyle (E, W)
+  "E501", # ignore line length will use a formatter instead
+  "E702",
+  "E711",
+  "E741",
+  "F405",
+  "F403",
+  "F821",
+  "F841",
+  # pyupgrade (UP)
+  "UP038", # Use | in isinstance - not compatible with models and is slower
+  # pytest (PT)
+  "PT001", # Always use pytest.fixture()
+  "PT023", # Always use () on pytest decorators
+  # Returns (RET)
+  "RET502",  # Do not implicitly return None in function able to return non-None value
+  "RET503",  # Missing explicit return at the end of function able to return non-None value
+  # flake8-pie (PIE)
+  "PIE808", # Disallow passing 0 as the first argument to range
+  # flake8-use-pathlib (PTH)
+  "PTH123", # open() should be replaced by Path.open()
+  # Ruff (RUF)
+  "RUF003", # Ignore ambiguous quote marks, doesn't allow ' in comments
+  "RUF012", # Mutable class attributes should be annotated with `typing.ClassVar`
+  "RUF013", # PEP 484 prohibits implicit `Optional`
+  "RUF015", # Prefer `next(iter(...))` over single element slice
+]
+
+[lint.per-file-ignores]
+"setup.py" = [
+  "INP001", # File is part of an implicit namespace package.
+]
+"conftest.py" = [
+  "INP001", # File is part of an implicit namespace package.
+]
+"docs/conf.py" = [
+  "E402", # Module imports not at top of file
+  "A001",
+  "BLE001",
+  "T201",
+]
+"docs/*.py" = [
+  "INP001", # File is part of an implicit namespace package.
+]
+"__init__.py" = [
+  "E402", # Module level import not at top of cell
+  "F401", # Unused import
+  "F403", # from {name} import * used; unable to detect undefined names
+  "F405", # {name} may be undefined, or defined from star imports
+]
+"test_*.py" = [
+  "E402", # Module level import not at top of cell
+  "B011",
+  "D",
+  "E402",
+  "PGH001",
+  "S101",
+]
+"parfive/main.py" = [
+  "T201", # Allow print in a script
+]
+
+[lint.pydocstyle]
 convention = "numpy"

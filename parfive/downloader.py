@@ -190,7 +190,7 @@ class Downloader:
 
         if path is None and filename is None:
             raise ValueError("Either path or filename must be specified.")
-        elif path is None:
+        if path is None:
             path = "./"
 
         path = pathlib.Path(path)
@@ -290,8 +290,7 @@ class Downloader:
                 dl_results = await asyncio.gather(*tasks, return_exceptions=True)
 
             finally:
-                results_obj = self._format_results(dl_results, main_pb)
-                return results_obj
+                return self._format_results(dl_results, main_pb)
 
     def _format_results(self, retvals, main_pb):
         # Squash all nested lists into a single flat list
@@ -410,8 +409,7 @@ class Downloader:
         """
         if self.config.progress:
             return self.tqdm(total=total, unit="file", desc="Files Downloaded", position=0)
-        else:
-            return contextlib.contextmanager(lambda: iter([None]))()
+        return contextlib.contextmanager(lambda: iter([None]))()
 
     async def _run_http_download(self, main_pb):
         async with self.config.aiohttp_client_session() as session:
@@ -547,75 +545,74 @@ class Downloader:
                 )
                 if resp.status < 200 or resp.status >= 300:
                     raise FailedDownload(filepath_partial, url, resp)
-                else:
-                    filepath, skip = get_filepath(filepath_partial(resp, url), overwrite)
-                    if skip:
-                        parfive.log.debug(
-                            "File %s already exists and overwrite is False; skipping download.",
-                            filepath,
-                        )
-                        return url, str(filepath)
-
-                    if callable(file_pb):
-                        file_pb = file_pb(
-                            position=token.n,
-                            unit="B",
-                            unit_scale=True,
-                            desc=filepath.name,
-                            leave=False,
-                            total=get_http_size(resp),
-                        )
-                    else:
-                        file_pb = None
-
-                    # This queue will contain the downloaded chunks and their offsets
-                    # as tuples: (offset, chunk)
-                    downloaded_chunk_queue = asyncio.Queue()
-
-                    writer = asyncio.create_task(
-                        self._write_worker(downloaded_chunk_queue, file_pb, filepath)
+                filepath, skip = get_filepath(filepath_partial(resp, url), overwrite)
+                if skip:
+                    parfive.log.debug(
+                        "File %s already exists and overwrite is False; skipping download.",
+                        filepath,
                     )
+                    return url, str(filepath)
 
-                    if (
-                        not self.config.env.disable_range
-                        and max_splits
-                        and resp.headers.get("Accept-Ranges", None) == "bytes"
-                        and "Content-length" in resp.headers
-                    ):
-                        content_length = int(resp.headers["Content-length"])
-                        split_length = max(1, content_length // max_splits)
-                        ranges = [
-                            [start, start + split_length]
-                            for start in range(0, content_length, split_length)
-                        ]
-                        # let the last part download everything
-                        ranges[-1][1] = ""
-                        for _range in ranges:
-                            tasks.append(
-                                asyncio.create_task(
-                                    self._http_download_worker(
-                                        session,
-                                        url,
-                                        chunksize,
-                                        _range,
-                                        downloaded_chunk_queue,
-                                        **kwargs,
-                                    )
-                                )
-                            )
-                    else:
-                        tasks.append(
-                            asyncio.create_task(
-                                self._http_download_worker(
-                                    session,
-                                    url,
-                                    chunksize,
-                                    None,
-                                    downloaded_chunk_queue,
-                                    **kwargs,
-                                )
+                if callable(file_pb):
+                    file_pb = file_pb(
+                        position=token.n,
+                        unit="B",
+                        unit_scale=True,
+                        desc=filepath.name,
+                        leave=False,
+                        total=get_http_size(resp),
+                    )
+                else:
+                    file_pb = None
+
+                # This queue will contain the downloaded chunks and their offsets
+                # as tuples: (offset, chunk)
+                downloaded_chunk_queue = asyncio.Queue()
+
+                writer = asyncio.create_task(
+                    self._write_worker(downloaded_chunk_queue, file_pb, filepath)
+                )
+
+                if (
+                    not self.config.env.disable_range
+                    and max_splits
+                    and resp.headers.get("Accept-Ranges", None) == "bytes"
+                    and "Content-length" in resp.headers
+                ):
+                    content_length = int(resp.headers["Content-length"])
+                    split_length = max(1, content_length // max_splits)
+                    ranges = [
+                        [start, start + split_length]
+                        for start in range(0, content_length, split_length)
+                    ]
+                    # let the last part download everything
+                    ranges[-1][1] = ""
+                    tasks.extend(
+                        asyncio.create_task(
+                            self._http_download_worker(
+                                session,
+                                url,
+                                chunksize,
+                                _range,
+                                downloaded_chunk_queue,
+                                **kwargs,
                             )
                         )
+                        for _range in ranges
+                    )
+                else:
+                    tasks.append(
+                        asyncio.create_task(
+                            self._http_download_worker(
+                                session,
+                                url,
+                                chunksize,
+                                None,
+                                downloaded_chunk_queue,
+                                **kwargs,
+                            )
+                        )
+                    )
             # Close the initial request here before we start transferring data.
 
             # run all the download workers

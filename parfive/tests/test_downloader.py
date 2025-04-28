@@ -9,7 +9,6 @@ from unittest.mock import MagicMock, patch
 import aiohttp
 import pytest
 from aiohttp import ClientConnectorError, ClientTimeout
-from pytest_socket import SocketConnectBlockedError
 
 import parfive
 from parfive.config import SessionConfig
@@ -482,7 +481,7 @@ def test_custom_user_agent(httpserver, tmpdir):
 
 @patch.dict(os.environ, {"HTTP_PROXY": "http_proxy_url", "HTTPS_PROXY": "https_proxy_url"})
 @pytest.mark.parametrize(
-    "url,proxy",
+    ("url", "proxy"),
     [
         ("http://test.example.com", "http_proxy_url"),
         ("https://test.example.com", "https_proxy_url"),
@@ -616,9 +615,7 @@ def test_download_out_of_main_thread(httpserver, tmpdir, recwarn):
     # We use recwarn here as for some reason pytest.warns did not reliably pickup this warning.
     assert len(recwarn) > 0
     assert any(
-        [
-            "This download has been started in a thread which is not the main thread. You will not be able to interrupt the download."
-            == w.message.args[0]
-            for w in recwarn
-        ]
+        "This download has been started in a thread which is not the main thread. You will not be able to interrupt the download."
+        == w.message.args[0]
+        for w in recwarn
     )
