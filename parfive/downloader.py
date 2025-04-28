@@ -100,9 +100,7 @@ class Downloader:
             elif self.config.notebook is False:
                 self.tqdm = tqdm_std
             else:
-                raise ValueError(
-                    "The notebook keyword argument should be one of None, True or False."
-                )
+                raise ValueError("The notebook keyword argument should be one of None, True or False.")
 
         self._configure_logging()
 
@@ -154,9 +152,7 @@ class Downloader:
         self,
         url: str,
         path: Optional[Union[str, os.PathLike]] = None,
-        filename: Optional[
-            Union[str, Callable[[str, Optional[aiohttp.ClientResponse]], os.PathLike]]
-        ] = None,
+        filename: Optional[Union[str, Callable[[str, Optional[aiohttp.ClientResponse]], os.PathLike]]] = None,
         overwrite: Optional[Union[bool, Literal["unique"]]] = None,
         **kwargs,
     ):
@@ -313,9 +309,7 @@ class Downloader:
         for res in retvals:
             if isinstance(res, FailedDownload):
                 results.add_error(res.filepath_partial, res.url, res.exception)
-                parfive.log.info(
-                    "%s failed to download with exception\n" "%s", res.url, res.exception
-                )
+                parfive.log.info("%s failed to download with exception\n%s", res.url, res.exception)
             elif isinstance(res, Exception):
                 raise res
             else:
@@ -570,9 +564,7 @@ class Downloader:
                 # as tuples: (offset, chunk)
                 downloaded_chunk_queue = asyncio.Queue()
 
-                writer = asyncio.create_task(
-                    self._write_worker(downloaded_chunk_queue, file_pb, filepath)
-                )
+                writer = asyncio.create_task(self._write_worker(downloaded_chunk_queue, file_pb, filepath))
 
                 if (
                     not self.config.env.disable_range
@@ -583,8 +575,7 @@ class Downloader:
                     content_length = int(resp.headers["Content-length"])
                     split_length = max(1, content_length // max_splits)
                     ranges = [
-                        [start, start + split_length]
-                        for start in range(0, content_length, split_length)
+                        [start, start + split_length] for start in range(0, content_length, split_length)
                     ]
                     # let the last part download everything
                     ranges[-1][1] = ""
@@ -802,9 +793,7 @@ class Downloader:
             async with aioftp.Client.context(parse.hostname, **kwargs) as client:
                 parfive.log.debug("Connected to ftp server %s", parse.hostname)
                 if parse.username and parse.password:
-                    parfive.log.debug(
-                        "Explicitly Logging in with %s:%s", parse.username, parse.password
-                    )
+                    parfive.log.debug("Explicitly Logging in with %s:%s", parse.username, parse.password)
                     await client.login(parse.username, parse.password)
 
                 # This has to be done before we start streaming the file:
@@ -838,9 +827,7 @@ class Downloader:
                     )
 
                     download_workers.append(
-                        asyncio.create_task(
-                            self._ftp_download_worker(stream, downloaded_chunks_queue)
-                        )
+                        asyncio.create_task(self._ftp_download_worker(stream, downloaded_chunks_queue))
                     )
 
                     await asyncio.gather(*download_workers)

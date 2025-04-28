@@ -38,9 +38,7 @@ class Results(UserList):
         if isinstance(response, aiohttp.ClientResponse):
             ascii_encodable_url = str(response.url)
             if response.reason:
-                ascii_encodable_reason = response.reason.encode("ascii", "backslashreplace").decode(
-                    "ascii"
-                )
+                ascii_encodable_reason = response.reason.encode("ascii", "backslashreplace").decode("ascii")
             else:
                 ascii_encodable_reason = response.reason
             return f"<ClientResponse({ascii_encodable_url}) [{response.status} {ascii_encodable_reason}]>"
