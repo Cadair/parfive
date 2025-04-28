@@ -29,8 +29,9 @@ jobs:
         - macos: py310
         - windows: py311
         - linux: py312
-        - linux: py312-devdeps
-        - linux: py311-conda
+        - linux: py313
+        - linux: py313-devdeps
+        - linux: py312-conda
           toxdeps: tox-conda
         - linux: mypy
       coverage: 'codecov'
