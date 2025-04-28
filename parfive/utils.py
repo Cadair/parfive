@@ -7,7 +7,7 @@ from collections.abc import Generator
 from concurrent.futures import ThreadPoolExecutor
 from itertools import count
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, TypeVar, Union
+from typing import TYPE_CHECKING, Any, Callable, Literal, TypeVar, Union
 
 import aiohttp
 
@@ -130,7 +130,7 @@ def replacement_filename(path: os.PathLike) -> Path:  # type: ignore[return]
             return new_path
 
 
-def get_filepath(filepath: os.PathLike, overwrite: bool) -> tuple[Union[Path, str], bool]:
+def get_filepath(filepath: os.PathLike, overwrite: Union[bool, Literal["unique"]]) -> tuple[Path, bool]:
     """
     Get the filepath to download to and ensure dir exists.
 
@@ -141,7 +141,7 @@ def get_filepath(filepath: os.PathLike, overwrite: bool) -> tuple[Union[Path, st
     filepath = pathlib.Path(filepath)
     if filepath.exists():
         if not overwrite:
-            return str(filepath), True
+            return filepath, True
         if overwrite == "unique":
             filepath = replacement_filename(filepath)
     if not filepath.parent.exists():
@@ -169,7 +169,7 @@ class MultiPartDownloadError(Exception):
 
 
 class FailedDownload(Exception):
-    def __init__(self, filepath_partial: Path, url: str, exception: BaseException) -> None:
+    def __init__(self, filepath_partial: Union[Path, Callable], url: str, exception: BaseException) -> None:
         self.filepath_partial = filepath_partial
         self.url = url
         self.exception = exception

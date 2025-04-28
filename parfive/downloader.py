@@ -7,15 +7,8 @@ import signal
 import threading
 import urllib.parse
 import warnings
-from functools import reduce
-from typing import Callable, Optional, Union
-
-try:
-    from typing import Literal  # Added in Python 3.8
-except ImportError:
-    from typing_extensions import Literal  # type: ignore
-
-from functools import partial
+from functools import partial, reduce
+from typing import Any, Callable, Literal, Optional, Union
 
 import aiohttp
 from tqdm import tqdm as tqdm_std
@@ -151,9 +144,9 @@ class Downloader:
     def enqueue_file(
         self,
         url: str,
-        path: Optional[Union[str, os.PathLike]] = None,
-        filename: Optional[Union[str, Callable[[str, Optional[aiohttp.ClientResponse]], os.PathLike]]] = None,
-        overwrite: Optional[Union[bool, Literal["unique"]]] = None,
+        path: Union[str, os.PathLike, None] = None,
+        filename: Union[str, Callable[[str, Optional[aiohttp.ClientResponse]], os.PathLike], None] = None,
+        overwrite: Union[bool, Literal["unique"], None] = None,
         **kwargs,
     ):
         """
@@ -469,45 +462,47 @@ class Downloader:
 
     async def _get_http(
         self,
-        session,
+        session: aiohttp.ClientSession,
         *,
-        url,
-        filepath_partial,
-        chunksize=None,
-        file_pb=None,
-        token,
-        overwrite,
-        max_splits=None,
-        **kwargs,
-    ):
+        url: str,
+        filepath_partial: Callable,
+        chunksize: Union[int, None] = None,
+        file_pb: Union[tqdm_std, bool, None] = None,
+        token: Token,
+        overwrite: Union[bool, Literal["unique"]],
+        max_splits: Union[int, None] = None,
+        **kwargs: dict[str, Any],
+    ) -> tuple[str, str]:
         """
         Read the file from the given url into the filename given by ``filepath_partial``.
 
         Parameters
         ----------
-        session : `aiohttp.ClientSession`
+        session
             The `aiohttp.ClientSession` to use to retrieve the files.
-        url : `str`
+        url
             The url to retrieve.
-        filepath_partial : `callable`
+        filepath_partial
             A function to call which returns the filepath to save the url to.
             Takes two arguments ``resp, url``.
-        chunksize : `int`
+        chunksize
             The number of bytes to read into the file at a time.
-        file_pb : `tqdm.tqdm` or `False`
+        file_pb
             Should progress bars be displayed for each file downloaded.
-        token : `parfive.downloader.Token`
+        token
             A token for this download slot.
-        overwrite : `bool`
+        overwrite
             Overwrite the file if it already exists.
-        max_splits: `int`, optional
+        max_splits
             Number of maximum concurrent connections per file.
-        kwargs : `dict`
+        kwargs
             Extra keyword arguments are passed to `aiohttp.ClientSession.get`.
 
         Returns
         -------
-        `str`
+        url
+            The URL downloaded
+        path
             The name of the file saved.
         """
         if chunksize is None:
@@ -517,7 +512,7 @@ class Downloader:
 
         # Define filepath and writer here as we use them in the except block
         filepath = writer = None
-        tasks = []
+        tasks: list[asyncio.Task] = []
         try:
             scheme = urllib.parse.urlparse(url).scheme
             if scheme == "http":
@@ -562,7 +557,7 @@ class Downloader:
 
                 # This queue will contain the downloaded chunks and their offsets
                 # as tuples: (offset, chunk)
-                downloaded_chunk_queue = asyncio.Queue()
+                downloaded_chunk_queue: asyncio.Queue = asyncio.Queue()
 
                 writer = asyncio.create_task(self._write_worker(downloaded_chunk_queue, file_pb, filepath))
 
@@ -574,7 +569,7 @@ class Downloader:
                 ):
                     content_length = int(resp.headers["Content-length"])
                     split_length = max(1, content_length // max_splits)
-                    ranges = [
+                    ranges: list[list[Union[int, str]]] = [
                         [start, start + split_length] for start in range(0, content_length, split_length)
                     ]
                     # let the last part download everything
