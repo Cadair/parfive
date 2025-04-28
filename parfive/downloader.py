@@ -1,14 +1,14 @@
-import os
-import signal
 import asyncio
-import logging
-import pathlib
-import warnings
-import threading
 import contextlib
+import logging
+import os
+import pathlib
+import signal
+import threading
 import urllib.parse
-from typing import Union, Callable, Optional
+import warnings
 from functools import reduce
+from typing import Callable, Optional, Union
 
 try:
     from typing import Literal  # Added in Python 3.8
@@ -22,6 +22,7 @@ from tqdm import tqdm as tqdm_std
 from tqdm.auto import tqdm as tqdm_auto
 
 import parfive
+
 from .config import DownloaderConfig, SessionConfig
 from .results import Results
 from .utils import (

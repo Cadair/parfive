@@ -1,16 +1,16 @@
+import importlib.util
 import os
 import platform
 import warnings
-import importlib.util
-from typing import Union, Callable, Optional
 from collections.abc import Iterable
+from typing import Callable, Optional, Union
 
 try:
     from typing import Literal  # Added in Python 3.8
 except ImportError:
     from typing_extensions import Literal  # type: ignore
 
-from dataclasses import field, dataclass
+from dataclasses import dataclass, field
 
 import aiohttp
 

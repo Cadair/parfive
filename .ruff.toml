@@ -30,6 +30,7 @@ select = [
   "PLC",
   "PLE",
   "FLY",
+  "I",
   "NPY",
   "PERF",
   "RUF",
@@ -76,6 +77,7 @@ extend-ignore = [
   "A001",
   "BLE001",
   "T201",
+  "I",
 ]
 "docs/*.py" = [
   "INP001", # File is part of an implicit namespace package.
@@ -100,3 +102,6 @@ extend-ignore = [
 
 [lint.pydocstyle]
 convention = "numpy"
+
+[lint.isort]
+known-first-party = ["parfive"]
