@@ -1,5 +1,5 @@
-import sys
 import argparse
+import sys
 
 from parfive import Downloader, SessionConfig, __version__
 
