@@ -305,6 +305,8 @@ def check_file_hash(fileobj: Any, checksum: str) -> bool:
     if "=" not in checksum:
         raise ValueError(f"checksum {checksum} should be of the format <algorithm>=<checksum>")
     chk_alg, checksum = checksum.split("=")
+    # Normalise the algorithm name to not have "-" as that might have wider support
+    chk_alg = chk_alg.replace("-", "")
     computed_file_hash = file_digest(fileobj, chk_alg).hexdigest()
     return computed_file_hash == checksum
 
