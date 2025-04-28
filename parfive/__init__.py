@@ -15,12 +15,11 @@ from .config import SessionConfig
 from .downloader import Downloader
 from .results import Results
 
-__all__ = ["SessionConfig", "Downloader", "Results", "log", "__version__"]
+__all__ = ["Downloader", "Results", "SessionConfig", "__version__", "log"]
 
 try:
     from ._version import version as __version__
 except ImportError:
-    print("Version not found, please reinstall parfive.")
     __version__ = "unknown"
 
 log = _logging.getLogger("parfive")

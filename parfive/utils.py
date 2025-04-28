@@ -3,9 +3,10 @@ import asyncio
 import hashlib
 import pathlib
 import warnings
-from typing import TYPE_CHECKING, Any, Dict, List, Tuple, Union, TypeVar, Generator
+from typing import TYPE_CHECKING, Any, Union, TypeVar
 from pathlib import Path
 from itertools import count
+from collections.abc import Generator
 from concurrent.futures import ThreadPoolExecutor
 
 import aiohttp
@@ -17,10 +18,9 @@ if TYPE_CHECKING:
 
 
 __all__ = [
-    "cancel_task",
-    "run_in_thread",
-    "Token",
     "FailedDownload",
+    "Token",
+    "cancel_task",
     "default_name",
     "remove_file",
 ]
@@ -40,7 +40,7 @@ def _parseparam(s: str) -> Generator[str, None, None]:
         s = s[end:]
 
 
-def parse_header(line: str) -> Tuple[str, Dict[str, str]]:
+def parse_header(line: str) -> tuple[str, dict[str, str]]:
     """Parse a Content-type like header.
     Return the main content-type and a dictionary of options.
     """
@@ -97,7 +97,7 @@ async def get_ftp_size(client: "aioftp.Client", filepath: os.PathLike) -> int:
     try:
         size = await client.stat(filepath)
         size = size.get("size", None)
-    except Exception:
+    except Exception:  # noqa BLE001
         parfive.log.info("Failed to get size of FTP file", exc_info=True)
         size = None
 
@@ -130,7 +130,7 @@ def replacement_filename(path: os.PathLike) -> Path:  # type: ignore[return]
             return new_path
 
 
-def get_filepath(filepath: os.PathLike, overwrite: bool) -> Tuple[Union[Path, str], bool]:
+def get_filepath(filepath: os.PathLike, overwrite: bool) -> tuple[Union[Path, str], bool]:
     """
     Get the filepath to download to and ensure dir exists.
 
@@ -181,7 +181,7 @@ class FailedDownload(Exception):
         return out
 
     def __str__(self) -> str:
-        return f"Download Failed: {self.url} with error {str(self.exception)}"
+        return f"Download Failed: {self.url} with error {self.exception!s}"
 
 
 class Token:
@@ -198,7 +198,7 @@ class Token:
 _T = TypeVar("_T")
 
 
-class _QueueList(List[_T]):
+class _QueueList(list[_T]):
     """
     A list, with an extra method that empties the list and puts it into a
     `asyncio.Queue`.
@@ -233,7 +233,7 @@ def remove_file(filepath: os.PathLike) -> None:
     filepath = Path(filepath)
     try:
         filepath.unlink(missing_ok=True)
-    except Exception as remove_exception:
+    except Exception as remove_exception:  # noqa BLE001
         warnings.warn(
             f"Failed to delete possibly incomplete file {filepath} {remove_exception}",
             ParfiveUserWarning,

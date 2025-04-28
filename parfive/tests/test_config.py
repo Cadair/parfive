@@ -1,11 +1,9 @@
 import ssl
 
 import aiohttp
-import pytest
 
-from parfive.config import DownloaderConfig, SessionConfig
+from parfive.config import SessionConfig
 from parfive.downloader import Downloader
-from parfive.utils import ParfiveFutureWarning
 
 
 def test_session_config_defaults():
@@ -37,6 +35,8 @@ def test_session_config_env_defaults():
 def test_ssl_context():
     # Assert that the unpickalable SSL context object doesn't anger the
     # dataclass gods
-    gen = lambda config: aiohttp.ClientSession(context=ssl.create_default_context())
+    def gen(config):
+        return aiohttp.ClientSession(context=ssl.create_default_context())
+
     c = SessionConfig(aiohttp_session_generator=gen)
     d = Downloader(config=c)

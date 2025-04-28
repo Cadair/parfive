@@ -1,4 +1,4 @@
-import os
+from pathlib import Path
 
 import pytest
 
@@ -72,7 +72,7 @@ def test_url(multipartserver):
     ],
 )
 def test_run_cli_success(args, test_url, capsys):
-    cliargs = parse_args(args + [test_url])
+    cliargs = parse_args([*args, test_url])
     with pytest.raises(SystemExit) as exit_exc:
         run_parfive(cliargs)
 
@@ -93,4 +93,4 @@ def test_run_cli_success(args, test_url, capsys):
     if "--verbose" in args:
         assert "DEBUG" in cap_out.err
 
-    os.remove("testfile.txt")
+    Path("testfile.txt").unlink()

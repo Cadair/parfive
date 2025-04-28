@@ -1,14 +1,16 @@
 import os
 import platform
 import warnings
-from typing import Dict, Union, Callable, Iterable, Optional
+import importlib.util
+from typing import Union, Callable, Optional
+from collections.abc import Iterable
 
 try:
     from typing import Literal  # Added in Python 3.8
 except ImportError:
     from typing_extensions import Literal  # type: ignore
 
-from dataclasses import InitVar, field, dataclass
+from dataclasses import field, dataclass
 
 import aiohttp
 
@@ -79,7 +81,7 @@ class SessionConfig:
     The URL of a proxy to use for HTTPS requests. Will default to the value of
     the ``HTTPS_PROXY`` env var.
     """
-    headers: Optional[Dict[str, str]] = field(default_factory=_default_headers)
+    headers: Optional[dict[str, str]] = field(default_factory=_default_headers)
     """
     Headers to be passed to all requests made by this session. These headers
     are passed to the `aiohttp.ClientSession` along with
@@ -143,7 +145,7 @@ class SessionConfig:
     """
     env: EnvConfig = field(default_factory=EnvConfig)
 
-    done_callbacks: Iterable[Callable[[str, str, Optional[Exception]], None]] = tuple()
+    done_callbacks: Iterable[Callable[[str, str, Optional[Exception]], None]] = ()
     """
     A list of functions to be called when a download is completed.
 
@@ -153,11 +155,7 @@ class SessionConfig:
 
     @staticmethod
     def _aiofiles_importable():
-        try:
-            import aiofiles
-        except ImportError:
-            return False
-        return True
+        return importlib.util.find_spec("aiofiles") is not None
 
     def _compute_aiofiles(self, use_aiofiles):
         use_aiofiles = use_aiofiles or self.env.override_use_aiofiles
