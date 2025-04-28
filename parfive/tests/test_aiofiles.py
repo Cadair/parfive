@@ -12,9 +12,7 @@ from parfive.utils import ParfiveUserWarning
 @pytest.mark.parametrize("use_aiofiles", [True, False])
 def test_enable_aiofiles_constructor(use_aiofiles):
     dl = Downloader(config=parfive.SessionConfig(use_aiofiles=use_aiofiles))
-    assert (
-        dl.config.use_aiofiles == use_aiofiles
-    ), f"expected={use_aiofiles}, got={dl.config.use_aiofiles}"
+    assert dl.config.use_aiofiles == use_aiofiles, f"expected={use_aiofiles}, got={dl.config.use_aiofiles}"
 
 
 @patch.dict(os.environ, {"PARFIVE_OVERWRITE_ENABLE_AIOFILES": "some_value_to_enable_it"})

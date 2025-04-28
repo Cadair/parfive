@@ -39,15 +39,9 @@ def run_parfive(args):
 
 
 def parse_args(args):
-    parser = argparse.ArgumentParser(
-        description="Parfive: A parallel file downloader written in Python."
-    )
-    parser.add_argument(
-        "urls", metavar="URLS", type=str, nargs="+", help="URLs of files to be downloaded."
-    )
-    parser.add_argument(
-        "--max-conn", type=int, default=5, help="Maximum number of parallel file downloads."
-    )
+    parser = argparse.ArgumentParser(description="Parfive: A parallel file downloader written in Python.")
+    parser.add_argument("urls", metavar="URLS", type=str, nargs="+", help="URLs of files to be downloaded.")
+    parser.add_argument("--max-conn", type=int, default=5, help="Maximum number of parallel file downloads.")
     parser.add_argument(
         "--max-splits",
         type=int,
