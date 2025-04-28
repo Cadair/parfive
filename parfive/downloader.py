@@ -144,9 +144,9 @@ class Downloader:
     def enqueue_file(
         self,
         url: str,
-        path: str | os.PathLike | None = None,
-        filename: str | Callable[[str, Optional[aiohttp.ClientResponse]], os.PathLike] | None = None,
-        overwrite: bool | Literal["unique"] | None = None,
+        path: Union[str, os.PathLike, None] = None,
+        filename: Union[str, Callable[[str, Optional[aiohttp.ClientResponse]], os.PathLike], None] = None,
+        overwrite: Union[bool, Literal["unique"], None] = None,
         **kwargs,
     ):
         """
@@ -466,11 +466,11 @@ class Downloader:
         *,
         url: str,
         filepath_partial: Callable,
-        chunksize: int | None = None,
-        file_pb: tqdm_std | bool | None = None,
+        chunksize: Union[int, None] = None,
+        file_pb: Union[tqdm_std, bool, None] = None,
         token: Token,
-        overwrite: bool | Literal["unique"],
-        max_splits: int | None = None,
+        overwrite: Union[bool, Literal["unique"]],
+        max_splits: Union[int, None] = None,
         **kwargs: dict[str, Any],
     ) -> tuple[str, str]:
         """
@@ -569,7 +569,7 @@ class Downloader:
                 ):
                     content_length = int(resp.headers["Content-length"])
                     split_length = max(1, content_length // max_splits)
-                    ranges: list[list[int | str]] = [
+                    ranges: list[list[Union[int, str]]] = [
                         [start, start + split_length] for start in range(0, content_length, split_length)
                     ]
                     # let the last part download everything

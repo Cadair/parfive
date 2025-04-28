@@ -130,7 +130,7 @@ def replacement_filename(path: os.PathLike) -> Path:  # type: ignore[return]
             return new_path
 
 
-def get_filepath(filepath: os.PathLike, overwrite: bool | Literal["unique"]) -> tuple[Path, bool]:
+def get_filepath(filepath: os.PathLike, overwrite: Union[bool, Literal["unique"]]) -> tuple[Path, bool]:
     """
     Get the filepath to download to and ensure dir exists.
 
@@ -169,7 +169,7 @@ class MultiPartDownloadError(Exception):
 
 
 class FailedDownload(Exception):
-    def __init__(self, filepath_partial: Path | Callable, url: str, exception: BaseException) -> None:
+    def __init__(self, filepath_partial: Union[Path, Callable], url: str, exception: BaseException) -> None:
         self.filepath_partial = filepath_partial
         self.url = url
         self.exception = exception
