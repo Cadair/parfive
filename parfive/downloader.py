@@ -558,9 +558,11 @@ class Downloader:
                 if checksum is True:
                     checksum = resp.headers.get("Repr-Digest", resp.headers.get("Content-Digest", None))
                     if checksum is None:
-                        log.info("Expected server to provide checksum for url '%s' but none returned.", url)
+                        parfive.log.info(
+                            "Expected server to provide checksum for url '%s' but none returned.", url
+                        )
                 if file_exists:
-                    if checksum:
+                    if isinstance(checksum, str):
                         checksum_matches = check_file_hash(filepath.open(mode="rb"), checksum)
                         if checksum_matches:
                             parfive.log.debug(
@@ -639,7 +641,7 @@ class Downloader:
             # join() waits till all the items in the queue have been processed
             await downloaded_chunk_queue.join()
 
-            if checksum and not check_file_hash(filepath.open(mode="rb"), checksum):
+            if isinstance(checksum, str) and not check_file_hash(filepath.open(mode="rb"), checksum):
                 raise FailedDownload(filepath, url, ChecksumMismatch("Downloaded checksum doesn't match."))
 
             for callback in self.config.done_callbacks:

@@ -1,6 +1,7 @@
 import asyncio
 import os
 import pathlib
+import typing
 import warnings
 from collections.abc import AsyncIterator, Generator
 from concurrent.futures import ThreadPoolExecutor
@@ -250,6 +251,7 @@ try:
     from hashlib import file_digest
 except ImportError:
     # Copied from the stdlib
+    @typing.no_type_check
     def file_digest(fileobj, digest, /, *, _bufsize=2**18):
         """
         Hash the contents of a file-like object. Returns a digest object.
@@ -293,7 +295,8 @@ except ImportError:
         return digestobj
 
 
-def check_file_hash(fileobj, checksum):
+# TODO: I don't know how to make this fileobj type hint pass
+def check_file_hash(fileobj: Any, checksum: str) -> bool:
     """
     Verify the contents of fileobj match the checksum provided by ``checksum``.
     """
