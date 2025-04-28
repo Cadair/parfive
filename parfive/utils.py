@@ -250,6 +250,8 @@ try:
     # Python 3.11 added file_digest
     from hashlib import file_digest
 except ImportError:
+    import hashlib
+
     # Copied from the stdlib
     @typing.no_type_check
     def file_digest(fileobj, digest, /, *, _bufsize=2**18):
@@ -267,7 +269,7 @@ except ImportError:
         # On Linux we could use AF_ALG sockets and sendfile() to archive zero-copy
         # hashing with hardware acceleration.
         if isinstance(digest, str):
-            digestobj = new(digest)
+            digestobj = hashlib.new(digest)
         else:
             digestobj = digest()
 
