@@ -19,11 +19,13 @@ import parfive
 from .config import DownloaderConfig, SessionConfig
 from .results import Results
 from .utils import (
+    ChecksumMismatch,
     FailedDownload,
     MultiPartDownloadError,
     Token,
     _QueueList,
     cancel_task,
+    check_file_hash,
     default_name,
     get_filepath,
     get_ftp_size,
@@ -472,6 +474,7 @@ class Downloader:
         token: Token,
         overwrite: Union[bool, Literal["unique"]],
         max_splits: Union[int, None] = None,
+        checksum: Union[str, bool, None] = None,
         **kwargs: dict[str, Any],
     ) -> tuple[str, str]:
         """
@@ -496,6 +499,14 @@ class Downloader:
             Overwrite the file if it already exists.
         max_splits
             Number of maximum concurrent connections per file.
+        checksum
+            If given the downloaded file will be verified against the
+            given checksum.  The format of the checksum string should
+            be ``<algorithm>=<checksum>``, valid algorithms are
+            ``sha-512``, ``sha-256``, ``md5`` or ``sha``.  If ``True``
+            then where provided by the server (in the ``Repr-Digest``
+            or ``Content-Digest`` headers) the checksum will be
+            validated against the checksum returned by the server.
         kwargs
             Extra keyword arguments are passed to `aiohttp.ClientSession.get`.
 
@@ -521,7 +532,13 @@ class Downloader:
             elif scheme == "https":
                 kwargs["proxy"] = self.config.https_proxy
 
-            async with session_head_or_get(session, url, timeout=self.config.timeouts, **kwargs) as resp:
+            request_headers = {}
+            if checksum is True:
+                request_headers["Want-Repr-Digest"] = request_headers["Want-Content-Digest"] = (
+                    "sha-512=9, sha-256=8, sha=3, md5=2"
+                )
+
+            async with session_head_or_get(session, url, headers=request_headers, timeout=self.config.timeouts, **kwargs) as resp:
                 parfive.log.debug(
                     "%s request made to %s with headers=%s",
                     resp.request_info.method,
@@ -536,13 +553,27 @@ class Downloader:
                 )
                 if resp.status < 200 or resp.status >= 300:
                     raise FailedDownload(filepath_partial, url, resp)
-                filepath, skip = get_filepath(filepath_partial(resp, url), overwrite)
-                if skip:
-                    parfive.log.debug(
-                        "File %s already exists and overwrite is False; skipping download.",
-                        filepath,
-                    )
-                    return url, str(filepath)
+                filepath, file_exists = get_filepath(filepath_partial(resp, url), overwrite)
+                # Get the expected checksum from the headers
+                if checksum is True:
+                    checksum = resp.headers.get("Repr-Digest", resp.headers.get("Content-Digest", None))
+                    if checksum is None:
+                        log.info("Expected server to provide checksum for url '%s' but none returned.", url)
+                if file_exists:
+                    if checksum:
+                        checksum_matches = check_file_hash(filepath.open(mode="rb"), checksum)
+                        if checksum_matches:
+                            parfive.log.debug(
+                                "File %s already exists, checksum matches and overwrite is False; skipping download.",
+                                filepath,
+                            )
+                            return url, str(filepath)
+                    else:
+                        parfive.log.debug(
+                            "File %s already exists and overwrite is False; skipping download.",
+                            filepath,
+                        )
+                        return url, str(filepath)
 
                 if callable(file_pb):
                     file_pb = file_pb(
@@ -607,6 +638,9 @@ class Downloader:
             await asyncio.gather(*tasks)
             # join() waits till all the items in the queue have been processed
             await downloaded_chunk_queue.join()
+
+            if checksum and not check_file_hash(filepath.open(mode="rb"), checksum):
+                raise FailedDownload(filepath, url, ChecksumMismatch("Downloaded checksum doesn't match."))
 
             for callback in self.config.done_callbacks:
                 callback(filepath, url, None)

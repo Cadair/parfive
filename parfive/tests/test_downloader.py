@@ -12,7 +12,7 @@ from aiohttp import ClientConnectorError, ClientTimeout
 import parfive
 from parfive.config import SessionConfig
 from parfive.downloader import Downloader, FailedDownload, Results, Token
-from parfive.utils import sha256sum
+from parfive.utils import check_file_hash
 
 skip_windows = pytest.mark.skipif(platform.system() == "Windows", reason="Windows.")
 
@@ -20,7 +20,9 @@ skip_windows = pytest.mark.skipif(platform.system() == "Windows", reason="Window
 def validate_test_file(f):
     assert len(f) == 1
     assert Path(f[0]).name == "testfile.fits"
-    assert sha256sum(f[0]) == "a1c58cd340e3bd33f94524076f1fa5cf9a7f13c59d5272a9d4bc0b5bc436d9b3"
+    assert check_file_hash(
+        Path(f[0]).open(mode="rb"), "sha-256=a1c58cd340e3bd33f94524076f1fa5cf9a7f13c59d5272a9d4bc0b5bc436d9b3"
+    )
 
 
 def test_setup():
