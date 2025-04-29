@@ -563,7 +563,8 @@ class Downloader:
                         )
                 if file_exists:
                     if isinstance(checksum, str):
-                        checksum_matches = check_file_hash(filepath.open(mode="rb"), checksum)
+                        with filepath.open(mode="rb") as fobj:
+                            checksum_matches = check_file_hash(fobj, checksum)
                         if checksum_matches:
                             parfive.log.debug(
                                 "File %s already exists, checksum matches and overwrite is False; skipping download.",
@@ -641,8 +642,11 @@ class Downloader:
             # join() waits till all the items in the queue have been processed
             await downloaded_chunk_queue.join()
 
-            if isinstance(checksum, str) and not check_file_hash(filepath.open(mode="rb"), checksum):
-                raise FailedDownload(filepath, url, ChecksumMismatch("Downloaded checksum doesn't match."))
+            with filepath.open(mode="rb") as fobj:
+                if isinstance(checksum, str) and not check_file_hash(fobj, checksum):
+                    raise FailedDownload(
+                        filepath, url, ChecksumMismatch("Downloaded checksum doesn't match.")
+                    )
 
             for callback in self.config.done_callbacks:
                 callback(filepath, url, None)

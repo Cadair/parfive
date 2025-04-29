@@ -20,9 +20,10 @@ skip_windows = pytest.mark.skipif(platform.system() == "Windows", reason="Window
 def validate_test_file(f):
     assert len(f) == 1
     assert Path(f[0]).name == "testfile.fits"
-    assert check_file_hash(
-        Path(f[0]).open(mode="rb"), "sha-256=a1c58cd340e3bd33f94524076f1fa5cf9a7f13c59d5272a9d4bc0b5bc436d9b3"
-    )
+    with Path(f[0]).open(mode="rb") as fobj:
+        assert check_file_hash(
+            fobj, "sha-256=a1c58cd340e3bd33f94524076f1fa5cf9a7f13c59d5272a9d4bc0b5bc436d9b3"
+        )
 
 
 def test_setup():
@@ -617,3 +618,150 @@ def test_download_out_of_main_thread(httpserver, tmpdir, recwarn):
         == w.message.args[0]
         for w in recwarn
     )
+
+
+def test_checksum_want_headers(httpserver, tmpdir):
+    tmpdir = str(tmpdir)
+    httpserver.serve_content(
+        "SIMPLE  = T",
+        headers={
+            "Content-Disposition": "attachment; filename=testfile.fits",
+            "Repr-Digest": "sha-256=a1c58cd340e3bd33f94524076f1fa5cf9a7f13c59d5272a9d4bc0b5bc436d9b3",
+        },
+    )
+    dl = Downloader()
+
+    dl.enqueue_file(httpserver.url, path=Path(tmpdir), max_splits=None, checksum=True)
+    dl.enqueue_file(httpserver.url, path=Path(tmpdir), max_splits=None, checksum=False)
+
+    assert dl.queued_downloads == 2
+
+    f = dl.download()
+    assert len(f.urls) == 2
+    assert f.urls[0] == httpserver.url
+    validate_test_file(f[0:1])
+
+    first_headers = httpserver.requests[0].headers
+    assert "Want-Repr-Digest" in first_headers
+    assert "Want-Content-Digest" in first_headers
+
+    # Two requests a file
+    second_headers = httpserver.requests[2].headers
+    assert "Want-Repr-Digest" not in second_headers
+    assert "Want-Content-Digest" not in second_headers
+
+
+def test_checksum_invalid(httpserver, tmpdir):
+    tmpdir = str(tmpdir)
+    httpserver.serve_content(
+        "SIMPLE  = T",
+        headers={
+            "Content-Disposition": "attachment; filename=testfile.fits",
+            "Repr-Digest": "sha-256=XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+        },
+    )
+    dl = Downloader()
+
+    dl.enqueue_file(httpserver.url, path=Path(tmpdir), max_splits=None, checksum=True)
+
+    assert dl.queued_downloads == 1
+
+    f = dl.download()
+
+    assert len(f.errors) == 1
+    exception = f.errors[0].exception
+    assert isinstance(exception, FailedDownload)
+    assert "checksum doesn't match" in str(exception)
+
+
+def test_explicit_checksum(namedserver, tmpdir):
+    tmpdir = str(tmpdir)
+    dl = Downloader()
+
+    dl.enqueue_file(
+        namedserver.url,
+        path=Path(tmpdir),
+        max_splits=None,
+        checksum="sha-256=0ba904eae8773b70c75333db4de2f3ac45a8ad4ddba1b242f0b3cfc199391dd8",
+    )
+
+    dl.enqueue_file(
+        namedserver.url,
+        path=Path(tmpdir),
+        max_splits=None,
+        checksum="sha-256=XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+    )
+
+    assert dl.queued_downloads == 2
+
+    f = dl.download()
+
+    assert len(f) == 1
+    assert f.urls[0] == namedserver.url
+
+    assert len(f.errors) == 1
+    exception = f.errors[0].exception
+    assert isinstance(exception, FailedDownload)
+    assert "checksum doesn't match" in str(exception)
+
+
+def test_file_exists_checksum(httpserver, tmpdir, caplog):
+    caplog.set_level("DEBUG")
+    tmpdir = str(tmpdir)
+    httpserver.serve_content(
+        "SIMPLE  = T",
+        headers={
+            "Content-Disposition": "attachment; filename=testfile.fits",
+            "Repr-Digest": "sha-256=a1c58cd340e3bd33f94524076f1fa5cf9a7f13c59d5272a9d4bc0b5bc436d9b3",
+        },
+    )
+    dl = Downloader()
+
+    dl.enqueue_file(httpserver.url, path=Path(tmpdir), max_splits=None, checksum=True)
+
+    assert dl.queued_downloads == 1
+
+    f = dl.download()
+
+    assert len(f) == 1
+
+    dl = Downloader()
+
+    dl.enqueue_file(httpserver.url, path=Path(tmpdir), max_splits=None, checksum=True)
+
+    assert dl.queued_downloads == 1
+
+    f = dl.download()
+
+    assert len(f) == 1
+
+    # Assert that only three requests have been made, thereby checking
+    # that the file wasn't re-downloaded the second time
+    assert len(httpserver.requests) == 3
+
+    assert (
+        "testfile.fits already exists, checksum matches and overwrite is False; skipping download."
+        in caplog.messages[-1]
+    )
+
+
+def test_no_server_checksum(httpserver, tmpdir, caplog):
+    caplog.set_level("DEBUG")
+    tmpdir = str(tmpdir)
+    httpserver.serve_content(
+        "SIMPLE  = T",
+        headers={
+            "Content-Disposition": "attachment; filename=testfile.fits",
+        },
+    )
+    dl = Downloader()
+
+    dl.enqueue_file(httpserver.url, path=Path(tmpdir), max_splits=None, checksum=True)
+
+    assert dl.queued_downloads == 1
+
+    f = dl.download()
+
+    assert len(f) == 1
+
+    assert any("Expected server to provide checksum for url" in msg for msg in caplog.messages)
