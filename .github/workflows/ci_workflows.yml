@@ -34,7 +34,10 @@ jobs:
         - linux: py312-conda
           toxdeps: tox-conda
         - linux: mypy
+          pytest: false
       coverage: 'codecov'
+    secrets:
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   publish:
     needs: tests
