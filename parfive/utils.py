@@ -5,6 +5,7 @@ import pathlib
 import warnings
 from collections.abc import Generator
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import asynccontextmanager
 from itertools import count
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Literal, TypeVar, Union
@@ -252,3 +253,18 @@ async def cancel_task(task: asyncio.Task) -> bool:
     except asyncio.CancelledError:
         return True
     return task.cancelled()
+
+
+@asynccontextmanager
+async def session_head_or_get(session: aiohttp.ClientSession, url: str, **kwargs):
+    """
+    Try and make a HEAD request to the resource and fallback to a get
+    request if that fails.
+    """
+    async with session.head(url, **kwargs) as resp:
+        if resp.ok:
+            yield resp
+            return
+
+    async with session.get(url, **kwargs) as resp:
+        yield resp

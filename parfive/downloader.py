@@ -30,6 +30,7 @@ from .utils import (
     get_http_size,
     remove_file,
     run_task_in_thread,
+    session_head_or_get,
 )
 
 try:
@@ -520,7 +521,7 @@ class Downloader:
             elif scheme == "https":
                 kwargs["proxy"] = self.config.https_proxy
 
-            async with session.get(url, timeout=self.config.timeouts, **kwargs) as resp:
+            async with session_head_or_get(session, url, timeout=self.config.timeouts, **kwargs) as resp:
                 parfive.log.debug(
                     "%s request made to %s with headers=%s",
                     resp.request_info.method,
