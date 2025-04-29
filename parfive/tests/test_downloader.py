@@ -12,7 +12,7 @@ from aiohttp import ClientConnectorError, ClientTimeout
 import parfive
 from parfive.config import SessionConfig
 from parfive.downloader import Downloader, FailedDownload, Results, Token
-from parfive.utils import check_file_hash
+from parfive.utils import ChecksumMismatch, check_file_hash
 
 skip_windows = pytest.mark.skipif(platform.system() == "Windows", reason="Windows.")
 
@@ -674,7 +674,7 @@ def test_checksum_invalid(httpserver, tmpdir):
     assert "checksum doesn't match" in str(exception)
 
 
-def test_explict_checksum_priority(httpserver, tmpdir):
+def test_early_fail_download_checksum_mismatch(httpserver, tmpdir):
     tmpdir = str(tmpdir)
     httpserver.serve_content(
         "SIMPLE  = T",
@@ -683,7 +683,6 @@ def test_explict_checksum_priority(httpserver, tmpdir):
             "Repr-Digest": "sha-256=INVALID",
         },
     )
-    dl = Downloader()
     dl = Downloader()
 
     dl.enqueue_file(
@@ -697,7 +696,44 @@ def test_explict_checksum_priority(httpserver, tmpdir):
 
     f = dl.download()
 
+    assert len(f.errors) == 1
+    exc = f.errors[0].exception
+    assert isinstance(exc, FailedDownload)
+    assert isinstance(exc.exception, ChecksumMismatch)
+    assert "Server provided checksum and user provided checksum do not match, download skipped" in str(
+        exc.exception
+    )
+
+
+def test_server_user_algorithm_mismatch(httpserver, tmp_path, caplog):
+    caplog.set_level("INFO")
+    httpserver.serve_content(
+        "SIMPLE  = T",
+        headers={
+            "Content-Disposition": "attachment; filename=testfile.fits",
+            "Repr-Digest": "sha-512=INVALID",
+        },
+    )
+    dl = Downloader()
+
+    dl.enqueue_file(
+        httpserver.url,
+        path=tmp_path,
+        max_splits=None,
+        checksum="sha-256=a1c58cd340e3bd33f94524076f1fa5cf9a7f13c59d5272a9d4bc0b5bc436d9b3",
+    )
+
+    assert dl.queued_downloads == 1
+
+    f = dl.download()
+
     assert len(f.errors) == 0
+
+    assert any(
+        "Not comparing user provided checksum to server provided checksum as algorithms do not match (got sha512 from the server)."
+        in m
+        for m in caplog.messages
+    )
 
 
 def test_explicit_checksum(namedserver, tmpdir):

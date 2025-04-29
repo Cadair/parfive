@@ -171,20 +171,38 @@ class Downloader:
             response will be ``None``.) If `None` the HTTP headers will be read
             for the filename, or the last segment of the URL will be used.
         overwrite
-            Determine how to handle downloading if a file already exists with the
-            same name. If `False` the file download will be skipped and the path
-            returned to the existing file, if `True` the file will be downloaded
-            and the existing file will be overwritten, if `'unique'` the filename
-            will be modified to be unique. If `None` the value set when
-            constructing the `~parfive.Downloader` object will be used.
+            Determine how to handle downloading if a file already
+            exists with the same name. If `False` the file download
+            will be skipped and the path returned to the existing file
+            (if any checksum also matches, see below), if `True` the
+            file will be downloaded and the existing file will be
+            overwritten, if `'unique'` the filename will be modified
+            to be unique. If `None` the value set when constructing
+            the `~parfive.Downloader` object will be used.
         checksum
-            If given the downloaded file will be verified against the
-            given checksum.  The format of the checksum string should
-            be ``<algorithm>=<checksum>``, valid algorithms are
-            ``sha-512``, ``sha-256``, ``md5`` or ``sha``.  If ``True``
-            then where provided by the server (in the ``Repr-Digest``
-            or ``Content-Digest`` headers) the checksum will be
-            validated against the checksum returned by the server.
+            Provide a checksum, or request one from the server, to
+            compare to any existing file and verify the downloaded
+            file.
+            This option can either be a string or `True`, if `True`
+            the checksum provided by the server (if any) will be used,
+            and if it is a string the it should be of the form
+            ``<algorithm>=<checksum>``.
+            Valid algorithms are any provided by `hashlib` but the
+            HTTP spec allows ``sha-512``, ``sha-256``, ``md5`` or
+            ``sha``.
+            If ``True`` then where provided by the server (in the
+            ``Repr-Digest`` or ``Content-Digest`` headers) the
+            checksum will be validated against the checksum returned
+            by the server.
+            When ``overwrite=False`` and ``checksum=`` is set the
+            checksum will also be used to determine if any local file
+            should be overwritten.
+            If the checksum is `True` then the server provided
+            checksum will be used to compare to the local file and
+            download skipped if it matches.
+            If the checksum is explicitly passed, the download will
+            fail early if the server provides a checksum for the file
+            which doesn't match the one provided by the user.
         kwargs : `dict`
             Extra keyword arguments are passed to `aiohttp.ClientSession.request`
             or `aioftp.Client.context` depending on the protocol.
@@ -550,9 +568,21 @@ class Downloader:
                 kwargs["proxy"] = self.config.https_proxy
 
             request_headers = {}
-            if checksum is True:
-                request_headers["Want-Repr-Digest"] = request_headers["Want-Content-Digest"] = (
-                    "sha-512=9, sha-256=8, sha=3, md5=2"
+            if checksum:
+                checksum_priority = {
+                    "sha-512": 8,
+                    "sha-256": 7,
+                    "sha": 3,
+                    "md5": 2,
+                }
+                # If the user has specified a checksum format as the
+                # server for that one with highest priority.
+                if isinstance(checksum, str):
+                    user_alg, _ = validate_checksum_format(checksum)
+                    checksum_priority[user_alg] = 10
+
+                request_headers["Want-Repr-Digest"] = request_headers["Want-Content-Digest"] = ", ".join(
+                    [f"{k}={v}" for k, v in checksum_priority.items()]
                 )
 
             async with session_head_or_get(session, url, headers=request_headers, timeout=self.config.timeouts, **kwargs) as resp:
@@ -572,8 +602,11 @@ class Downloader:
                     raise FailedDownload(filepath_partial, url, resp)
                 filepath, file_exists = get_filepath(filepath_partial(resp, url), overwrite)
                 # Get the expected checksum from the headers
+                header_checksum: Union[str, None] = resp.headers.get(
+                    "Repr-Digest", resp.headers.get("Content-Digest", None)
+                )
                 if checksum is True:
-                    checksum = resp.headers.get("Repr-Digest", resp.headers.get("Content-Digest", None))
+                    checksum = header_checksum
                     if checksum is None:
                         parfive.log.info(
                             "Expected server to provide checksum for url '%s' but none returned.", url
@@ -594,6 +627,30 @@ class Downloader:
                             filepath,
                         )
                         return url, str(filepath)
+
+                if isinstance(checksum, str) and header_checksum is not None:
+                    try:
+                        header_alg, header_chk = validate_checksum_format(header_checksum)
+                        user_alg, user_chk = validate_checksum_format(checksum)
+                        if header_alg == user_alg:
+                            if header_chk != user_chk:
+                                raise FailedDownload(
+                                    filepath,
+                                    url,
+                                    ChecksumMismatch(
+                                        "Server provided checksum and user provided checksum do not match, download skipped"
+                                    ),
+                                )
+                        else:
+                            parfive.log.info(
+                                "Not comparing user provided checksum to server provided checksum"
+                                " as algorithms do not match (got %s from the server).",
+                                header_alg,
+                            )
+                    except ValueError as e:
+                        parfive.log.info(
+                            "Failed to compare user checksum to server checksum due to error: %s", e
+                        )
 
                 if callable(file_pb):
                     file_pb = file_pb(
