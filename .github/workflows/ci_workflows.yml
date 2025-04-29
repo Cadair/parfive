@@ -35,6 +35,8 @@ jobs:
           toxdeps: tox-conda
         - linux: mypy
       coverage: 'codecov'
+    secrets:
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   publish:
     needs: tests
