@@ -1,4 +1,5 @@
 import abc
+from collections import defaultdict
 
 from pytest_localserver.http import WSGIServer
 
@@ -21,16 +22,16 @@ class BaseTestServer(abc.ABC):
         self.requests = []
         self.server = WSGIServer(application=self.request_handler)
         self.callback = callback
-        self.request_number = 0
+        self.requests_by_method = defaultdict(lambda: 0)
 
     def callback_handler(self, environ, start_response):
         if self.callback is not None:
-            return self.callback(self.request_number, environ, start_response)
+            return self.callback(self, environ, start_response)
 
     def request_handler(self, environ, start_response):
         self.requests.append(environ)
         callback_return = self.callback_handler(environ, start_response)
-        self.request_number += 1
+        self.requests_by_method[environ["REQUEST_METHOD"]] += 1
         if callback_return:
             return callback_return
 
@@ -56,7 +57,7 @@ class SimpleTestServer(BaseTestServer):
         status = "200 OK"
         response_headers = [
             ("Content-type", "text/plain"),
-            ("Content-Disposition", f"attachment; filename=testfile_{self.request_number}.txt"),
+            ("Content-Disposition", f"attachment; filename={environ['PATH_INFO'].strip('/')}"),
         ]
         start_response(status, response_headers)
         return [b"Hello world!\n"]
@@ -91,8 +92,19 @@ class MultiPartTestServer(BaseTestServer):
         return [part]
 
 
-def error_on_nth_request(n, i, environ, start_response):
-    if i == n:
+def error_on_paths(paths, server, environ, start_response):
+    if (path := environ["PATH_INFO"].strip("/")) in paths:
+        # Once we error on a GET request serve it next time
+        if environ["REQUEST_METHOD"] == "GET":
+            paths.remove(path)
+        status = "404"
+        response_headers = [("Content-type", "text/plain")]
+        start_response(status, response_headers)
+        return [b""]
+
+
+def error_on_nth_get_request(n, server, environ, start_response):
+    if server.requests_by_method["GET"] == n:
         status = "404"
         response_headers = [("Content-type", "text/plain")]
         start_response(status, response_headers)

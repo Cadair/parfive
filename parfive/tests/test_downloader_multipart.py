@@ -1,7 +1,7 @@
 from functools import partial
 
 from parfive import Downloader
-from parfive.tests.localserver import error_on_nth_request
+from parfive.tests.localserver import error_on_nth_get_request
 from parfive.utils import MultiPartDownloadError
 
 
@@ -23,7 +23,7 @@ def test_multipart(multipartserver, tmp_path):
 
 
 def test_multipart_with_error(multipartserver, tmp_path):
-    multipartserver.callback = partial(error_on_nth_request, 3)
+    multipartserver.callback = partial(error_on_nth_get_request, 3)
     dl = Downloader(progress=False)
     max_splits = 5
     dl.enqueue_file(multipartserver.url, path=tmp_path, max_splits=max_splits)

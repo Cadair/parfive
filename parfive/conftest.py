@@ -2,12 +2,12 @@ from functools import partial
 
 import pytest
 
-from parfive.tests.localserver import MultiPartTestServer, SimpleTestServer, error_on_nth_request
+from parfive.tests.localserver import MultiPartTestServer, SimpleTestServer, error_on_paths
 
 
 @pytest.fixture
 def testserver():
-    server = SimpleTestServer(callback=partial(error_on_nth_request, 2))
+    server = SimpleTestServer(callback=partial(error_on_paths, ["testfile_2.txt"]))
     server.start_server()
     yield server
     server.stop_server()
