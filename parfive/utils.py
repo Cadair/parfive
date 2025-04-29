@@ -3,7 +3,7 @@ import hashlib
 import os
 import pathlib
 import warnings
-from collections.abc import Generator
+from collections.abc import AsyncIterator, Generator
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
 from itertools import count
@@ -256,7 +256,7 @@ async def cancel_task(task: asyncio.Task) -> bool:
 
 
 @asynccontextmanager
-async def session_head_or_get(session: aiohttp.ClientSession, url: str, **kwargs):
+async def session_head_or_get(session: aiohttp.ClientSession, url: str, **kwargs: dict) -> AsyncIterator:
     """
     Try and make a HEAD request to the resource and fallback to a get
     request if that fails.
