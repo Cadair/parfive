@@ -735,6 +735,12 @@ def test_server_user_algorithm_mismatch(httpserver, tmp_path, caplog):
         for m in caplog.messages
     )
 
+    first_headers = httpserver.requests[0].headers
+    assert "Want-Repr-Digest" in first_headers
+    assert "Want-Content-Digest" in first_headers
+    assert "sha-256=10" in first_headers["Want-Repr-Digest"]
+    assert "sha-256=10" in first_headers["Want-Content-Digest"]
+
 
 def test_explicit_checksum(namedserver, tmpdir):
     tmpdir = str(tmpdir)

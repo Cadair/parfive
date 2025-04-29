@@ -578,7 +578,7 @@ class Downloader:
                 # If the user has specified a checksum format as the
                 # server for that one with highest priority.
                 if isinstance(checksum, str):
-                    user_alg, _ = validate_checksum_format(checksum)
+                    user_alg = checksum.split("=")[0]
                     checksum_priority[user_alg] = 10
 
                 # As we are doing a HEAD / GET request for the whole
