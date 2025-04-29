@@ -588,7 +588,9 @@ class Downloader:
                     [f"{k}={v}" for k, v in checksum_priority.items()]
                 )
 
-            async with session_head_or_get(session, url, headers=request_headers, timeout=self.config.timeouts, **kwargs) as resp:
+            async with session_head_or_get(
+                session, url, headers=request_headers, timeout=self.config.timeouts, **kwargs
+            ) as resp:
                 parfive.log.debug(
                     "%s request made to %s with headers=%s",
                     resp.request_info.method,
