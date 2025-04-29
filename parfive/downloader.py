@@ -581,6 +581,9 @@ class Downloader:
                     user_alg, _ = validate_checksum_format(checksum)
                     checksum_priority[user_alg] = 10
 
+                # As we are doing a HEAD / GET request for the whole
+                # file, the Repr-Digest and Content-Digest headers
+                # should be the same, so use both.
                 request_headers["Want-Repr-Digest"] = request_headers["Want-Content-Digest"] = ", ".join(
                     [f"{k}={v}" for k, v in checksum_priority.items()]
                 )
@@ -600,7 +603,7 @@ class Downloader:
                 )
                 if resp.status < 200 or resp.status >= 300:
                     raise FailedDownload(filepath_partial, url, resp)
-                filepath, file_exists = get_filepath(filepath_partial(resp, url), overwrite)
+                filepath, use_local_file_if_possible = get_filepath(filepath_partial(resp, url), overwrite)
                 # Get the expected checksum from the headers
                 header_checksum: Union[str, None] = resp.headers.get(
                     "Repr-Digest", resp.headers.get("Content-Digest", None)
@@ -611,7 +614,7 @@ class Downloader:
                         parfive.log.info(
                             "Expected server to provide checksum for url '%s' but none returned.", url
                         )
-                if file_exists:
+                if use_local_file_if_possible:
                     if isinstance(checksum, str):
                         with filepath.open(mode="rb") as fobj:
                             checksum_matches = check_file_hash(fobj, checksum, accept_invalid_checksum=True)
