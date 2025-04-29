@@ -802,6 +802,9 @@ def test_invalid_checksum_enqueue():
     with pytest.raises(ValueError, match="checksum type 'nope' is not supported"):
         dl.enqueue_file("", checksum="nope=wibble")
 
+    with pytest.raises(ValueError, match="checksum type 'nope' is not supported"):
+        check_file_hash("", "nope=wibble")
+
 
 @pytest.mark.parametrize("checksum", ["nope=wibble", "wibble"])
 def test_invalid_server_checksum(httpserver, tmpdir, caplog, checksum):
