@@ -2,7 +2,6 @@ import os
 import platform
 import threading
 from pathlib import Path
-from tempfile import gettempdir
 from unittest import mock
 from unittest.mock import MagicMock, patch
 
@@ -246,7 +245,7 @@ def test_retrieve_some_content(testserver, tmpdir):
 
     nn = 5
     for i in range(nn):
-        dl.enqueue_file(testserver.url, path=tmpdir)
+        dl.enqueue_file(testserver.url + f"/testfile_{i}.txt", path=tmpdir)
 
     f = dl.download()
 
@@ -343,7 +342,7 @@ def test_retry(tmpdir, testserver):
 
     nn = 5
     for i in range(nn):
-        dl.enqueue_file(testserver.url + f"/{i}", path=tmpdir)
+        dl.enqueue_file(testserver.url + f"/testfile_{i}.txt", path=tmpdir)
 
     f = dl.download()
 
@@ -354,11 +353,10 @@ def test_retry(tmpdir, testserver):
 
     assert len(f2) == nn
     assert len(f2.errors) == 0
-    assert ["0", "1", "3", "4", "2"] == [url[-1] for url in f2.urls]
-    assert "testfile_1.txt" == Path(f2[0]).name
-    # there are two requests made per file one for size and one download?
-    # Todo change handler to use path to create name not request call count
-    assert "testfile_10.txt" == Path(f2[-1]).name
+    assert [f"testfile_{k}.txt" for k in ["0", "1", "3", "4", "2"]] == [f.split("/")[-1] for f in f2.urls]
+    assert "testfile_0.txt" == Path(f2[0]).name
+    assert "testfile_4.txt" == Path(f2[-2]).name
+    assert "testfile_2.txt" == Path(f2[-1]).name
 
 
 def test_empty_retry():
@@ -368,23 +366,20 @@ def test_empty_retry():
     dl.retry(f)
 
 
-def test_done_callback_error(tmpdir, testserver):
-    tmpdir = str(tmpdir)
-
+def test_done_callback_error(tmp_path, testserver):
     def done_callback(filepath, url, error):
         if error is not None:
-            (Path(gettempdir()) / "callback.error").touch()
+            (tmp_path / "callback.error").touch()
 
     dl = Downloader(config=SessionConfig(done_callbacks=[done_callback]))
 
-    nn = 5
-    for i in range(nn):
-        dl.enqueue_file(testserver.url, path=tmpdir)
+    dl.enqueue_file(testserver.url + "/testfile_2.txt", path=tmp_path)
 
     f = dl.download()
 
-    assert (Path(gettempdir()) / "callback.error").exists()
-    (Path(gettempdir()) / "callback.error").unlink()
+    assert len(f.errors) == 1
+
+    assert (tmp_path / "callback.error").exists()
 
 
 @skip_windows
@@ -498,9 +493,9 @@ def test_proxy_passed_as_kwargs_to_get(tmpdir, url, proxy):
 
     assert patched.called, "`ClientSession._request` not called"
     assert list(patched.call_args) == [
-        ("GET", url),
+        ("HEAD", url),
         {
-            "allow_redirects": True,
+            "allow_redirects": False,
             "timeout": ClientTimeout(total=0, connect=None, sock_read=90, sock_connect=None),
             "proxy": proxy,
         },
