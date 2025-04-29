@@ -657,7 +657,7 @@ def test_checksum_invalid(httpserver, tmpdir):
         "SIMPLE  = T",
         headers={
             "Content-Disposition": "attachment; filename=testfile.fits",
-            "Repr-Digest": "sha-256=XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+            "Content-Digest": "sha-256=XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
         },
     )
     dl = Downloader()
@@ -672,6 +672,32 @@ def test_checksum_invalid(httpserver, tmpdir):
     exception = f.errors[0].exception
     assert isinstance(exception, FailedDownload)
     assert "checksum doesn't match" in str(exception)
+
+
+def test_explict_checksum_priority(httpserver, tmpdir):
+    tmpdir = str(tmpdir)
+    httpserver.serve_content(
+        "SIMPLE  = T",
+        headers={
+            "Content-Disposition": "attachment; filename=testfile.fits",
+            "Repr-Digest": "sha-256=INVALID",
+        },
+    )
+    dl = Downloader()
+    dl = Downloader()
+
+    dl.enqueue_file(
+        httpserver.url,
+        path=Path(tmpdir),
+        max_splits=None,
+        checksum="sha-256=a1c58cd340e3bd33f94524076f1fa5cf9a7f13c59d5272a9d4bc0b5bc436d9b3",
+    )
+
+    assert dl.queued_downloads == 1
+
+    f = dl.download()
+
+    assert len(f.errors) == 0
 
 
 def test_explicit_checksum(namedserver, tmpdir):
@@ -765,3 +791,36 @@ def test_no_server_checksum(httpserver, tmpdir, caplog):
     assert len(f) == 1
 
     assert any("Expected server to provide checksum for url" in msg for msg in caplog.messages)
+
+
+def test_invalid_checksum_enqueue():
+    dl = Downloader()
+
+    with pytest.raises(ValueError, match="checksum 'wibble' should be of the format <algorithm>=<checksum>"):
+        dl.enqueue_file("", checksum="wibble")
+
+    with pytest.raises(ValueError, match="checksum type 'nope' is not supported"):
+        dl.enqueue_file("", checksum="nope=wibble")
+
+
+@pytest.mark.parametrize("checksum", ["nope=wibble", "wibble"])
+def test_invalid_server_checksum(httpserver, tmpdir, caplog, checksum):
+    caplog.set_level("ERROR")
+    tmpdir = str(tmpdir)
+    httpserver.serve_content(
+        "SIMPLE  = T",
+        headers={
+            "Content-Disposition": "attachment; filename=testfile.fits",
+            "Content-Digest": checksum,
+        },
+    )
+    dl = Downloader()
+
+    dl.enqueue_file(httpserver.url, path=Path(tmpdir), max_splits=None, checksum=True)
+
+    assert dl.queued_downloads == 1
+
+    f = dl.download()
+
+    assert len(f.errors) == 0
+    assert "Got invalid checksum:" in caplog.messages[0]

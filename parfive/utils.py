@@ -1,4 +1,6 @@
 import asyncio
+import hashlib
+import io
 import os
 import pathlib
 import typing
@@ -297,16 +299,30 @@ except ImportError:
         return digestobj
 
 
-# TODO: I don't know how to make this fileobj type hint pass
-def check_file_hash(fileobj: Any, checksum: str) -> bool:
-    """
-    Verify the contents of fileobj match the checksum provided by ``checksum``.
-    """
+def validate_checksum_format(checksum: str) -> tuple[str, str]:
     if "=" not in checksum:
-        raise ValueError(f"checksum {checksum} should be of the format <algorithm>=<checksum>")
+        raise ValueError(f"checksum '{checksum}' should be of the format <algorithm>=<checksum>")
     chk_alg, checksum = checksum.split("=")
     # Normalise the algorithm name to not have "-" as that might have wider support
     chk_alg = chk_alg.replace("-", "")
+    if chk_alg not in hashlib.algorithms_available:
+        raise ValueError(f"checksum type '{chk_alg}' is not supported.")
+    return chk_alg, checksum
+
+
+def check_file_hash(fileobj: io.BufferedReader, checksum: str, accept_invalid_checksum: bool = False) -> bool:
+    """
+    Verify the contents of fileobj match the checksum provided by ``checksum``.
+    """
+    try:
+        chk_alg, checksum = validate_checksum_format(checksum)
+    except ValueError as e:
+        if not accept_invalid_checksum:
+            raise
+        parfive.log.error("Got invalid checksum: %s", e)
+        # Allow invalid checksums to match
+        return True
+
     computed_file_hash = file_digest(fileobj, chk_alg).hexdigest()
     return computed_file_hash == checksum
 

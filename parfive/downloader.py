@@ -33,6 +33,7 @@ from .utils import (
     remove_file,
     run_task_in_thread,
     session_head_or_get,
+    validate_checksum_format,
 )
 
 try:
@@ -150,6 +151,7 @@ class Downloader:
         path: Union[str, os.PathLike, None] = None,
         filename: Union[str, Callable[[str, Optional[aiohttp.ClientResponse]], os.PathLike], None] = None,
         overwrite: Union[bool, Literal["unique"], None] = None,
+        checksum: Union[str, bool, None] = None,
         **kwargs,
     ):
         """
@@ -175,11 +177,21 @@ class Downloader:
             and the existing file will be overwritten, if `'unique'` the filename
             will be modified to be unique. If `None` the value set when
             constructing the `~parfive.Downloader` object will be used.
+        checksum
+            If given the downloaded file will be verified against the
+            given checksum.  The format of the checksum string should
+            be ``<algorithm>=<checksum>``, valid algorithms are
+            ``sha-512``, ``sha-256``, ``md5`` or ``sha``.  If ``True``
+            then where provided by the server (in the ``Repr-Digest``
+            or ``Content-Digest`` headers) the checksum will be
+            validated against the checksum returned by the server.
         kwargs : `dict`
             Extra keyword arguments are passed to `aiohttp.ClientSession.request`
             or `aioftp.Client.context` depending on the protocol.
         """
         overwrite = overwrite or self.config.overwrite
+        if isinstance(checksum, str):
+            validate_checksum_format(checksum)
 
         if path is None and filename is None:
             raise ValueError("Either path or filename must be specified.")
@@ -201,7 +213,12 @@ class Downloader:
 
         if scheme in ("http", "https"):
             get_file = partial(
-                self._get_http, url=url, filepath_partial=filepath, overwrite=overwrite, **kwargs
+                self._get_http,
+                url=url,
+                filepath_partial=filepath,
+                overwrite=overwrite,
+                checksum=checksum,
+                **kwargs,
             )
             self.http_queue.append(get_file)
         elif scheme == "ftp":
@@ -564,7 +581,7 @@ class Downloader:
                 if file_exists:
                     if isinstance(checksum, str):
                         with filepath.open(mode="rb") as fobj:
-                            checksum_matches = check_file_hash(fobj, checksum)
+                            checksum_matches = check_file_hash(fobj, checksum, accept_invalid_checksum=True)
                         if checksum_matches:
                             parfive.log.debug(
                                 "File %s already exists, checksum matches and overwrite is False; skipping download.",
@@ -643,7 +660,9 @@ class Downloader:
             await downloaded_chunk_queue.join()
 
             with filepath.open(mode="rb") as fobj:
-                if isinstance(checksum, str) and not check_file_hash(fobj, checksum):
+                if isinstance(checksum, str) and not check_file_hash(
+                    fobj, checksum, accept_invalid_checksum=True
+                ):
                     raise FailedDownload(
                         filepath, url, ChecksumMismatch("Downloaded checksum doesn't match.")
                     )
