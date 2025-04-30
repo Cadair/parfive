@@ -1,7 +1,9 @@
 import asyncio
 import hashlib
+import io
 import os
 import pathlib
+import typing
 import warnings
 from collections.abc import AsyncIterator, Generator
 from concurrent.futures import ThreadPoolExecutor
@@ -151,19 +153,6 @@ def get_filepath(filepath: os.PathLike, overwrite: Union[bool, Literal["unique"]
     return filepath, False
 
 
-def sha256sum(filename: str) -> str:
-    """
-    https://stackoverflow.com/a/44873382
-    """
-    h = hashlib.sha256()
-    b = bytearray(128 * 1024)
-    mv = memoryview(b)
-    with open(filename, "rb", buffering=0) as f:
-        for n in iter(lambda: f.readinto(mv), 0):
-            h.update(mv[:n])
-    return h.hexdigest()
-
-
 class MultiPartDownloadError(Exception):
     def __init__(self, response: aiohttp.ClientResponse) -> None:
         self.response = response
@@ -183,6 +172,10 @@ class FailedDownload(Exception):
 
     def __str__(self) -> str:
         return f"Download Failed: {self.url} with error {self.exception!s}"
+
+
+class ChecksumMismatch(Exception):
+    """Used when a checksum doesn't match."""
 
 
 class Token:
@@ -253,6 +246,85 @@ async def cancel_task(task: asyncio.Task) -> bool:
     except asyncio.CancelledError:
         return True
     return task.cancelled()
+
+
+try:
+    # Python 3.11 added file_digest
+    from hashlib import file_digest
+except ImportError:
+    import hashlib
+
+    # Copied from the stdlib
+    @typing.no_type_check
+    def file_digest(fileobj, digest, /, *, _bufsize=2**18):
+        """
+        Hash the contents of a file-like object. Returns a digest object.
+
+        *fileobj* must be a file-like object opened for reading in binary mode.
+        It accepts file objects from open(), io.BytesIO(), and SocketIO objects.
+        The function may bypass Python's I/O and use the file descriptor *fileno*
+        directly.
+
+        *digest* must either be a hash algorithm name as a *str*, a hash
+        constructor, or a callable that returns a hash object.
+        """
+        # On Linux we could use AF_ALG sockets and sendfile() to archive zero-copy
+        # hashing with hardware acceleration.
+        if isinstance(digest, str):
+            digestobj = hashlib.new(digest)
+        else:
+            digestobj = digest()
+
+        if hasattr(fileobj, "getbuffer"):
+            # io.BytesIO object, use zero-copy buffer
+            digestobj.update(fileobj.getbuffer())
+            return digestobj
+
+        # Only binary files implement readinto().
+        if not (hasattr(fileobj, "readinto") and hasattr(fileobj, "readable") and fileobj.readable()):
+            raise ValueError(f"'{fileobj!r}' is not a file-like object in binary reading mode.")
+
+        # binary file, socket.SocketIO object
+        # Note: socket I/O uses different syscalls than file I/O.
+        buf = bytearray(_bufsize)  # Reusable buffer to reduce allocations.
+        view = memoryview(buf)
+        while True:
+            size = fileobj.readinto(buf)
+            if size is None:
+                raise BlockingIOError("I/O operation would block.")
+            if size == 0:
+                break  # EOF
+            digestobj.update(view[:size])
+
+        return digestobj
+
+
+def validate_checksum_format(checksum: str) -> tuple[str, str]:
+    if "=" not in checksum:
+        raise ValueError(f"checksum '{checksum}' should be of the format <algorithm>=<checksum>")
+    chk_alg, checksum = checksum.split("=")
+    # Normalise the algorithm name to not have "-" as that might have wider support
+    chk_alg = chk_alg.replace("-", "")
+    if chk_alg not in hashlib.algorithms_available:
+        raise ValueError(f"checksum type '{chk_alg}' is not supported.")
+    return chk_alg, checksum
+
+
+def check_file_hash(fileobj: io.BufferedReader, checksum: str, accept_invalid_checksum: bool = False) -> bool:
+    """
+    Verify the contents of fileobj match the checksum provided by ``checksum``.
+    """
+    try:
+        chk_alg, checksum = validate_checksum_format(checksum)
+    except ValueError as e:
+        if not accept_invalid_checksum:
+            raise
+        parfive.log.error("Got invalid checksum: %s", e)
+        # Allow invalid checksums to match
+        return True
+
+    computed_file_hash = file_digest(fileobj, chk_alg).hexdigest()
+    return computed_file_hash == checksum
 
 
 @asynccontextmanager

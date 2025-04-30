@@ -6,6 +6,14 @@ from parfive.tests.localserver import MultiPartTestServer, SimpleTestServer, err
 
 
 @pytest.fixture
+def namedserver():
+    server = SimpleTestServer()
+    server.start_server()
+    yield server
+    server.stop_server()
+
+
+@pytest.fixture
 def testserver():
     server = SimpleTestServer(callback=partial(error_on_paths, ["testfile_2.txt"]))
     server.start_server()
