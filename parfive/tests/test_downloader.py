@@ -747,14 +747,14 @@ def test_explicit_checksum(namedserver, tmpdir):
     dl = Downloader()
 
     dl.enqueue_file(
-        namedserver.url,
+        namedserver.url + "/testfile.txt",
         path=Path(tmpdir),
         max_splits=None,
         checksum="sha-256=0ba904eae8773b70c75333db4de2f3ac45a8ad4ddba1b242f0b3cfc199391dd8",
     )
 
     dl.enqueue_file(
-        namedserver.url,
+        namedserver.url + "/testfile.txt",
         path=Path(tmpdir),
         max_splits=None,
         checksum="sha-256=XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
@@ -765,7 +765,7 @@ def test_explicit_checksum(namedserver, tmpdir):
     f = dl.download()
 
     assert len(f) == 1
-    assert f.urls[0] == namedserver.url
+    assert f.urls[0] == namedserver.url + "/testfile.txt"
 
     assert len(f.errors) == 1
     exception = f.errors[0].exception
