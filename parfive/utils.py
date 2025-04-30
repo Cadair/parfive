@@ -334,7 +334,7 @@ async def session_head_or_get(session: aiohttp.ClientSession, url: str, **kwargs
     request if that fails.
     """
     async with session.head(url, **kwargs) as resp:
-        if resp.ok:
+        if resp.status == 200:
             yield resp
             return
 
