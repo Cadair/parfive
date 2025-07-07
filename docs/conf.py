@@ -4,8 +4,6 @@ Configuration file for the Sphinx documentation builder.
 isort:skip_file
 """
 
-# flake8: NOQA: E402
-
 # -- stdlib imports ------------------------------------------------------------
 from parfive import __version__
 import datetime
