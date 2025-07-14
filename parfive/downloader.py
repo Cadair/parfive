@@ -91,7 +91,7 @@ class Downloader:
         self.tqdm = tqdm_auto
         if self.config.notebook is not None:
             if self.config.notebook is True:
-                from tqdm.notebook import tqdm as tqdm_notebook
+                from tqdm.notebook import tqdm as tqdm_notebook  # noqa: PLC0415
 
                 self.tqdm = tqdm_notebook
             elif self.config.notebook is False:
@@ -780,7 +780,7 @@ class Downloader:
             await self._blocking_write_worker(queue, file_pb, filepath)
 
     async def _async_write_worker(self, queue, file_pb, filepath):
-        import aiofiles
+        import aiofiles  # noqa: PLC0415
 
         async with aiofiles.open(filepath, mode="wb") as f:
             while True:

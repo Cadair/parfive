@@ -39,6 +39,8 @@ def test_aiofiles_session_config():
 
 @patch("parfive.config.SessionConfig._aiofiles_importable", lambda self: False)
 def test_aiofiles_session_config_no_aiofiles_warn():
-    with pytest.warns(ParfiveUserWarning):
+    with pytest.warns(
+        ParfiveUserWarning, match="Can not use aiofiles even though use_aiofiles is set to True"
+    ):
         c = SessionConfig(use_aiofiles=True)
-        assert c.use_aiofiles is False
+    assert c.use_aiofiles is False
