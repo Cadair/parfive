@@ -19,3 +19,5 @@ repos:
     - id: check-added-large-files
     - id: end-of-file-fixer
     - id: mixed-line-ending
+ci:
+  autoupdate_schedule: 'monthly'
