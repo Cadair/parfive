@@ -317,8 +317,7 @@ class Downloader:
                     task.cancel()
                 dl_results = await asyncio.gather(*tasks, return_exceptions=True)
 
-            finally:
-                return self._format_results(dl_results, main_pb)
+            return self._format_results(dl_results, main_pb)
 
     def _format_results(self, retvals, main_pb):
         # Squash all nested lists into a single flat list
