@@ -447,7 +447,7 @@ class Downloader:
 
             try:
                 # Wait for all the coroutines to finish
-                done, _ = await asyncio.wait(futures)
+                _done, _ = await asyncio.wait(futures)
             except asyncio.CancelledError:
                 for task in futures:
                     task.cancel()
@@ -463,7 +463,7 @@ class Downloader:
 
         try:
             # Wait for all the coroutines to finish
-            done, _ = await asyncio.wait(futures)
+            _done, _ = await asyncio.wait(futures)
         except asyncio.CancelledError:
             for task in futures:
                 task.cancel()
@@ -733,7 +733,7 @@ class Downloader:
 
             return url, str(filepath)
 
-        except (Exception, asyncio.CancelledError) as e:
+        except (Exception, asyncio.CancelledError) as e:  # noqa: BLE001
             for task in tasks:
                 task.cancel()
             # We have to cancel the writer here before we try and remove the
@@ -954,7 +954,7 @@ class Downloader:
 
                     return url, str(filepath)
 
-        except (Exception, asyncio.CancelledError) as e:
+        except (Exception, asyncio.CancelledError) as e:  # noqa: BLE001
             if writer is not None:
                 await cancel_task(writer)
                 writer = None
