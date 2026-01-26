@@ -25,12 +25,12 @@ jobs:
     uses: OpenAstronomy/github-actions-workflows/.github/workflows/tox.yml@v1
     with:
       envs: |
-        - linux: py39
-        - macos: py310
-        - windows: py311
-        - linux: py312
-        - linux: py313
-        - linux: py313-devdeps
+        - linux: py310
+        - linux: py311
+        - macos: py312
+        - windows: py313
+        - linux: py314
+        - linux: py314-devdeps
         - linux: py312-conda
           toxdeps: tox-conda
         - linux: mypy
