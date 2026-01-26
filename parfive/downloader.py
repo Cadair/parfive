@@ -317,8 +317,7 @@ class Downloader:
                     task.cancel()
                 dl_results = await asyncio.gather(*tasks, return_exceptions=True)
 
-            finally:
-                return self._format_results(dl_results, main_pb)
+            return self._format_results(dl_results, main_pb)
 
     def _format_results(self, retvals, main_pb):
         # Squash all nested lists into a single flat list
@@ -448,7 +447,7 @@ class Downloader:
 
             try:
                 # Wait for all the coroutines to finish
-                done, _ = await asyncio.wait(futures)
+                _done, _ = await asyncio.wait(futures)
             except asyncio.CancelledError:
                 for task in futures:
                     task.cancel()
@@ -464,7 +463,7 @@ class Downloader:
 
         try:
             # Wait for all the coroutines to finish
-            done, _ = await asyncio.wait(futures)
+            _done, _ = await asyncio.wait(futures)
         except asyncio.CancelledError:
             for task in futures:
                 task.cancel()
@@ -734,7 +733,7 @@ class Downloader:
 
             return url, str(filepath)
 
-        except (Exception, asyncio.CancelledError) as e:
+        except (Exception, asyncio.CancelledError) as e:  # noqa: BLE001
             for task in tasks:
                 task.cancel()
             # We have to cancel the writer here before we try and remove the
@@ -955,7 +954,7 @@ class Downloader:
 
                     return url, str(filepath)
 
-        except (Exception, asyncio.CancelledError) as e:
+        except (Exception, asyncio.CancelledError) as e:  # noqa: BLE001
             if writer is not None:
                 await cancel_task(writer)
                 writer = None

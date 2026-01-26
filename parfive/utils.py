@@ -67,7 +67,7 @@ def default_name(path: os.PathLike, resp: aiohttp.ClientResponse, url: str) -> o
     if resp:
         cdheader = resp.headers.get("Content-Disposition", None)
         if cdheader:
-            value, params = parse_header(cdheader)
+            _value, params = parse_header(cdheader)
             name = params.get("filename", url_filename)
         else:
             name = url_filename
