@@ -869,3 +869,16 @@ def test_invalid_server_checksum(httpserver, tmpdir, caplog, checksum):
 
     assert len(f.errors) == 0
     assert "Got invalid checksum:" in caplog.messages[0]
+
+
+@pytest.mark.parametrize(
+    "url", ["https://gong2.nso.edu/oQR/zqs/201912/mrzqs191231/mrzqs191231t2304c2225_011.fits.gz"]
+)
+@pytest.mark.allow_hosts(True)
+def test_problematic_http_urls(url, tmpdir):
+    """
+    This test checks that certain URLs which have caused trouble continue to work.
+    """
+    res = Downloader.simple_download([url], path=tmpdir)
+    assert len(res) == 1, res.errors
+    assert not res.errors

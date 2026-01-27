@@ -338,7 +338,8 @@ async def session_head_or_get(session: aiohttp.ClientSession, url: str, **kwargs
             if resp.status == 200:
                 yield resp
                 return
-    except Exception:  # noqa: BLE001
+    # Catch the situation where the server just ignores the HEAD request
+    except aiohttp.client_exceptions.ServerDisconnectedError:
         pass
 
     async with session.get(url, **kwargs) as resp:
