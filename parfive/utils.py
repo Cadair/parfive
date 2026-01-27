@@ -333,10 +333,14 @@ async def session_head_or_get(session: aiohttp.ClientSession, url: str, **kwargs
     Try and make a HEAD request to the resource and fallback to a get
     request if that fails.
     """
-    async with session.head(url, **kwargs) as resp:
-        if resp.status == 200:
-            yield resp
-            return
+    try:
+        async with session.head(url, **kwargs) as resp:
+            if resp.status == 200:
+                yield resp
+                return
+    # Catch the situation where the server just ignores the HEAD request
+    except aiohttp.client_exceptions.ServerDisconnectedError:
+        pass
 
     async with session.get(url, **kwargs) as resp:
         yield resp
