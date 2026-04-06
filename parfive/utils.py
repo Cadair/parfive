@@ -63,7 +63,7 @@ def parse_header(line: str) -> tuple[str, dict[str, str]]:
 
 
 def default_name(path: os.PathLike, resp: aiohttp.ClientResponse, url: str) -> os.PathLike:
-    url_filename = url.split("/")[-1]
+    url_filename = url.rsplit("/", maxsplit=1)[-1]
     if resp:
         cdheader = resp.headers.get("Content-Disposition", None)
         if cdheader:
