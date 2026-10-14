@@ -1,6 +1,6 @@
 [build-system]
 requires = [
-  "setuptools>=62.1",
+  "setuptools>=77",
   "setuptools_scm[toml]>=8.0.0",
   "wheel",
 ]
@@ -11,7 +11,8 @@ name = "parfive"
 description = "A HTTP and FTP parallel file downloader."
 requires-python = ">=3.10"
 readme = { file = "README.rst", content-type = "text/x-rst" }
-license = { file = "LICENSE" }
+license = "MIT"
+license-files = ["LICENSE"]
 authors = [
   { name = "Stuart Mumford", email = "stuart@cadair.com" },
 ]
