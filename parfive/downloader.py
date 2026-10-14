@@ -7,8 +7,9 @@ import signal
 import threading
 import urllib.parse
 import warnings
+from collections.abc import Callable
 from functools import partial, reduce
-from typing import Any, Callable, Literal, Optional, Union
+from typing import Any, Literal
 
 import aiohttp
 from tqdm import tqdm as tqdm_std
@@ -74,8 +75,8 @@ class Downloader:
         max_conn: int = 5,
         max_splits: int = 5,
         progress: bool = True,
-        overwrite: Union[bool, Literal["unique"]] = False,
-        config: Optional[SessionConfig] = None,
+        overwrite: bool | Literal["unique"] = False,
+        config: SessionConfig | None = None,
     ):
         self.config = DownloaderConfig(
             max_conn=max_conn,
@@ -148,10 +149,10 @@ class Downloader:
     def enqueue_file(
         self,
         url: str,
-        path: Union[str, os.PathLike, None] = None,
-        filename: Union[str, Callable[[str, Optional[aiohttp.ClientResponse]], os.PathLike], None] = None,
-        overwrite: Union[bool, Literal["unique"], None] = None,
-        checksum: Union[str, bool, None] = None,
+        path: str | os.PathLike | None = None,
+        filename: str | Callable[[str, aiohttp.ClientResponse | None], os.PathLike] | None = None,
+        overwrite: bool | Literal["unique"] | None = None,
+        checksum: str | bool | None = None,
         **kwargs,
     ):
         """
@@ -217,7 +218,7 @@ class Downloader:
             path = "./"
 
         path = pathlib.Path(path)
-        filepath: Callable[[str, Optional[aiohttp.ClientResponse]], os.PathLike]
+        filepath: Callable[[str, aiohttp.ClientResponse | None], os.PathLike]
         if not filename:
             filepath = partial(default_name, path)
         elif callable(filename):
@@ -503,12 +504,12 @@ class Downloader:
         *,
         url: str,
         filepath_partial: Callable,
-        chunksize: Union[int, None] = None,
-        file_pb: Union[tqdm_std, bool, None] = None,
+        chunksize: int | None = None,
+        file_pb: tqdm_std | bool | None = None,
         token: Token,
-        overwrite: Union[bool, Literal["unique"]],
-        max_splits: Union[int, None] = None,
-        checksum: Union[str, bool, None] = None,
+        overwrite: bool | Literal["unique"],
+        max_splits: int | None = None,
+        checksum: str | bool | None = None,
         **kwargs: dict[str, Any],
     ) -> tuple[str, str]:
         """
@@ -606,7 +607,7 @@ class Downloader:
                     raise FailedDownload(filepath_partial, url, resp)
                 filepath, use_local_file_if_possible = get_filepath(filepath_partial(resp, url), overwrite)
                 # Get the expected checksum from the headers
-                header_checksum: Union[str, None] = resp.headers.get(
+                header_checksum: str | None = resp.headers.get(
                     "Repr-Digest", resp.headers.get("Content-Digest", None)
                 )
                 if checksum is True:
@@ -682,7 +683,7 @@ class Downloader:
                 ):
                     content_length = int(resp.headers["Content-length"])
                     split_length = max(1, content_length // max_splits)
-                    ranges: list[list[Union[int, str]]] = [
+                    ranges: list[list[int | str]] = [
                         [start, start + split_length] for start in range(0, content_length, split_length)
                     ]
                     # let the last part download everything

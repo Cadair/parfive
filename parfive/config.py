@@ -2,15 +2,9 @@ import importlib.util
 import os
 import platform
 import warnings
-from collections.abc import Iterable
-from typing import Callable, Optional, Union
-
-try:
-    from typing import Literal  # Added in Python 3.8
-except ImportError:
-    from typing_extensions import Literal  # type: ignore
-
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
+from typing import Literal
 
 import aiohttp
 
@@ -71,17 +65,17 @@ class SessionConfig:
     Configuration options for `parfive.Downloader`.
     """
 
-    http_proxy: Optional[str] = None
+    http_proxy: str | None = None
     """
     The URL of a proxy to use for HTTP requests. Will default to the value of
     the ``HTTP_PROXY`` env var.
     """
-    https_proxy: Optional[str] = None
+    https_proxy: str | None = None
     """
     The URL of a proxy to use for HTTPS requests. Will default to the value of
     the ``HTTPS_PROXY`` env var.
     """
-    headers: Optional[dict[str, str]] = field(default_factory=_default_headers)
+    headers: dict[str, str] | None = field(default_factory=_default_headers)
     """
     Headers to be passed to all requests made by this session. These headers
     are passed to the `aiohttp.ClientSession` along with
@@ -102,18 +96,18 @@ class SessionConfig:
     are shown) for every file, in addition for one showing progress of
     downloading all file.
     """
-    notebook: Union[bool, None] = None
+    notebook: bool | None = None
     """
     Override automatic detection of Jupyter notebook for drawing progress bars.
     If `None` `tqdm` will automatically detect if it can draw rich notebook
     progress bars. If `False` or `True` notebook mode will be forced
     off or on.
     """
-    log_level: Optional[str] = None
+    log_level: str | None = None
     """
     If not `None` configure the logger to log to stderr with this log level.
     """
-    use_aiofiles: Optional[bool] = False
+    use_aiofiles: bool | None = False
     """
     Enables using `aiofiles` to write files to disk in their own thread pool.
 
@@ -123,7 +117,7 @@ class SessionConfig:
     ``PARFIVE_OVERWRITE_ENABLE_AIOFILES`` environment variable. If `aiofiles`
     can not be imported then this will be set to `False`.
     """
-    timeouts: Optional[aiohttp.ClientTimeout] = None
+    timeouts: aiohttp.ClientTimeout | None = None
     """
     The `aiohttp.ClientTimeout` object to control the timeouts used for all
     HTTP requests.
@@ -133,7 +127,7 @@ class SessionConfig:
     overridden by the ``PARFIVE_TOTAL_TIMEOUT`` and
     ``PARFIVE_SOCK_READ_TIMEOUT`` environment variables.
     """
-    aiohttp_session_generator: Optional[Callable[["SessionConfig"], aiohttp.ClientSession]] = None
+    aiohttp_session_generator: Callable[["SessionConfig"], aiohttp.ClientSession] | None = None
     """
     A function to override the generation of the `aiohttp.ClientSession` object.
 
@@ -145,7 +139,7 @@ class SessionConfig:
     """
     env: EnvConfig = field(default_factory=EnvConfig)
 
-    done_callbacks: Iterable[Callable[[str, str, Optional[Exception]], None]] = ()
+    done_callbacks: Iterable[Callable[[str, str, Exception | None], None]] = ()
     """
     A list of functions to be called when a download is completed.
 
@@ -195,8 +189,8 @@ class DownloaderConfig:
     max_conn: int = 5
     max_splits: int = 5
     progress: bool = True
-    overwrite: Union[bool, Literal["unique"]] = False
-    config: Optional[SessionConfig] = field(default_factory=SessionConfig)
+    overwrite: bool | Literal["unique"] = False
+    config: SessionConfig | None = field(default_factory=SessionConfig)
     env: EnvConfig = field(default_factory=EnvConfig)
 
     def __post_init__(self):

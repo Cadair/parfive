@@ -5,12 +5,12 @@ import os
 import pathlib
 import typing
 import warnings
-from collections.abc import AsyncIterator, Generator
+from collections.abc import AsyncIterator, Callable, Generator
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
 from itertools import count
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Literal, TypeVar, Union
+from typing import TYPE_CHECKING, Any, Literal, TypeVar
 
 import aiohttp
 
@@ -107,7 +107,7 @@ async def get_ftp_size(client: "aioftp.Client", filepath: os.PathLike) -> int:
     return int(size) if size else size
 
 
-def get_http_size(resp: aiohttp.ClientResponse) -> Union[int, str, None]:
+def get_http_size(resp: aiohttp.ClientResponse) -> int | str | None:
     size = resp.headers.get("content-length", None)
     return int(size) if size else size
 
@@ -133,7 +133,7 @@ def replacement_filename(path: os.PathLike) -> Path:  # type: ignore[return]
             return new_path
 
 
-def get_filepath(filepath: os.PathLike, overwrite: Union[bool, Literal["unique"]]) -> tuple[Path, bool]:
+def get_filepath(filepath: os.PathLike, overwrite: bool | Literal["unique"]) -> tuple[Path, bool]:
     """
     Get the filepath to download to and ensure dir exists.
 
@@ -159,7 +159,7 @@ class MultiPartDownloadError(Exception):
 
 
 class FailedDownload(Exception):
-    def __init__(self, filepath_partial: Union[Path, Callable], url: str, exception: BaseException) -> None:
+    def __init__(self, filepath_partial: Path | Callable, url: str, exception: BaseException) -> None:
         self.filepath_partial = filepath_partial
         self.url = url
         self.exception = exception
