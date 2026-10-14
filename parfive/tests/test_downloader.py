@@ -1,3 +1,4 @@
+import asyncio
 import os
 import platform
 import threading
@@ -875,10 +876,50 @@ def test_invalid_server_checksum(httpserver, tmpdir, caplog, checksum):
     "url", ["https://gong2.nso.edu/oQR/zqs/201912/mrzqs191231/mrzqs191231t2304c2225_011.fits.gz"]
 )
 @pytest.mark.allow_hosts(True)
+@pytest.mark.skipif(bool(os.environ.get("CI")), reason="gong2.nso.edu doesn't answer GitHub's runners")
 def test_problematic_http_urls(url, tmpdir):
     """
     This test checks that certain URLs which have caused trouble continue to work.
     """
     res = Downloader.simple_download([url], path=tmpdir)
+    # Skip rather than fail where the server can't be reached
+    if res.errors and isinstance(res.errors[0].exception, aiohttp.ClientConnectorError):
+        pytest.skip(f"Can not connect to {url}: {res.errors[0].exception}")
     assert len(res) == 1, res.errors
     assert not res.errors
+
+
+def download_recording_event_loops(dl):
+    """
+    Run ``dl.download()`` and return it along with the event loops it created.
+    """
+    loops = []
+    new_event_loop = asyncio.new_event_loop
+
+    def record_new_event_loop():
+        loops.append(new_event_loop())
+        return loops[-1]
+
+    with patch("asyncio.new_event_loop", record_new_event_loop):
+        return dl.download(), loops
+
+
+def test_download_closes_its_event_loop(namedserver, tmp_path):
+    dl = Downloader(progress=False)
+    dl.enqueue_file(f"{namedserver.url}/testfile.txt", path=tmp_path)
+    _, loops = download_recording_event_loops(dl)
+
+    assert len(loops) == 1
+    assert loops[0].is_closed()
+
+
+@pytest.mark.asyncio
+async def test_download_from_running_event_loop(namedserver, tmp_path):
+    # With a loop already running (e.g. in a notebook) download() runs its own loop in a thread
+    dl = Downloader(progress=False)
+    dl.enqueue_file(f"{namedserver.url}/testfile.txt", path=tmp_path)
+    files, loops = download_recording_event_loops(dl)
+
+    assert list(files) == [str(tmp_path / "testfile.txt")]
+    assert len(loops) == 1
+    assert loops[0].is_closed()

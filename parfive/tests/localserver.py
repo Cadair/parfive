@@ -32,10 +32,9 @@ class BaseTestServer(abc.ABC):
         self.requests.append(environ)
         callback_return = self.callback_handler(environ, start_response)
         self.requests_by_method[environ["REQUEST_METHOD"]] += 1
-        if callback_return:
-            return callback_return
-
-        return self.default_request_handler(environ, start_response)
+        response = callback_return or self.default_request_handler(environ, start_response)
+        # A response to a HEAD request must not have a body; aiohttp>=3.14 rejects it.
+        return [] if environ["REQUEST_METHOD"] == "HEAD" else response
 
     @abc.abstractmethod
     def default_request_handler(self, environ, start_response):

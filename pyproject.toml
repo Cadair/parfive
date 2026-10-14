@@ -42,6 +42,7 @@ tests = [
     "pytest-localserver",
     "pytest-asyncio",
     "pytest-socket",
+    "pytest-timeout",
     "pytest-cov",
     "aiofiles",
 ]

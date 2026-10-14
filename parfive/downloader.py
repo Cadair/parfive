@@ -287,11 +287,13 @@ class Downloader:
         # Add handlers for shutdown signals
         self._add_shutdown_signals(loop, task)
 
-        # Execute the task
-        if should_run_in_thread:
-            return run_task_in_thread(loop, task)
-
-        return loop.run_until_complete(task)
+        # Execute the task, then close the loop we made for it
+        try:
+            if should_run_in_thread:
+                return run_task_in_thread(loop, task)
+            return loop.run_until_complete(task)
+        finally:
+            loop.close()
 
     async def run_download(self):
         """
