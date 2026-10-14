@@ -64,7 +64,7 @@ def parse_args(args):
         const=True,
         default=False,
         dest="no_progress",
-        help="Show progress indicators during download.",
+        help="Don't show progress indicators during download.",
     )
     parser.add_argument(
         "--no-file-progress",
@@ -72,7 +72,7 @@ def parse_args(args):
         const=True,
         default=False,
         dest="no_file_progress",
-        help="Show progress bar for each file.",
+        help="Don't show a progress bar for each file.",
     )
     parser.add_argument(
         "--print-filenames",
@@ -80,7 +80,7 @@ def parse_args(args):
         const=True,
         default=False,
         dest="print_filenames",
-        help="Print successfully downloaded files's names to stdout.",
+        help="Print the names of successfully downloaded files to stdout.",
     )
     parser.add_argument(
         "--verbose",
